@@ -1,9 +1,7 @@
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 
-// `typescript` resolves to the TypeScript 6 API (`@typescript/typescript6`)
-// because typescript-eslint cannot load TypeScript 7 yet. `tsc` is TypeScript 7
-// via the `@typescript/native` alias.
+// TypeScript is held at 6.0.x: typescript-eslint 8.73 supports `typescript <6.1`.
 export default tseslint.config(
   {
     ignores: ["dist/**", "node_modules/**", "coverage/**"],
