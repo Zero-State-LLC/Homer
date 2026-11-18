@@ -2,6 +2,8 @@
 
 Types and validators for HOME integration contracts.
 
+Run `npm run build` from the repository root before importing the package in Node.
+
 Schemas are loaded from `specs/integration-contracts/` at runtime. They are not copied into this package.
 
 - `validateActivityEvent`, `validateWorkRequest`, and `validateFactoryEvent` return `{ ok: true, value }` or `{ ok: false, errors }`.
