@@ -1,0 +1,20 @@
+name: New change stream (intent)
+description: Propose a change stream. The intent file is stage 0; a human accepts it before specify.
+labels: ["intent"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and why now
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Observable done
+    validations:
+      required: true
+  - type: input
+    id: linear
+    attributes:
+      label: Linear Task (ZER-N), if one exists

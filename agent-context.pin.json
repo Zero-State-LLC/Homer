@@ -1,0 +1,12 @@
+{
+  "repository": "Zero-State-LLC/agent-context",
+  "commit": "7d4c26c2f9ddf15daf5890de9674e5ba00ac9d9b",
+  "pinnedAt": "2026-11-18",
+  "files": {
+    "scripts/check-agents-md.sh": "b5e404525b7bfa8d39d9e99f898333c7112e6e928c8f328e8899c4f82e2788d1",
+    "templates/intent.md.template": "4b014bdb7e2c031ab19e3ac34065edd9b7c60c402e594b9819d53a5c83ae7bc2",
+    "templates/AGENTS.md.template": "3204c60891e9f30caba59ddff6e25aee670484274737795cc5d76a13c3e9b6d3",
+    "templates/CLAUDE.md.template": "dec3d076a88ad2f847ffe6c0008bfd0dd7da92851fb0dc759fd263a44c251cb0",
+    "skills/zero-state-context/SKILL.md": "d2ee3938b0f31724f4b2419588fbe89353d82a07c53f089c1273a6575adaf1d8"
+  }
+}

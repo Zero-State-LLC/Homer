@@ -1,0 +1,16 @@
+name: Defect in tests or CI
+description: A test, validator or CI check looks wrong (AGENTS.md Escalation). Do not patch it to green.
+labels: ["defect"]
+body:
+  - type: textarea
+    id: check
+    attributes:
+      label: Which check, and what is wrong with it
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence (run link, head SHA, output)
+    validations:
+      required: true
