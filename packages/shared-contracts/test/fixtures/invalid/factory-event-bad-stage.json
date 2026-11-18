@@ -1,0 +1,10 @@
+{
+  "contract": "home.factory-event/v1",
+  "packetId": "WP-2026-11-18-home-contracts",
+  "type": "stage_changed",
+  "at": "2026-11-18T17:00:00Z",
+  "repository": "Zero-State-LLC/home",
+  "from": "intake",
+  "to": "ship",
+  "reason": "intake accepted"
+}

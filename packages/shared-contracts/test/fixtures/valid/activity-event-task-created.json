@@ -1,0 +1,20 @@
+{
+  "contract": "home.activity-event/v1",
+  "eventKey": "linear:task.created:ZER-9",
+  "kind": "task.created",
+  "occurredAt": "2026-11-18T12:00:00Z",
+  "actor": {
+    "sourceAccount": "linear:user_123"
+  },
+  "taskId": "ZER-9",
+  "projectId": "project:home",
+  "subject": "Linear created task ZER-9",
+  "provenance": {
+    "sourceSystem": "linear",
+    "sourceObjectId": "ZER-9",
+    "sourceUrl": "https://linear.app/zer0state/issue/ZER-9",
+    "collector": "linear-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-18T12:00:01Z"
+  }
+}

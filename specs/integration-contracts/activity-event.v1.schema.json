@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/activity-event/v1",
+  "title": "Activity Event",
+  "description": "An immutable record that something happened in a Source System, with Provenance. A Collector appends it to the Event Ledger.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "eventKey", "kind", "occurredAt", "actor", "subject", "provenance"],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.activity-event/v1"
+    },
+    "eventKey": {
+      "type": "string",
+      "pattern": "^(github|linear|control-room|software-factory):[a-z_.]+:[A-Za-z0-9._:/#@-]{1,200}$",
+      "description": "Event Key. The prefix before the first colon is the Source System and must equal provenance.sourceSystem."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "commit.pushed",
+        "pull_request.opened",
+        "pull_request.reviewed",
+        "pull_request.merged",
+        "pull_request.closed",
+        "ci.completed",
+        "deployment.completed",
+        "task.created",
+        "task.status_changed",
+        "task.assigned",
+        "work_session.started",
+        "work_session.ended",
+        "handoff.recorded",
+        "milestone.planned",
+        "milestone.completed",
+        "blocker.raised",
+        "blocker.cleared",
+        "factory.stage_changed",
+        "factory.verdict_recorded"
+      ]
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
+      "description": "When it happened, UTC, ending in Z."
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceAccount"],
+      "description": "sourceAccount is always the raw account. actorId and actorKind are set only from an Identity Binding.",
+      "properties": {
+        "sourceAccount": {
+          "type": "string",
+          "description": "Raw source account, for example github:octocat."
+        },
+        "actorId": {
+          "type": "string",
+          "pattern": "^actor:[a-z0-9-]+$"
+        },
+        "actorKind": {
+          "type": "string",
+          "enum": ["human", "agent", "system", "unknown"]
+        }
+      }
+    },
+    "projectId": {
+      "type": "string",
+      "pattern": "^project:[a-z0-9-]+$"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^Zero-State-LLC/[A-Za-z0-9._-]+$"
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^ZER-[0-9]+$"
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Human-readable title. Untrusted text."
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceSystem",
+        "sourceObjectId",
+        "sourceUrl",
+        "collector",
+        "collectorVersion",
+        "collectedAt"
+      ],
+      "properties": {
+        "sourceSystem": {
+          "type": "string",
+          "enum": ["github", "linear", "control-room", "software-factory"]
+        },
+        "sourceObjectId": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https://"
+        },
+        "collector": {
+          "type": "string"
+        },
+        "collectorVersion": {
+          "type": "string"
+        },
+        "collectedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "url"],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": true,
+      "maxProperties": 50,
+      "description": "Kind-specific fields. Untrusted."
+    }
+  }
+}

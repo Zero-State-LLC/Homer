@@ -1,0 +1,14 @@
+{
+  "contract": "home.factory-event/v1",
+  "packetId": "WP-2026-11-18-home-contracts",
+  "type": "verdict_recorded",
+  "at": "2026-11-18T18:00:00Z",
+  "repository": "Zero-State-LLC/home",
+  "verdict": {
+    "result": "pass",
+    "mode": "online",
+    "judgeModel": "openrouter:judge",
+    "authorModel": "openrouter:author",
+    "pr": 1
+  }
+}
