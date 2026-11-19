@@ -9,7 +9,27 @@
   "owner_agent": "ADVERSARY",
   "stage": "verify",
   "author_model": "openai/gpt-6",
-  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "history": [
+    {
+      "from": "intake",
+      "to": "spec",
+      "at": "2026-11-19T01:50:03Z",
+      "reason": "Source: commit d8f33dd on PR #6, which adds specs/projections/spec.md for ZER-9."
+    },
+    {
+      "from": "spec",
+      "to": "implement",
+      "at": "2026-11-19T01:50:03Z",
+      "reason": "Source: commit d8f33dd. The same commit carries the implementation, so GitHub records no separate spec-to-implement time."
+    },
+    {
+      "from": "implement",
+      "to": "verify",
+      "at": "2026-11-19T01:58:15Z",
+      "reason": "Source: commit 3000897 on PR #6, which wrote this packet at stage verify."
+    }
+  ],
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
   "id": "WP-2026-11-18-review-activity-projections",
   "pain": "Operators need reliable calendar and timeline data and a migration plan that preserves the existing Control Room.",
   "done_when": [

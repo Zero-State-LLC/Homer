@@ -9,7 +9,27 @@
   "owner_agent": "ADVERSARY",
   "stage": "verify",
   "author_model": "openai/gpt-6",
-  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "history": [
+    {
+      "from": "intake",
+      "to": "spec",
+      "at": "2026-11-19T00:02:46Z",
+      "reason": "Source: commit 48f84ee on PR #3, which specifies Event Ledger behavior and acceptance for ZER-9."
+    },
+    {
+      "from": "spec",
+      "to": "implement",
+      "at": "2026-11-19T01:49:15Z",
+      "reason": "Source: commit 318c023 on PR #5, which implements the Cloudflare Event Ledger."
+    },
+    {
+      "from": "implement",
+      "to": "verify",
+      "at": "2026-11-19T01:58:15Z",
+      "reason": "Source: commit 3000897 on PR #6, which wrote this packet at stage verify."
+    }
+  ],
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
   "id": "WP-2026-11-18-review-event-ledger",
   "pain": "Accepted Activity Events need atomic durable storage, deduplication, integrity verification and Correction replay.",
   "done_when": [
