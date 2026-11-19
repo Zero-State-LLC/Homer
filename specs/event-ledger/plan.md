@@ -1,6 +1,6 @@
 # Event Ledger implementation plan
 
-Status: revised by FORGE (PROMETHEUS) on 2026-11-18 PT. Implementation starts only after Danny's yes.
+Status: revised by FORGE (PROMETHEUS) on 2026-11-18 PT. Grok Build re-authored it for PR #9. Danny approved the SQLite-backed Durable Object backend on 2026-11-18 at 7:19 PM PT. Implementation starts only after Danny's yes on the remaining open questions.
 
 - Specification: [Event Ledger spec](spec.md) (accepted 2026-11-19)
 - Planning handoff: [handoff.md](handoff.md)
@@ -407,7 +407,7 @@ Gaps left open on purpose:
 
 ## Open questions for Danny
 
-1. Backend: do you accept one SQLite-backed Durable Object over D1, for the reasons in [D1 and a Durable Object against the acceptance scenarios](#d1-and-a-durable-object-against-the-acceptance-scenarios)?
+1. Backend: do you accept one SQLite-backed Durable Object over D1, for the reasons in [D1 and a Durable Object against the acceptance scenarios](#d1-and-a-durable-object-against-the-acceptance-scenarios)? Answered: Danny approved one SQLite-backed Durable Object over D1 on 2026-11-18 at 7:19 PM PT.
 2. The Work Packet budgets are proposals of 5 USD per slice. Confirm them or set different amounts.
 3. Which model implements ZER-16 through ZER-21? Put its id in each packet's `author_model` before verify.
 4. May ZER-18 add a Workers-safe Activity Event validator, generated at build time, to `@zs-home/shared-contracts`? The current validator cannot run in the deployed Workers runtime.
