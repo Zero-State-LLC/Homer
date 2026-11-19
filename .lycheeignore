@@ -1,0 +1,7 @@
+# Anonymous clients receive HTTP 401 or 403. A person checked these URLs.
+# Their existence is recorded in docs/receipts/discovery-2026-11-18.md.
+^https://zero-state-control\.sleek-park-3366\.chatgpt\.site
+^https://chatgpt\.com/space/
+^https://linear\.app/zer0state/
+# Private repositories in the org. This repository's GITHUB_TOKEN cannot read them.
+^https://github\.com/Zero-State-LLC/(software-factory|JChain|one-mind)
