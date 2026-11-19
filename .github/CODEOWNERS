@@ -1,2 +1,3 @@
-# Default owner for everything in the repository.
-* @scrimshawlife-ctrl
+# Default owners for everything in the repository. Either owner's approval
+# satisfies the code-owner review on main.
+* @scrimshawlife-ctrl @prabu-openclaw
