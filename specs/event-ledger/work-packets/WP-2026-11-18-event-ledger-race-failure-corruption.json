@@ -9,7 +9,7 @@
     "4 stubs making 200 distinct appends each in Promise.all give sequences 1 to 800 and verifyHistory passes.",
     "A BEFORE INSERT trigger installed by the test through runInDurableObject makes the append throw EventLedgerStorageError with no receipt and an unchanged head; after the trigger is dropped the same append gets the next sequence.",
     "An uncertain-commit test discards a successful receipt, calls abortAllDurableObjects, and the retry returns duplicate with that receipt.",
-    "With the append-only triggers dropped through runInDurableObject, edits to entry_json, sequence or previous_digest and deletion of the last row are each reported by verifyHistory (the truncation only with a trusted head), and replayEffectiveHistory throws instead of replaying.",
+    "With the append-only triggers dropped through runInDurableObject, edits to entry_json, sequence or previous_digest and deletion of the last row are each reported by verifyHistory (the truncation only with a trusted head); replay refusal is verified in ZER-21 after replay exists.",
     "Thrown RPC errors are asserted with try/catch, no production code has a test-only fault hook, and npm run check passes."
   ],
   "scope": {
