@@ -2,13 +2,13 @@
 
 Author: Grok Bot for Danny (scrimshawlife-ctrl)
 Date: 2026-11-18
-Status: draft
+Status: accepted
 Product: HOME (`Zero-State-LLC/home`)
 
 This file is a proto-spec. It comes **before** specify.
 Next stage is `specs/` (spec-kit specify). Do not skip to code.
 
-Execution note: Danny's execution directive of 2026-11-18 asks for the foundation and the first working components to be built in small PRs in the same pass. Those PRs are reviewable proposals; this intent is accepted when Danny sets `Status: accepted` or merges this PR. Nothing here is merged or deployed by an agent.
+Danny accepted this intent on 2026-11-19. His execution directive of 2026-11-18 calls for small PRs covering the foundation and the first working components. Each PR follows the repository's review and merge process.
 
 ## Problem / why now
 
@@ -66,4 +66,4 @@ Non-goals:
 
 ## Next
 
-A human accepts this file (`Status: accepted`). Then specify (`specs/` + `## Workflows`). Do not implement from this file alone.
+Specify the Event Ledger in `specs/` with a `## Workflows` section, then follow the [order of work](../../CONTRIBUTING.md#order-of-work).

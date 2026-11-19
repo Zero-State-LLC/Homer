@@ -7,6 +7,6 @@ All notable changes to HOME are recorded here. Format: [Keep a Changelog](https:
 ### Added
 
 - Governance foundation: `AGENTS.md`, `CLAUDE.md` adapter, `CONTEXT.md` glossary, `SECURITY.md`, `CONTRIBUTING.md`, CODEOWNERS, issue and PR templates.
-- Stage-zero intent `docs/intent/home-foundation.md` (draft).
+- Accepted stage-zero intent `docs/intent/home-foundation.md`.
 - agent-context Context Pin with a CI check and negative tests.
 - CI: docs lint, link check, gitleaks secret scan, Dependabot for GitHub Actions.
