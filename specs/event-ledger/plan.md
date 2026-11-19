@@ -131,7 +131,7 @@ A committed entry is this JSON object. `entryDigest` is stored beside it, never 
 
 - `payload` is the full accepted Activity Event or Correction, including the collection fields.
 - `entryDigest` is lowercase hex SHA-256 over the UTF-8 bytes of the RFC 8785 canonical JSON of that object.
-- `comparisonDigest` is lowercase hex SHA-256 over the RFC 8785 canonical JSON of the payload with only the excluded collection fields removed (see below). It speeds up Duplicate checks. `verifyHistory` recomputes it too.
+- `comparisonDigest` is lowercase hex SHA-256 over the RFC 8785 canonical JSON of the payload with only the excluded collection fields removed (see below). It speeds up Duplicate checks. `readHistory` includes this stored value on every `LedgerEntry`; `verifyHistory` recomputes it and compares the result. Neither digest field is part of the canonical entry body shown above.
 
 ### One append transaction
 
@@ -291,7 +291,7 @@ Test-writing notes from the probe:
 
 ## Tasks
 
-Each Task is one slice and one Work Packet. Slices land in order; each keeps `npm run check` green.
+Each Task is one slice and one Work Packet. Slices land in order; each keeps `npm run check` green. Slice 5 verifies stored corruption with `verifyHistory`; the replay-refusal assertions belong to slice 6, where `replayEffectiveHistory` exists.
 
 | Slice | Task | Depends on |
 | --- | --- | --- |
