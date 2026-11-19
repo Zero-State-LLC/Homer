@@ -10,6 +10,7 @@
     "A Correction never releases its target Event Key: appending a new Activity Event with that key still returns duplicate or conflict.",
     "replayEffectiveHistory is pure, applies Corrections in ledger sequence, and a supersede, retract, restore test checks the effective history after each prefix while readHistory keeps all entries.",
     "README documents the interfaces, the Workers runtime and binding, that nothing is deployed, and the fresh-checkout command, and CHANGELOG has an entry.",
+    "Corruption detected by verifyHistory causes replayEffectiveHistory to throw instead of replaying; cover changed payload, sequence and previous digest after replay exists in this slice.",
     "npm run check passes."
   ],
   "scope": {

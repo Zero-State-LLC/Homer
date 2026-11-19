@@ -4,7 +4,7 @@
   "pain": "Without a versioned entry format and digest chain, a changed, reordered or truncated history cannot be detected.",
   "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
   "done_when": [
-    "Entry format v1 holds formatVersion, sequence, entryType, previousDigest and payload, and entryDigest is lowercase hex SHA-256 of its RFC 8785 canonical JSON excluding the digest itself, computed synchronously with node:crypto createHash.",
+    "LedgerEntry exposes stored comparisonDigest and entryDigest alongside formatVersion, sequence, entryType, previousDigest and payload. entryDigest is lowercase hex SHA-256 over the RFC 8785 canonical JSON of the five body fields (excluding both digest fields), computed synchronously with node:crypto createHash. verifyHistory recomputes and compares both digests.",
     "The modules in this slice import no storage, cloudflare:workers or Durable Object API.",
     "Committed fixtures include the RFC 8785 test vectors and synthetic ledger entries whose expected digests were produced outside the package; tests read them and never regenerate them.",
     "verifyHistory returns a typed IntegrityFailure for each of sequence_gap, unsupported_format, previous_digest_mismatch, entry_digest_mismatch, comparison_digest_mismatch and trusted_head_mismatch, each covered by a test on in-memory entry arrays.",
