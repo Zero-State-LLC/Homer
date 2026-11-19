@@ -121,7 +121,7 @@ What a caller can observe:
 
 ### Canonicalization: `canonicalize` 5.1.0
 
-- Use the npm package [`canonicalize`](https://www.npmjs.com/package/canonicalize), pinned to exactly `5.1.0` (Apache-2.0, no dependencies), the JCS implementation by an RFC 8785 author.
+- Use the npm package [`canonicalize`](https://github.com/erdtman/canonicalize), pinned to exactly `5.1.0` (Apache-2.0, no dependencies), the JCS implementation by an RFC 8785 author.
 - Prove it against independent fixtures: the RFC 8785 test vectors (input and expected canonical output), and synthetic ledger entries whose expected digests come from a second implementation run outside the package (Python `rfc8785` plus `hashlib.sha256`). Commit the expected values as fixture files; tests never regenerate them.
 - Reject input outside the RFC 8785 JSON domain in step 1, before persistence.
 
