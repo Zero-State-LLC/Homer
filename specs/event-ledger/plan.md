@@ -64,7 +64,7 @@ Costs of this choice:
 - For compatibility dates of 2026-08-04 or later, [Node.js compatibility is on by default](https://developers.cloudflare.com/workers/configuration/compatibility-flags/), so the flag is redundant at this date. Keep it so the config states the dependency on [`node:crypto`](https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/).
 - Hashing inside `transactionSync` must be synchronous, so it uses `createHash("sha256")` from `node:crypto`. Web Crypto's `crypto.subtle.digest` returns a Promise and cannot be used inside the callback.
 - No public `fetch` route. Callers reach the object through Workers RPC on the binding. The spec defines no authentication surface, so a route would be an unauthenticated write path. This is recorded as a gap in [Open questions](#open-questions-for-danny).
-- Development and tests need Node 22.12.0 or later, because `wrangler` 4.165.0, `@cloudflare/vitest-plugin` 1.8.5 and the existing Vitest 5.1.1 declare that floor. The root `engines` field moves from `>=22` to `>=22.12.0` to match.
+- Development supports Node 22.13+, Node 24, or Node 26+. Wrangler requires at least 22.12, but the existing ESLint 10.15.0 requires 22.13 within the Node 22 line. The root `engines` range reflects the intersection with Vitest's supported major versions.
 
 ### Validation inside the Workers runtime
 
@@ -219,6 +219,7 @@ export interface LedgerEntry {
   previousDigest: string | null;
   payload: ActivityEvent | Correction;
   entryDigest: string;
+  comparisonDigest: string;      // stored comparison digest, independently recomputed
 }
 
 export function verifyHistory(
@@ -315,7 +316,7 @@ npm run check
 
 ## CI change (slice 1)
 
-None to the workflows. The `check` job stays on Node 22, which meets the 22.12.0 floor. The `node:sqlite` Node matrix (22.13.0, 22, 24) is dropped. Keep `audit` as it is.
+The `check` job stays on current Node 22. Build workspace dependencies before lint and typecheck so compiled exports exist on a clean checkout, and run the plain Workers smoke after the build. The `node:sqlite` Node matrix is dropped. Keep `audit` as it is.
 
 ## NVIDIA-first rule
 
@@ -360,3 +361,23 @@ Live Collectors, Identity Binding config, Projections, the Activity Calendar and
 4. May ZER-18 add a Workers-safe, build-time-generated Activity Event validator to `@zs-home/shared-contracts`? The current one cannot run in the deployed Workers runtime.
 5. Access: the spec defines no authentication surface, so this delivery has no route and only binding holders can call the object. Who will call it first, and through what authenticated surface? This stays a gap until a later ZER-9 Task answers it.
 6. Deploy: which Cloudflare account and plan (Free or Paid), and who runs the first `wrangler deploy`? Nothing deploys until then.
+
+## Implementation notes (2026-11-18 PT)
+
+The implementation under the current HOME completion request uses the recommended
+Durable Object backend and build-time Workers validator. No paid model calls or
+Cloudflare resources were created. The ledger exposes `comparisonDigest` on each
+read entry so corruption of that stored field is detectable. Storage-column
+inconsistency raises an integrity error before replay. Complete client reads
+verify a fixed paged prefix; replay also supports a separately trusted head.
+
+Payloads are capped at 1 MiB to bound storage and RPC costs. Indexed duplicate
+and target reads verify their stored bytes before trusting classification.
+`storage_metadata_mismatch` and `invalid_payload` are additional explicit integrity
+reasons. Package behavior, tests and the local-only runtime smoke are documented
+in the [Event Ledger README](../../packages/event-ledger/README.md).
+
+The first internal package is implemented as one cohesive review unit, with all
+six acceptance slices tested together. This avoids a test-only slice depending
+on a replay function that has not yet landed. Work Packet acceptance items remain
+applicable; they are not claims of merge or production completion.

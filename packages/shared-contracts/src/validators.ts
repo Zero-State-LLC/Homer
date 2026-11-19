@@ -1,3 +1,4 @@
+import { activityEventSemanticErrors } from "./activity-semantics.js";
 import { join } from "node:path";
 import type { AnySchema, ErrorObject, ValidateFunction } from "ajv";
 import { Ajv2020 } from "ajv/dist/2020.js";
@@ -45,58 +46,6 @@ function formatAjvError(error: ErrorObject): string {
   const where = error.instancePath.length > 0 ? error.instancePath : "/";
   const message = error.message ?? error.keyword;
   return `${where} ${message}`;
-}
-
-/**
- * JSON Schema cannot tie the Event Key prefix to Provenance, or require
- * actorId whenever actorKind is set. Those rules live here.
- * actorId and actorKind are filled only from an Identity Binding.
- */
-function activityEventSemanticErrors(input: unknown): string[] {
-  if (!isRecord(input)) {
-    return [];
-  }
-  const errors: string[] = [];
-  const prefixError = eventKeyPrefixError(input);
-  if (prefixError !== undefined) {
-    errors.push(prefixError);
-  }
-  const actorError = actorKindError(input["actor"]);
-  if (actorError !== undefined) {
-    errors.push(actorError);
-  }
-  return errors;
-}
-
-function eventKeyPrefixError(value: Record<string, unknown>): string | undefined {
-  const eventKey = value["eventKey"];
-  const provenance = value["provenance"];
-  if (typeof eventKey !== "string" || !isRecord(provenance)) {
-    return undefined;
-  }
-  const sourceSystem = provenance["sourceSystem"];
-  if (typeof sourceSystem !== "string") {
-    return undefined;
-  }
-  const separator = eventKey.indexOf(":");
-  if (separator <= 0) {
-    return undefined;
-  }
-  const prefix = eventKey.slice(0, separator);
-  if (prefix === sourceSystem) {
-    return undefined;
-  }
-  return `eventKey prefix "${prefix}" must equal provenance.sourceSystem "${sourceSystem}"`;
-}
-
-function actorKindError(actor: unknown): string | undefined {
-  if (!isRecord(actor)) {
-    return undefined;
-  }
-  if (actor["actorKind"] !== undefined && actor["actorId"] === undefined) {
-    return "actorKind present only if actorId present";
-  }
-  return undefined;
 }
 
 export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
