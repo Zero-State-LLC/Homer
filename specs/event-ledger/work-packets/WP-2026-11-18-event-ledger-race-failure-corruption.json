@@ -1,0 +1,42 @@
+{
+  "id": "WP-2026-11-18-event-ledger-race-failure-corruption",
+  "source": "linear:ZER-20",
+  "pain": "The spec's concurrency, failed-commit and corruption scenarios are only proven with independent processes and real storage failure.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "Race tests use child_process.fork writers on one temporary database file, not threads or a single connection.",
+    "8 writers racing one Event Key with different subjects give exactly one appended and the rest conflict, over 20 rounds.",
+    "4 writers making 200 distinct appends each give sequences 1 to 800 and verifyHistory passes.",
+    "A test-installed SQLite trigger that aborts an insert makes the append throw with no receipt and an unchanged head; after the trigger is dropped the same append gets the next sequence.",
+    "A writer killed with SIGKILL during an append loop leaves a ledger that verifyHistory accepts after reopen.",
+    "A writer that commits and exits without reporting is followed by a retry that returns duplicate with the committed receipt.",
+    "Edits to entry_json, sequence or previous_digest made through a raw connection with the triggers dropped are each reported by verifyHistory, and replayEffectiveHistory throws instead of replaying.",
+    "No production code has a test-only fault hook, and npm run check passes in CI on all three Node versions."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/test/race.test.ts",
+      "packages/event-ledger/test/failure.test.ts",
+      "packages/event-ledger/test/corruption.test.ts",
+      "packages/event-ledger/test/helpers/"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Merges, deploys and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-20/event-ledger-56-independent-writers-failed-and-uncertain-commits"
+  ]
+}

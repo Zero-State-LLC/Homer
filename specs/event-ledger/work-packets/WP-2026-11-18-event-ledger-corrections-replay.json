@@ -1,0 +1,43 @@
+{
+  "id": "WP-2026-11-18-event-ledger-corrections-replay",
+  "source": "linear:ZER-21",
+  "pain": "Trusted writers must correct or retract an Activity Event without rewriting history, and Projections need a deterministic effective history.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "appendCorrection refuses a blank reason, invalid Provenance, an unknown target, a target that is not an Activity Event, and a Supersede that changes Event Key, Kind, Source System or source object ID.",
+    "A Supersede that changes actor is accepted with valid Provenance, and the README states that the ledger trusts the writer for Identity Binding review evidence.",
+    "A repeated Correction identifier with identical content returns duplicate and with changed content returns conflict, using the same comparison rule as Activity Events.",
+    "A Correction never releases its target Event Key: appending a new Activity Event with that key still returns duplicate or conflict.",
+    "replayEffectiveHistory applies Corrections in ledger sequence, and a supersede, retract, restore test checks the effective history after each prefix while readHistory keeps all entries.",
+    "README documents the interfaces, the supported runtime and filesystem, and the fresh-checkout command, and CHANGELOG has an entry.",
+    "npm run check passes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/src/correction.ts",
+      "packages/event-ledger/src/replay.ts",
+      "packages/event-ledger/test/correction.test.ts",
+      "packages/event-ledger/test/replay.test.ts",
+      "packages/event-ledger/README.md",
+      "CHANGELOG.md"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Merges, deploys and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-21/event-ledger-66-corrections-and-replayeffectivehistory"
+  ]
+}

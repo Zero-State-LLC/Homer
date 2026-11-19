@@ -1,0 +1,43 @@
+{
+  "id": "WP-2026-11-18-event-ledger-package-floor",
+  "source": "linear:ZER-16",
+  "pain": "The Event Ledger has no package, and node:sqlite needs Node v22.13.0 or later while the repository floor is >=22.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "packages/event-ledger exists as workspace @zs-home/event-ledger with engines node >=22.13.0, and the root package.json engines floor is >=22.13.0.",
+    "canonicalize is a dependency pinned to exactly 5.1.0 and no other runtime dependency is added.",
+    "The check job in ci.yml runs on Node 22.13.0, 22 and 24; the audit job is unchanged.",
+    "A test opens an in-memory DatabaseSync from node:sqlite and passes on all three CI Node versions.",
+    "npm ci and npm run check pass on a fresh checkout, with the PR Evidence section naming the head SHA."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/package.json",
+      "packages/event-ledger/tsconfig.build.json",
+      "packages/event-ledger/src/index.ts",
+      "packages/event-ledger/test/runtime.test.ts",
+      "packages/event-ledger/README.md",
+      "package.json",
+      "package-lock.json",
+      ".github/workflows/ci.yml"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Merges, deploys and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-16/event-ledger-16-package-and-runtime-floor"
+  ]
+}
