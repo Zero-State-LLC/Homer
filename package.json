@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger",
+    "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger && npm run build -w @zs-home/projections",
     "postbuild": "node --test scripts/*runtime.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",

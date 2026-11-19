@@ -7,7 +7,8 @@ All notable changes to HOME are recorded here. Format: [Keep a Changelog](https:
 ### Added
 
 - Cloudflare Durable Object Event Ledger with Corrections, digest verification and paged replay.
-- Build-time Workers validator and plain runtime smoke.
+- Build-time Workers validator, plain runtime smoke, Activity Calendar and Project Timeline data.
+- Verified Control Room source preservation map and migration/rollback plan.
 
 - TypeScript workspace (`npm run check`) and versioned integration contracts for the Activity Event, the Work Request, and the Factory Event, with contract tests against the pinned software-factory Work Packet schema.
 - Governance foundation: `AGENTS.md`, `CLAUDE.md` adapter, `CONTEXT.md` glossary, `SECURITY.md`, `CONTRIBUTING.md`, CODEOWNERS, issue and PR templates.
