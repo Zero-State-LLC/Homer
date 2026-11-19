@@ -1,6 +1,6 @@
 # Event Ledger specification
 
-Status — Proposed for review
+Status — Accepted by Danny on 2026-11-19
 
 - Foundation intent — [HOME foundation](../../docs/intent/home-foundation.md)
 - Task — [ZER-9](https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines)
@@ -85,4 +85,4 @@ A Correction is its own ledger entry with a stable identifier supplied by a trus
 | CI | [ci.yml](../../.github/workflows/ci.yml) | Run the existing workspace checks and, when implemented, the Event Ledger acceptance tests. |
 | Secret scan | [secret-scan.yml](../../.github/workflows/secret-scan.yml) | Scan commits and fixtures. |
 
-FORGE owns the implementation plan and Tasks after spec review. The plan should identify the supported storage backend and how its tests exercise concurrent writes, failed commits, and reopen behavior.
+FORGE owns the implementation plan and Tasks. The [planning handoff](handoff.md) records the inputs and decisions still needed.
