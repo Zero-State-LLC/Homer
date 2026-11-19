@@ -1,0 +1,42 @@
+{
+  "id": "WP-2026-11-18-event-ledger-race-failure-corruption",
+  "source": "linear:ZER-20",
+  "pain": "The spec's concurrency, failed-commit, uncertain-commit and corruption scenarios must be proven against the Durable Object, not assumed from its single-threaded model.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "Race tests send concurrent RPC calls through separately created stubs for the same object name, inside the Workers pool.",
+    "8 concurrent appends of one Event Key with different subjects give exactly one appended and seven conflict, over 20 rounds on fresh object names.",
+    "4 stubs making 200 distinct appends each in Promise.all give sequences 1 to 800 and verifyHistory passes.",
+    "A BEFORE INSERT trigger installed by the test through runInDurableObject makes the append throw EventLedgerStorageError with no receipt and an unchanged head; after the trigger is dropped the same append gets the next sequence.",
+    "An uncertain-commit test discards a successful receipt, calls abortAllDurableObjects, and the retry returns duplicate with that receipt.",
+    "With the append-only triggers dropped through runInDurableObject, edits to entry_json, sequence or previous_digest and deletion of the last row are each reported by verifyHistory (the truncation only with a trusted head); replay refusal is verified in ZER-21 after replay exists.",
+    "Thrown RPC errors are asserted with try/catch, no production code has a test-only fault hook, and npm run check passes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/test/race.test.ts",
+      "packages/event-ledger/test/failure.test.ts",
+      "packages/event-ledger/test/corruption.test.ts",
+      "packages/event-ledger/test/helpers/"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, route, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Cloudflare deploys, wrangler login and creating any Cloudflare resource",
+      "Merges and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-20"
+  ]
+}

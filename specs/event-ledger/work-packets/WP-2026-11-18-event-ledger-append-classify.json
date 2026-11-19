@@ -1,0 +1,45 @@
+{
+  "id": "WP-2026-11-18-event-ledger-append-classify",
+  "source": "linear:ZER-18",
+  "pain": "Collectors retry, reorder fields and send malformed Activity Events; the ledger must refuse bad input and classify repeats before any write, and the current shared validator cannot run in the deployed Workers runtime.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "@zs-home/shared-contracts gains a Workers-safe Activity Event validator generated at build time with Ajv standalone code from activity-event.v1.schema.json; it uses no node:fs and compiles nothing at runtime, and a Node test shows it accepts and refuses the same fixtures as validateActivityEvent.",
+    "A local wrangler dev smoke (no login, no deploy) runs the built Worker in workerd and appends one synthetic Activity Event, proving no runtime code generation is reached.",
+    "The ledger additionally refuses an Event Key whose second segment differs from kind, and input outside the RFC 8785 JSON domain (undefined, BigInt, non-finite numbers, lone surrogates, non-plain objects) returns refused before any storage call.",
+    "The comparison digest excludes only provenance.collectedAt, provenance.collector and provenance.collectorVersion; tests show reordered keys plus changed collection fields compare equal and any other change compares different.",
+    "Tests cover missing Provenance, an offset timestamp and a wrong Kind segment returning refused, and an Activity Event without an Identity Binding kept with only actor.sourceAccount.",
+    "The validated input is snapshotted through canonical JSON, and a pure test shows that mutating the caller object afterwards does not change the snapshot.",
+    "Classification is pure: classify.ts and validate.ts import no storage API, and npm run check passes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/src/classify.ts",
+      "packages/event-ledger/src/validate.ts",
+      "packages/event-ledger/test/classify.test.ts",
+      "packages/event-ledger/test/validate.test.ts",
+      "packages/event-ledger/scripts/smoke.sh",
+      "packages/shared-contracts/",
+      "package-lock.json"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, route, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Cloudflare deploys, wrangler login and creating any Cloudflare resource",
+      "Merges and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-18"
+  ]
+}

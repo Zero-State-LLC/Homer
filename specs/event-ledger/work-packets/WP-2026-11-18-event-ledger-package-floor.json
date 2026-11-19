@@ -1,0 +1,52 @@
+{
+  "id": "WP-2026-11-18-event-ledger-package-floor",
+  "source": "linear:ZER-16",
+  "pain": "The Event Ledger has no package and no Workers toolchain, so no code can run or be tested in the Cloudflare Workers runtime that hosts its Durable Object.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "packages/event-ledger exists as workspace @zs-home/event-ledger with canonicalize pinned to exactly 5.1.0 as its only runtime dependency.",
+    "devDependencies are pinned exactly: @cloudflare/vitest-plugin 1.8.5, wrangler 4.165.0 and @cloudflare/workers-types 5.20261119.1 (or generated wrangler types instead of workers-types), and vitest stays at the root's 5.1.1.",
+    "The root package.json engines floor is >=22.12.0, and the package declares the same.",
+    "packages/event-ledger/wrangler.jsonc has compatibility_date 2026-11-18, compatibility_flags [\"nodejs_compat\"], the EVENT_LEDGER Durable Object binding and a new_sqlite_classes migration for EventLedgerObject, and no account_id, routes or deploy script.",
+    "The root vitest.config.ts runs the existing Node tests and the event-ledger Workers project together, and a runtime test inside the Workers pool runs createHash('sha256') from node:crypto and a CREATE TABLE ... STRICT inside ctx.storage.transactionSync on a stub object.",
+    "npm run typecheck and npm run lint cover the new package, CI workflows are unchanged, and npm audit --audit-level=high reports 0 vulnerabilities.",
+    "npm ci and npm run check pass on a fresh checkout with no Cloudflare account or login, with the PR Evidence section naming the head SHA."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/package.json",
+      "packages/event-ledger/tsconfig.json",
+      "packages/event-ledger/tsconfig.build.json",
+      "packages/event-ledger/wrangler.jsonc",
+      "packages/event-ledger/vitest.config.ts",
+      "packages/event-ledger/src/index.ts",
+      "packages/event-ledger/src/ledger-object.ts",
+      "packages/event-ledger/test/runtime.test.ts",
+      "packages/event-ledger/README.md",
+      "package.json",
+      "package-lock.json",
+      "vitest.config.ts",
+      "tsconfig.json",
+      "eslint.config.js"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, route, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Cloudflare deploys, wrangler login and creating any Cloudflare resource",
+      "Merges and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-16"
+  ]
+}
