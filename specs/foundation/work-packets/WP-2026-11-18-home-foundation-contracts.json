@@ -1,0 +1,50 @@
+{
+  "id": "WP-2026-11-18-home-foundation-contracts",
+  "source": "github:Zero-State-LLC/home#2",
+  "pain": "HOME has no TypeScript workspace, versioned integration contracts or CI, so Activity Events and software-factory messages have no validated shape.",
+  "who": "Collectors, Projections and software-factory, which exchange Activity Events, Work Requests and Factory Events with HOME.",
+  "done_when": [
+    "At head a430c38dc5846749488ebd73d342824d2a19c52a, npm ci and npm run check pass on Node 22: prettier, eslint, tsc, vitest and build.",
+    "specs/integration-contracts holds home.activity-event/v1, home.work-request/v1 and home.factory-event/v1 as JSON Schema 2020-12, and a test checks each schema $id and contract const match its file version.",
+    "The Activity Event validator refuses each invalid fixture with the asserted error, including an Event Key prefix that differs from provenance.sourceSystem and an actorKind without actorId.",
+    "toWorkPacket output validates against the pinned upstream work_packet.schema.json snapshot, and a tampered snapshot digest makes the test throw.",
+    "npm audit --audit-level=high reports 0 vulnerabilities.",
+    "ci.yml sets permissions contents: read and pins every action to a full commit SHA.",
+    "No test is skipped, deleted or loosened."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "vitest.config.ts",
+      "eslint.config.js",
+      ".prettierrc.json",
+      ".prettierignore",
+      ".github/workflows/ci.yml",
+      ".github/dependabot.yml",
+      "packages/shared-contracts/",
+      "specs/integration-contracts/",
+      "scripts/check-factory-schema.sh",
+      "scripts/shared-contracts-runtime.test.mjs",
+      "AGENTS.md",
+      "CHANGELOG.md"
+    ],
+    "out_of_scope": [
+      "Merging, deploying or approving the PR",
+      "Paid model spend beyond the approved OpenRouter judge",
+      "Any change outside the PR's listed paths"
+    ]
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "Boof",
+  "stage": "verify",
+  "author_model": "xai:grok-4.7",
+  "test_command": "npm ci --no-audit --no-fund && npm run check && npm audit --audit-level=high",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/pull/2",
+    "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"
+  ]
+}

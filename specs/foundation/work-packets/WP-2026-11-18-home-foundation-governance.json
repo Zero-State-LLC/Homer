@@ -1,0 +1,48 @@
+{
+  "id": "WP-2026-11-18-home-foundation-governance",
+  "source": "github:Zero-State-LLC/home#1",
+  "pain": "HOME has no shared glossary, agent rules, stage-zero intent or docs and secret-scan CI, so later PRs cannot be held to common terms or controls.",
+  "who": "Every human and agent contributor to Zero-State-LLC/home, and Danny as the merge approver.",
+  "done_when": [
+    "At head b67d1514e97efc2e86041b762f332984557b2e1f, CONTEXT.md defines Activity Event, Event Key, Event Ledger, Provenance, Correction, Actor, Identity Binding, Attribution, Work Session, Milestone, Unknown Date, Projection, Context Pin and Scope.",
+    "AGENTS.md has an Escalation section and is under 12288 bytes, and bash scripts/check-context-pin.sh passes against the Context Pin in agent-context.pin.json.",
+    "bash scripts/test-check-context-pin.sh shows a tampered digest and a short commit SHA are both refused.",
+    "docs/intent/home-foundation.md exists and records Danny's acceptance of the foundation intent.",
+    "The Docs and Secret scan workflows set permissions contents: read, use persist-credentials: false, and pin every action to a full commit SHA.",
+    "npx markdownlint-cli2 '**/*.md' reports 0 errors and gitleaks finds no leaks in the full history.",
+    "The PR adds SECURITY.md, CONTRIBUTING.md, CHANGELOG.md, CODEOWNERS, the bug, defect and intent issue templates, and the PR template."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      ".github/",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "CONTEXT.md",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "CHANGELOG.md",
+      "agent-context.pin.json",
+      "docs/",
+      "scripts/check-context-pin.sh",
+      "scripts/test-check-context-pin.sh",
+      ".gitignore",
+      ".lycheeignore",
+      ".markdownlint-cli2.yaml"
+    ],
+    "out_of_scope": [
+      "Merging, deploying or approving the PR",
+      "Paid model spend beyond the approved OpenRouter judge",
+      "Any change outside the PR's listed paths"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "Boof",
+  "stage": "verify",
+  "test_command": "bash scripts/check-context-pin.sh && bash scripts/test-check-context-pin.sh && npx --yes markdownlint-cli2 '**/*.md'",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/pull/1",
+    "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"
+  ]
+}
