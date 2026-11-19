@@ -44,5 +44,25 @@
   "links": [
     "https://github.com/Zero-State-LLC/home/pull/1",
     "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"
+  ],
+  "history": [
+    {
+      "from": "intake",
+      "to": "spec",
+      "at": "2026-11-18T22:58:54Z",
+      "reason": "Source: commit 61d5b9b on PR #1, which adds docs/intent/home-foundation.md and CONTEXT.md."
+    },
+    {
+      "from": "spec",
+      "to": "implement",
+      "at": "2026-11-18T22:58:54Z",
+      "reason": "Source: commit 61d5b9b. The same commit carries the implementation, so GitHub records no separate spec-to-implement time."
+    },
+    {
+      "from": "implement",
+      "to": "verify",
+      "at": "2026-11-19T01:12:04Z",
+      "reason": "Source: commit bde74d8 on PR #4, which wrote this packet at stage verify for head b67d151."
+    }
   ]
 }
