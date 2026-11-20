@@ -16,6 +16,7 @@ export default defineConfig({
         },
       },
       "packages/event-ledger/vitest.config.ts",
+      "packages/catalog-worker/vitest.config.ts",
     ],
   },
 });

@@ -6,6 +6,9 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Cloudflare catalog API with Access JWT validation, separate read/admin audiences,
+  durable revision checks and immutable mapping history.
+
 - Runtime GitHub repository mappings and listings with validated revision updates,
   plus a merged-PR mapping that excludes free text and preserves unknown identity.
 
