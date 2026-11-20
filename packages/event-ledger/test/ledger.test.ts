@@ -281,3 +281,24 @@ it("detects deletion of a stored tail with a separately trusted head", async () 
   });
   expect(() => replayEffectiveHistory(history, trusted)).toThrow(EventLedgerIntegrityError);
 });
+
+it("continues after a byte-limited page and verifies the complete chain", async () => {
+  const stub = ledger();
+  const namespace = { get: () => stub, idFromName: () => stub.id };
+  const client = openEventLedger(namespace as unknown as typeof env.EVENT_LEDGER);
+  for (let i = 0; i < 20; i++)
+    expect(
+      (
+        await client.appendActivityEvent({
+          ...event(`large-${i}`),
+          data: { text: "x".repeat(900000) },
+        })
+      ).outcome,
+    ).toBe("appended");
+  const page = await stub.readHistory();
+  expect(page.length).toBeGreaterThan(0);
+  expect(page.length).toBeLessThan(20);
+  const history = await client.readHistory();
+  expect(history).toHaveLength(20);
+  expect(verifyHistory(history, (await client.head())!)).toEqual({ ok: true });
+}, 30000);

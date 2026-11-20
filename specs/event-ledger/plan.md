@@ -2,7 +2,7 @@
 
 Status: revised by FORGE (PROMETHEUS) on 2026-11-18 PT. Grok Build re-authored it for PR #9. Danny approved the SQLite-backed Durable Object backend on 2026-11-18 at 7:19 PM PT. Implementation starts only after Danny's yes on the remaining open questions.
 
-- Specification: [Event Ledger spec](spec.md) (accepted 2026-11-19)
+- Specification: [Event Ledger spec](spec.md) (accepted 2026-11-19 UTC, 2026-11-18 PT)
 - Planning handoff: [handoff.md](handoff.md)
 - Task: [ZER-9](https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines)
 - Work Packets: [work-packets/](work-packets/), one JSON file for each slice
@@ -295,7 +295,7 @@ Every test uses synthetic fixtures and runs in the Workers runtime through [`@cl
 | An authorized writer supersedes, retracts, and then restores one event. | Append an Activity Event, Supersede it, Retract it, then Supersede it again to restore it. `replayEffectiveHistory` of each prefix returns the effective history for that prefix. `readHistory` still contains all four entries. | ZER-21 |
 | A Correction targets an unknown Event Key, changes source identity, or reuses an identifier with changed content. | Each call returns `refused` or `conflict`, and `head()` is unchanged. | ZER-21 |
 | An Activity Event with an earlier `occurredAt` is appended after another. | Sequences follow append order. Both `occurredAt` values return byte for byte, including fractional seconds. | ZER-19 |
-| A stored payload, sequence, or link is corrupted, or a trusted head no longer matches. | Pure: `verifyHistory` on hand-edited entry arrays returns each `IntegrityFailure` reason. Stored: `runInDurableObject` drops the append-only triggers, then edits `entry_json`, `sequence`, or `previous_digest`, or deletes the last row. `verifyHistory` on `readHistory` reports the matching reason. A truncated tail fails only when a trusted head is supplied. `replayEffectiveHistory` throws on that history. | ZER-17, ZER-20 |
+| A stored payload, sequence, or link is corrupted, or a trusted head no longer matches. | Pure: `verifyHistory` on hand-edited entry arrays returns each `IntegrityFailure` reason. Stored: `runInDurableObject` drops the append-only triggers, then edits `entry_json`, `sequence`, or `previous_digest`, or deletes the last row. `verifyHistory` on `readHistory` reports the matching reason. A truncated tail fails only when a trusted head is supplied. `replayEffectiveHistory` throws on that history once replay exists in ZER-21. | ZER-17, ZER-20, ZER-21 |
 | The ledger is reopened after successful appends. | Append, then call `evictDurableObject` and, in a separate case, `abortAllDurableObjects`. The same entries and digest chain are readable. A repeated append returns `duplicate` with the original receipt. A changed append returns `conflict`. | ZER-19 |
 
 Notes from the probe for test authors:

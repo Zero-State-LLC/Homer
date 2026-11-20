@@ -52,3 +52,18 @@ and parity of the generated Workers validator with existing Node fixtures.
 `npm run smoke:workers` runs a separate local-only harness in plain Wrangler.
 This catches runtime code generation and filesystem dependencies that the test
 pool can permit. The production entry remains binding-only.
+
+Invalid client sequence bounds throw `RangeError` before any RPC. Locally detected
+page gaps or invalid chains throw `EventLedgerIntegrityError`; transport failures
+remain `EventLedgerStorageError` with the original cause. A failed remote RPC may
+hide its original error type, so callers must retain its cause for diagnosis.
+
+The local smoke route requires a compile-time opt-in injected only by
+`scripts/ledger-smoke.mjs`. Without it the route returns 404 before storage access.
+The smoke check exercises both the default refusal and the opted-in local path.
+Never use the smoke configuration for deployment or add the opt-in to production.
+
+The binding is a trusted internal capability, not a per-caller authorization
+system. Authenticated Scope enforcement, payload redaction, and reviewed Identity
+Bindings are required before any Collector, API, or MCP gateway gets this binding.
+See the [trusted consumer boundary](../../specs/event-ledger/spec.md#integrity-and-reading).

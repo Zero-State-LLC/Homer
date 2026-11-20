@@ -36,10 +36,10 @@
   "budget_usd": 5,
   "owner_agent": "PROMETHEUS",
   "stage": "intake",
-  "test_command": "npm ci --no-audit --no-fund && npm run check",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
   "links": [
     "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
-    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-plan/specs/event-ledger/plan.md",
+    "https://github.com/Zero-State-LLC/Homer/blob/fddda0f1980c5ddd1b2c7b80035c0d71cc764dfc/specs/event-ledger/plan.md",
     "https://linear.app/zer0state/issue/ZER-21"
   ]
 }
