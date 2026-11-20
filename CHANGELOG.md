@@ -6,6 +6,9 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Signed GitHub merge webhook Collector with live catalog admission, awaited
+  Event Ledger receipts, duplicate delivery protection and explicit failure results.
+
 - Cloudflare catalog API with Access JWT validation, separate read/admin audiences,
   durable revision checks and immutable mapping history.
 
