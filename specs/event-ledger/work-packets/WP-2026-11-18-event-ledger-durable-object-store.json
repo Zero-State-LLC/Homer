@@ -1,0 +1,44 @@
+{
+  "id": "WP-2026-11-18-event-ledger-durable-object-store",
+  "source": "linear:ZER-19",
+  "pain": "Accepted Activity Events need durable, atomic, append-only storage that survives object eviction and restart and keeps Duplicate and Conflict outcomes.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "All storage SQL lives in src/ledger-object.ts, class EventLedgerObject, and no other module calls ctx.storage.",
+    "The constructor applies the plan.md schema inside blockConcurrencyWhile with CREATE ... IF NOT EXISTS, including STRICT tables, UNIQUE event_key and correction_id, and triggers that abort UPDATE and DELETE on entries, and a test proves each refuses a bad write.",
+    "Lookup, Duplicate or Conflict decision, head read, digest and insert run inside one synchronous ctx.storage.transactionSync callback that awaits nothing, and every non-append outcome writes nothing.",
+    "openEventLedger(namespace) addresses idFromName(\"event-ledger\"), exposes appendActivityEvent, appendCorrection, readHistory and head as async methods, and wraps errors thrown over RPC in EventLedgerStorageError.",
+    "readHistory pages with fromSequence up to a throughSequence fixed at the first call, at most 1000 entries and 16 MiB of entry_json per page, and a test reads a multi-page history equal to a single verified prefix.",
+    "A test mutates the caller object after append and readHistory returns the committed payload; another appends an earlier occurredAt after a later one and both instants come back byte-for-byte in append order.",
+    "A reopen test uses evictDurableObject and abortAllDurableObjects and shows the same entries and digest chain, a repeated append returning duplicate with the original receipt, and a changed append returning conflict.",
+    "npm run check passes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/src/ledger-object.ts",
+      "packages/event-ledger/src/client.ts",
+      "packages/event-ledger/src/index.ts",
+      "packages/event-ledger/test/store.test.ts",
+      "packages/event-ledger/test/reopen.test.ts"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, route, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Cloudflare deploys, wrangler login and creating any Cloudflare resource",
+      "Merges and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/Homer/blob/fddda0f1980c5ddd1b2c7b80035c0d71cc764dfc/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-19"
+  ]
+}

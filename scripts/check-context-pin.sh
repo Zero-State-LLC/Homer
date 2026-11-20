@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Check the agent-context Context Pin. Fetch each pinned file at the pinned
-# commit, compare its sha256 with the pin, then lint AGENTS.md with the pinned
-# check-agents-md.sh. Any mismatch or fetch error fails closed.
-# Needs: bash, curl, python3, sha256sum. agent-context is public; no credentials.
+# Verify the agent-context Context Pin: fetch each pinned file at the pinned
+# commit, check its sha256, then lint AGENTS.md with the pinned
+# check-agents-md.sh. Fails closed on any mismatch or fetch error.
+# Needs: bash, curl, python3, sha256sum. No credentials (agent-context is public).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
