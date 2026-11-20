@@ -1,3 +1,3 @@
-# Zero State HOME
+# Zero State Homer
 
 Engineering headquarters for Zero State LLC. This repository is being bootstrapped through reviewed pull requests; see the open PRs for the foundation, contracts, and the first working components.
