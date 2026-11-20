@@ -265,3 +265,43 @@ it("requires admin Scope for archive exports and exposes no HTTP restore route",
     ).status,
   ).toBe(404);
 });
+
+it("protects the editor, assets and runtime snapshot with the admin audience", async () => {
+  const e = testEnv(),
+    admin = await token(),
+    reader = await token(config.ACCESS_READ_AUD);
+  const store = e.MAPPING_CATALOG.get(e.MAPPING_CATALOG.idFromName(e.CATALOG_NAME));
+  await store.replace(0, next, "a".repeat(64));
+  for (const suffix of ["editor", "editor.js", "editor.css", "snapshot"]) {
+    const req = (jwt: string | null, method = "GET", origin?: string) =>
+      new Request(`https://homer.example/v1/admin/catalog/${suffix}`, {
+        method,
+        headers: {
+          ...(jwt ? { "Cf-Access-Jwt-Assertion": jwt } : {}),
+          ...(origin ? { Origin: origin } : {}),
+        },
+      });
+    expect((await handleRequest(req(null), e, key)).status).toBe(401);
+    expect((await handleRequest(req(reader), e, key)).status).toBe(401);
+    expect((await handleRequest(req(admin, "POST"), e, key)).status).toBe(405);
+    expect(
+      (await handleRequest(req(admin, "GET", "https://elsewhere.example"), e, key)).status,
+    ).toBe(403);
+    const response = await handleRequest(req(admin), e, key);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    if (suffix === "snapshot") {
+      expect(response.headers.get("ETag")).toBe('"1"');
+      expect(await response.json()).toEqual(next);
+    } else {
+      expect(response.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
+      expect(response.headers.get("X-Frame-Options")).toBe("DENY");
+      expect(response.headers.get("Referrer-Policy")).toBe("no-referrer");
+      const body = await response.text();
+      expect(body).not.toContain(next.repositories[0]!.repository);
+      expect(body).not.toContain(admin);
+      expect(body).not.toContain("synthetic-principal");
+    }
+  }
+  expect(await store.read()).toEqual(next);
+});

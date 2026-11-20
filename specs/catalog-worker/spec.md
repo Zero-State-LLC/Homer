@@ -19,7 +19,7 @@ PUT `/v1/admin/catalog` requires the admin application audience. It accepts the 
 next MappingSnapshot with an `If-Match` header containing the quoted current
 revision. Missing precondition returns 428, stale revision 409, invalid snapshot
 400, oversized body 413, absent/invalid token 401. Missing deployment configuration
-returns 503. Unknown routes return 404. Responses are JSON and `no-store`.
+returns 503. Unknown routes return 404. API responses are JSON and `no-store`.
 
 Tokens must use RS256 and have matching issuer/audience, expiry and issued-at
 claims, application token type, and a nonempty subject or signed service-token
@@ -130,3 +130,30 @@ key, digest, revision count and verification outcome, never archive rows or
 principal digests. Disable the runner and remove the source binding after the
 drill. Keep private backup and recovery storage for evidence; do not delete
 history as cleanup. Production cutover and Event Ledger restoration are separate.
+
+## Runtime catalog editor
+
+An operator opens GET `/v1/admin/catalog/editor` using the existing admin Access
+application. The editor and its script/style assets require the admin audience;
+reader tokens cannot load them. GET `/v1/admin/catalog/snapshot` supplies the
+current snapshot under the same admin path, without requiring a second login.
+These routes do not change policies, create credentials or seed inventory.
+
+The editor loads runtime data, accepts a JSON array of Repository mappings,
+shows the current and proposed mappings for review, then saves through the
+existing PUT operation. It derives the next revision from the loaded revision
+and sends If-Match. Editing invalidates review. Save remains disabled until a
+successful load and review, and while a request is in flight. Reloading a dirty
+draft requires confirmation. A stale revision, expired session or uncertain
+network result preserves the draft and requires reload and reconciliation;
+there is no automatic write retry or silent overwrite. A successful save shows
+the server-returned snapshot. No Project or Identity Binding is inferred.
+
+The HTML contains no runtime inventory, secrets, tokens or principal identifiers.
+Dynamic text uses textarea.value and textContent, never HTML interpolation.
+Same-origin external script/style assets, a restrictive Content Security Policy,
+frame denial, no-store and no-referrer headers protect the editor. Existing
+origin checks, JSON body limits, admin authentication and transactional history
+remain the write boundary. Local acceptance covers all new routes, reader and
+anonymous denial, script behavior on load/review/conflict/session/network failures,
+double submission and preservation of drafts.

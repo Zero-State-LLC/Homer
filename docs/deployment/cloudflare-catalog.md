@@ -33,6 +33,27 @@ JWT remains usable until expiry unless additional revocation controls are used;
 editing an Access policy alone is not evidence that every old token stopped working.
 Test policy removal, signing-key rotation and service-token rotation in staging.
 
+## Editing runtime mappings
+
+Open `/v1/admin/catalog/editor` on the gateway hostname and sign in through the
+existing admin Access application. Ensure that application covers the child paths
+`editor`, `editor.js`, `editor.css` and `snapshot`, just as it covers `archive`.
+No additional Access application, service token or policy is required. Verify
+anonymous and reader access is denied before permitting operators to use it.
+
+The editor reads the current catalog and revision at runtime. Edit the Repository
+array, select Review changes, compare the current and proposed lists, then save.
+Use verified numeric GitHub repository IDs and full repository names. Omit
+projectId until the Project mapping is verified. Admission does not register a
+GitHub webhook, import historical events or create an Identity Binding.
+
+If another operator saves first, the server refuses the stale replacement.
+The editor keeps the draft: copy it before reloading, reconcile against the new
+catalog, and review again. An expired session or uncertain save also requires
+reload and reconciliation. The editor never automatically retries a write.
+Disable a Repository by setting enabled to false; historical Activity Events and
+catalog revisions remain intact. Do not use raw SQL to bypass these operations.
+
 ## GitHub webhook route and ledger binding
 
 POST `/v1/hooks/github` authenticates with GitHub's HMAC-SHA256 signature rather

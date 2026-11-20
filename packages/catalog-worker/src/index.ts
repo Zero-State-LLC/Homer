@@ -5,6 +5,7 @@ import { verifyAccess, validateAccessConfig, type AccessConfig } from "./access.
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
 import { json, readBytes } from "./http.js";
 import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
+import { editorPaths, editorResponse } from "./editor.js";
 export { MappingCatalogObject };
 export interface Env extends CatalogBindings, AccessConfig, WebhookEnv {}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
@@ -16,10 +17,19 @@ export async function handleRequest(
   const url = new URL(request.url);
   if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
-  if (url.pathname !== "/v1/catalog" && url.pathname !== "/v1/admin/catalog" && !archiveRoute)
+  const editorRoute = editorPaths.has(url.pathname);
+  const snapshotRoute = url.pathname === "/v1/admin/catalog/snapshot";
+  if (
+    url.pathname !== "/v1/catalog" &&
+    url.pathname !== "/v1/admin/catalog" &&
+    !archiveRoute &&
+    !editorRoute &&
+    !snapshotRoute
+  )
     return json({ error: "not_found" }, 404);
   if (
-    ((url.pathname === "/v1/catalog" || archiveRoute) && request.method !== "GET") ||
+    ((url.pathname === "/v1/catalog" || archiveRoute || editorRoute || snapshotRoute) &&
+      request.method !== "GET") ||
     (url.pathname === "/v1/admin/catalog" && request.method !== "PUT")
   )
     return json({ error: "method_not_allowed" }, 405);
@@ -38,6 +48,7 @@ export async function handleRequest(
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
+  if (editorRoute) return editorResponse(url.pathname);
   const store = env.MAPPING_CATALOG.get(env.MAPPING_CATALOG.idFromName(env.CATALOG_NAME));
   if (archiveRoute) {
     try {
