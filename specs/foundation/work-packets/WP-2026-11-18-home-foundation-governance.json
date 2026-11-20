@@ -40,7 +40,7 @@
   "budget_usd": 5,
   "owner_agent": "Boof",
   "stage": "verify",
-  "test_command": "bash scripts/check-context-pin.sh && bash scripts/test-check-context-pin.sh && npx --yes markdownlint-cli2 '**/*.md'",
+  "test_command": "bash -c 'bash scripts/check-context-pin.sh && bash scripts/test-check-context-pin.sh && npx --yes markdownlint-cli2 '\"'\"'**/*.md'\"'\"''",
   "links": [
     "https://github.com/Zero-State-LLC/home/pull/1",
     "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"

@@ -138,3 +138,19 @@ function schemaIdOf(schema: object): string {
   const id = schema["$schema"];
   return typeof id === "string" ? id : "";
 }
+
+it("refuses malformed Work Requests at the packet boundary", () => {
+  const request = validatedRequest(loadFixture("valid/work-request.json"));
+  for (const patch of [{ requestId: "bad" }, { budgetUsd: 0 }, { doneWhen: [] }])
+    expect(() => toWorkPacket({ ...request, ...patch }, new Date())).toThrow(/Work Request/);
+});
+it("detaches packet arrays from the Work Request", () => {
+  const request = validatedRequest(loadFixture("valid/work-request.json"));
+  const packet = toWorkPacket(request, new Date());
+  const before = structuredClone(packet);
+  request.doneWhen.push("later mutation");
+  request.paths?.push("later-path");
+  request.links?.push("https://example.test/later");
+  request.outOfScope?.push("later scope");
+  expect(packet).toEqual(before);
+});

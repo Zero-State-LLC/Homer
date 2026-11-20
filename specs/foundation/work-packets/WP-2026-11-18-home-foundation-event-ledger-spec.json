@@ -25,7 +25,7 @@
   "budget_usd": 5,
   "owner_agent": "Boof",
   "stage": "verify",
-  "test_command": "npm ci --no-audit --no-fund && npm run check && npx --yes markdownlint-cli2 '**/*.md'",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check && npx --yes markdownlint-cli2 '\"'\"'**/*.md'\"'\"''",
   "links": [
     "https://github.com/Zero-State-LLC/home/pull/3",
     "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"

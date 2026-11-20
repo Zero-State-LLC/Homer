@@ -42,7 +42,7 @@
   "owner_agent": "Boof",
   "stage": "verify",
   "author_model": "xai:grok-4.7",
-  "test_command": "npm ci --no-audit --no-fund && npm run check && npm audit --audit-level=high",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check && npm audit --audit-level=high'",
   "links": [
     "https://github.com/Zero-State-LLC/home/pull/2",
     "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"

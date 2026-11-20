@@ -1,6 +1,6 @@
 # Event Ledger planning handoff
 
-Danny accepted the Event Ledger specification on 2026-11-19. FORGE owns the implementation plan and Tasks for the first delivery in [ZER-9](https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines).
+Danny accepted the Event Ledger specification on 2026-11-19 UTC (2026-11-18 PT). FORGE owns the implementation plan and Tasks for the first delivery in [ZER-9](https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines).
 
 ## Inputs
 
