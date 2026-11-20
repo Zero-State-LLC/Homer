@@ -6,7 +6,7 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
-- Renamed the product and repository from Homer (`Zero-State-LLC/Homer`) to Homer (`Zero-State-LLC/Homer`), with a safety-console README and hero image.
+- Renamed the product and repository from HOME (`Zero-State-LLC/home`) to Homer (`Zero-State-LLC/Homer`), with a safety-console README and hero image.
 - Front-door map (`docs/map.md`), a cite-the-file-used rule, and a "Land the fix" section in `CONTRIBUTING.md`.
 - Draft intent for a Homer ops brain on Galadriel (`docs/intent/galadriel.md`).
 
