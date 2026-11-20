@@ -1,0 +1,43 @@
+{
+  "id": "WP-2026-11-18-event-ledger-entry-digest",
+  "source": "linear:ZER-17",
+  "pain": "Without a versioned entry format and digest chain, a changed, reordered or truncated history cannot be detected.",
+  "who": "HOME's trusted internal consumers: Collectors that append Activity Events and Projections that replay them.",
+  "done_when": [
+    "LedgerEntry exposes stored comparisonDigest and entryDigest alongside formatVersion, sequence, entryType, previousDigest and payload. entryDigest is lowercase hex SHA-256 over the RFC 8785 canonical JSON of the five body fields (excluding both digest fields), computed synchronously with node:crypto createHash. verifyHistory recomputes and compares both digests.",
+    "The modules in this slice import no storage, cloudflare:workers or Durable Object API.",
+    "Committed fixtures include the RFC 8785 test vectors and synthetic ledger entries whose expected digests were produced outside the package; tests read them and never regenerate them.",
+    "verifyHistory returns a typed IntegrityFailure for each of sequence_gap, unsupported_format, previous_digest_mismatch, entry_digest_mismatch, comparison_digest_mismatch and trusted_head_mismatch, each covered by a test on in-memory entry arrays.",
+    "A truncated tail fails verifyHistory only when a trusted head is supplied, and a test proves both cases.",
+    "All fixtures are synthetic, and npm run check passes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": [
+      "packages/event-ledger/src/entry.ts",
+      "packages/event-ledger/src/canonical.ts",
+      "packages/event-ledger/src/verify.ts",
+      "packages/event-ledger/test/canonical.test.ts",
+      "packages/event-ledger/test/verify.test.ts",
+      "packages/event-ledger/test/fixtures/"
+    ],
+    "out_of_scope": [
+      "Live Collectors and Identity Binding config",
+      "Projections, Activity Calendar and Project Timeline",
+      "Any HOME API, route, MCP server or Scope enforcement",
+      "Real customer or account data; fixtures are synthetic",
+      "Cloudflare deploys, wrangler login and creating any Cloudflare resource",
+      "Merges and paid model spend without Danny's yes"
+    ]
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "PROMETHEUS",
+  "stage": "intake",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/blob/foundation/event-ledger-spec/specs/event-ledger/spec.md",
+    "https://github.com/Zero-State-LLC/Homer/blob/fddda0f1980c5ddd1b2c7b80035c0d71cc764dfc/specs/event-ledger/plan.md",
+    "https://linear.app/zer0state/issue/ZER-17"
+  ]
+}

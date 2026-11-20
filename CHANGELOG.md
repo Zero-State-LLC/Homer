@@ -20,3 +20,4 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - Validate Work Requests before packet conversion and detach caller-owned arrays.
 - Treat rate-limited documentation links as failed checks after retries.
 - Clarify the specification acceptance date in UTC and Pacific Time.
+- Pin Work Packet plan links to a retained commit and assign replay corruption coverage to ZER-21.
