@@ -13,3 +13,7 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - Accepted stage-zero intent `docs/intent/home-foundation.md`.
 - agent-context Context Pin, with a CI check and negative tests.
 - CI for docs lint, link check, gitleaks secret scan, and Dependabot for GitHub Actions.
+
+### Fixed
+
+- Treat rate-limited documentation links as failed checks after retries.
