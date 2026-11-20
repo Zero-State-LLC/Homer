@@ -132,3 +132,48 @@ own migration, restore and rollback plan.
 Resume deliveries only after checking authentication, bindings and the ledger
 head. Inspect and redeliver failures from the pause. Removing the webhook handler
 does not remove existing Activity Events. Preserve Event Ledger storage throughout.
+
+## Catalog archive and isolated restore
+
+An authorized admin can GET `/v1/admin/catalog/archive` after the recovery release
+is deployed. Ensure the admin Access application covers this child path as well
+as `/v1/admin/catalog`; verify a reader is denied at both the edge and Worker.
+Save the response to approved private storage with restrictive file permissions.
+Do not paste archives into PRs or logs: they include historical repository mappings
+and pseudonymous principal digests. Retain `digest`, `headRevision`, export time
+and the deployed source/version in separate trusted recovery evidence.
+
+Archives include all persisted revisions and original audit fields. The initial
+empty revision 0 has no stored row. The limit is 768 KiB of complete JSON and 1,000
+revisions. A 413 response is an unsuccessful backup, not a usable partial archive.
+Monitor archive size and revision count; implement paginated recovery before
+outgrowing the atomic format. The SHA-256 digest detects accidental corruption;
+it does not authenticate an archive whose digest was replaced by an attacker.
+
+Restoration is available only through a trusted maintenance Durable Object binding:
+
+```ts
+const archive = await source.exportArchive();
+// expectedDigest comes from independently retained, trusted recovery evidence.
+await target.restoreArchive(archive, expectedDigest);
+const recovered = await target.exportArchive();
+if (JSON.stringify(recovered) !== JSON.stringify(archive)) {
+  throw new Error("catalog_reconciliation_failed");
+}
+```
+
+Before executing, select a separate recovery namespace and fresh object identity.
+Record those identities privately; never repoint CATALOG_NAME or MAPPING_CATALOG
+on the live gateway to run a drill. The target must have no history, including
+history whose latest inventory is empty. Restore validates the whole archive
+before one atomic transaction. It preserves audit times and principal digests;
+it does not recast history as the maintenance operator's new edits. A failed
+transaction leaves no partially imported revisions. Re-export after a restart
+and compare every revision and audit field, then record the matching digest and
+row count. Keep any Collector disabled against the recovery namespace.
+
+No public restore endpoint exists. The gateway cannot select a target object from
+request input. Grant maintenance bindings only to a reviewed, authorized operator
+Worker, and remove temporary capabilities after the drill. This operation does
+not restore the Event Ledger and does not authorize a production cutover. Keep
+hosted catalog and Event Ledger recovery gates open until separately demonstrated.

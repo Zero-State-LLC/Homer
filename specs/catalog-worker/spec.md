@@ -66,3 +66,47 @@ Primary platform references:
 - <https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/>
 - <https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/>
 - <https://github.com/panva/jose>
+
+## Catalog recovery contract
+
+GET `/v1/admin/catalog/archive` requires the admin application audience and
+returns a version 1 archive with every persisted revision, its original principal
+digest and recorded-at instant, the head revision and a SHA-256 content digest.
+The initial empty revision 0 is implicit. Export captures history synchronously
+before hashing so concurrent replacements cannot mix states in one archive.
+Readers cannot export history. Missing/invalid authentication returns 401.
+
+The archive is canonical JSON: `{version, headRevision, entries, digest}` with
+entries `{snapshot, principalDigest, recordedAt}` in revision order. The digest
+covers UTF-8 JSON of the first three fields in that order, using normalized
+MappingSnapshots. Unknown fields are rejected, not silently removed. Revisions
+must be contiguous from 1 through headRevision; digests and UTC timestamps must
+be valid. The digest detects corruption, not an attacker who can replace both
+archive and digest. Operators must retain the expected digest separately in
+trusted private recovery evidence.
+
+This first atomic recovery format is capped at 768 KiB of complete encoded JSON
+and 1,000 revisions. Export refuses larger histories with 413, never truncates.
+It does not claim a general paginated backup service. Capacity monitoring and a
+paginated successor are required before these limits are approached.
+
+`restoreArchive(archive, expectedDigest)` is an internal trusted-binding RPC,
+never an HTTP endpoint. It validates the entire archive and the independently
+supplied digest before one synchronous transaction. The target must contain no
+history rows. All revisions and original audit fields are inserted atomically;
+a failure leaves the target empty. Concurrent restore or normal writes cannot
+overwrite the winner. Existing history is never replaced, even when its current
+inventory is empty. The restored current snapshot and re-exported archive must
+match the source exactly, including after object restart.
+
+Recovery workflow: export through authenticated admin access to approved private
+storage, retain digest and row count, restore through an authorized maintenance
+binding into a separate namespace/object, then re-export and compare every
+revision and audit field. Do not route callers or Collectors to the restored
+object until reconciliation and human cutover approval. This catalog operation
+neither exports nor restores the Event Ledger. Rollback of mapping content on a
+live object still uses a new revision through the normal If-Match API.
+
+Acceptance includes denied reader/anonymous exports, altered content/digest,
+revision gaps, invalid audit fields, oversized archives, occupied targets,
+concurrent restores, injected mid-import failure, and restart reconciliation.
