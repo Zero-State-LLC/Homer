@@ -1,4 +1,4 @@
-import { mapMergedPullRequest, type MappingResult } from "./index.js";
+import { mapMergedPullRequest, type MappingResult } from "./mapping.js";
 
 export interface RepositoryMapping {
   repositoryId: number;

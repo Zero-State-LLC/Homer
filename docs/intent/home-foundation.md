@@ -52,6 +52,8 @@ Non-goals:
 
 - Where does the Control Room Site source live, and who can grant editor/deploy access? (ZER-9 first blocker)
 - Hosting for HOME's API and MCP gateway: Cloudflare Workers like JChain, or the Control Room's ChatGPT Sites host?
+  Resolved by Daniel on 2026-11-20: Cloudflare supplies all Homer hosting needs.
+  Existing Control Room cutover still requires its own verified migration.
 - Freshness budgets per Source System.
 - Should `partner-agents` get access to this repo? (org default permission is none)
 
