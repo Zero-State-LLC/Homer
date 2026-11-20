@@ -11,3 +11,8 @@ Schemas are loaded from `specs/integration-contracts/` at runtime. They are not 
 - `loadUpstreamWorkPacketSchema` reads the pinned Work Packet snapshot and throws if its sha256 does not match `PIN.json`.
 
 See [Integration contracts](../../specs/integration-contracts/README.md).
+
+This private package is consumed inside this workspace. Keep the repository's
+`specs/integration-contracts/` tree beside the build; copying only `dist/` is not
+a supported installation. `toWorkPacket` validates the Work Request before mapping
+and copies its arrays so later caller mutations cannot change the packet.
