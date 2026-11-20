@@ -1,0 +1,10 @@
+# Generated output and local secrets. Keep negation rules after the broader globs.
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.dev.vars
+*.log
+.DS_Store

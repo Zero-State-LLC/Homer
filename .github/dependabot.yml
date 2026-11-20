@@ -1,0 +1,14 @@
+# Keeps the SHA-pinned actions current. Dependabot rewrites both the commit SHA
+# and its trailing "# vX.Y.Z" comment. npm entries arrive with the TypeScript
+# workspace. Org standard: Dependabot (JChain), not Renovate.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
