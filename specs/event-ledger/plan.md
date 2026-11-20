@@ -54,7 +54,7 @@ Why the Durable Object:
 
 Costs of this choice:
 
-- One object serializes all appends. The soft limit is about 1,000 requests per second for the whole Event Ledger. HOME's Collectors are far below that today, but the plan does not measure it.
+- One object serializes all appends. The soft limit is about 1,000 requests per second for the whole Event Ledger. Homer's Collectors are far below that today, but the plan does not measure it.
 - Point-in-time recovery cannot be tested locally.
 - Errors thrown inside the object reach the caller as RPC errors. The client wraps them; see [Interfaces](#interfaces).
 
@@ -307,7 +307,7 @@ Done-when items for each slice are in the [Work Packets](work-packets/), each of
 ## Fresh-checkout command
 
 ```sh
-git clone https://github.com/Zero-State-LLC/home.git && cd home
+git clone https://github.com/Zero-State-LLC/Homer.git && cd Homer
 npm ci --no-audit --no-fund
 npm run check
 ```
@@ -332,7 +332,7 @@ Zero State's standing rule is to prefer NVIDIA Inception products where one fits
 
 ## Out of scope
 
-Live Collectors, Identity Binding config, Projections, the Activity Calendar and Project Timeline, Source Freshness budgets, any HOME API, route or MCP, Scope enforcement, deployment, and the Control Room migration. These stay with later ZER-9 work.
+Live Collectors, Identity Binding config, Projections, the Activity Calendar and Project Timeline, Source Freshness budgets, any Homer API, route or MCP, Scope enforcement, deployment, and the Control Room migration. These stay with later ZER-9 work.
 
 ## Workflows
 
@@ -364,7 +364,7 @@ Live Collectors, Identity Binding config, Projections, the Activity Calendar and
 
 ## Implementation notes (2026-11-18 PT)
 
-The implementation under the current HOME completion request uses the recommended
+The implementation under the current Homer completion request uses the recommended
 Durable Object backend and build-time Workers validator. No paid model calls or
 Cloudflare resources were created. The ledger exposes `comparisonDigest` on each
 read entry so corruption of that stored field is detectable. Storage-column

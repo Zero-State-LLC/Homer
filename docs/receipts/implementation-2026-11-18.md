@@ -1,4 +1,4 @@
-# HOME foundation implementation evidence
+# Homer foundation implementation evidence
 
 Date: 2026-11-18 Pacific Time. Author: Codex.
 

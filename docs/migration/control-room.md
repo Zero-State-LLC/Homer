@@ -32,7 +32,7 @@ Sites APIs and checked by authorized operators, not copied into public fixtures.
 
 ## Integration boundaries
 
-HOME owns the Event Ledger and Projections. agent-context stays separate, consumed
+Homer owns the Event Ledger and Projections. agent-context stays separate, consumed
 through its verified Context Pin. software-factory stays separate, consumed through
 the versioned Work Request and Factory Event contracts. No histories are rewritten,
 no repositories are archived, and no skills or factory implementation are copied.
@@ -42,7 +42,7 @@ Task Authority. Local Control Room task proposals are not evidence of Linear sta
 Existing repository observations are point observations, not a complete GitHub
 history. Never turn a last-updated time into an invented event time or Milestone.
 
-The HOME Durable Object is an independent Worker capability. Sites currently
+The Homer Durable Object is an independent Worker capability. Sites currently
 advertises D1 and R2 bindings; a cross-Worker binding or authenticated gateway for
 the Durable Object must be verified before wiring the live UI. Do not assume that
 a D1 binding can access the Durable Object. D1 remains the current Control Room
@@ -83,7 +83,7 @@ state store until a separate approved migration proves parity.
 
 ## Rollback
 
-Stop new HOME collection at its recorded source cursors. Preserve its append-only
+Stop new Homer collection at its recorded source cursors. Preserve its append-only
 history and trusted head; never delete or rewrite entries to hide a failure.
 Restore the previous Control Room publication and adapter selection. Continue
 using the original D1 state, which shadow collection never changed. Verify sign-in,
@@ -100,6 +100,6 @@ private export/restore procedure and explicitly reconcile writes made since expo
 - Calendar/Timeline UI, mobile and accessibility verification in the existing Site.
 - Staging resources, account/plan selection, deploy authorization and production receipts.
 
-The packages in HOME complete the first internal data components. They do not
+The packages in Homer complete the first internal data components. They do not
 claim that the production calendar, unattended Linear synchronization or cutover
 has shipped.

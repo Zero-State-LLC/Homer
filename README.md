@@ -1,14 +1,14 @@
-# Zero State HOME
+# Zero State Homer
 
-[![CI](https://github.com/Zero-State-LLC/home/actions/workflows/ci.yml/badge.svg)](https://github.com/Zero-State-LLC/home/actions/workflows/ci.yml)
-[![Docs](https://github.com/Zero-State-LLC/home/actions/workflows/docs.yml/badge.svg)](https://github.com/Zero-State-LLC/home/actions/workflows/docs.yml)
-[![Secret scan](https://github.com/Zero-State-LLC/home/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/Zero-State-LLC/home/actions/workflows/secret-scan.yml)
+[![CI](https://github.com/Zero-State-LLC/Homer/actions/workflows/ci.yml/badge.svg)](https://github.com/Zero-State-LLC/Homer/actions/workflows/ci.yml)
+[![Docs](https://github.com/Zero-State-LLC/Homer/actions/workflows/docs.yml/badge.svg)](https://github.com/Zero-State-LLC/Homer/actions/workflows/docs.yml)
+[![Secret scan](https://github.com/Zero-State-LLC/Homer/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/Zero-State-LLC/Homer/actions/workflows/secret-scan.yml)
 
-Engineering headquarters for Zero State LLC. HOME records source-linked work and
+Engineering headquarters for Zero State LLC. Homer records source-linked work and
 turns verified history into Activity Calendar and Project Timeline data.
 
 **Current delivery:** internal packages, synthetic acceptance tests and a verified
-source migration plan. The live Control Room has not been cut over to HOME.
+source migration plan. The live Control Room has not been cut over to Homer.
 
 | Component | Responsibility |
 | --- | --- |
@@ -39,12 +39,12 @@ tests, and exercises plain local Wrangler to catch runtime incompatibilities.
 
 Linear owns Task status and assignments. GitHub owns Repository Events. The
 Control Room owns Work Sessions and Handoffs. software-factory owns Work Packets
-and Verdicts. HOME observes these systems and builds Projections.
+and Verdicts. Homer observes these systems and builds Projections.
 
 - Every Activity Event retains Provenance. A wrong event gets a Correction.
 - Source accounts stay Unattributed without reviewed Identity Bindings.
 - Unknown Milestone dates remain unknown; completion requires verified evidence.
-- No One Mind content or credentials may enter HOME.
+- No One Mind content or credentials may enter Homer.
 - The Event Ledger has no public HTTP route. Its binding is for trusted consumers.
 
 ## Delivery and migration

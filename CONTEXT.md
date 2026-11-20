@@ -1,15 +1,15 @@
-# HOME glossary
+# Homer glossary
 
-HOME is the Zero State engineering headquarters: it observes work in GitHub, Linear, the Control Room and software-factory, records it in one Event Ledger, and projects it into calendars and timelines. This file is the ubiquitous language only. Code, specs, tests, issues and PRs use these terms exactly.
+Homer is the Zero State engineering headquarters: it observes work in GitHub, Linear, the Control Room and software-factory, records it in one Event Ledger, and projects it into calendars and timelines. This file is the ubiquitous language only. Code, specs, tests, issues and PRs use these terms exactly.
 
 ## Sources and authority
 
 **Source System**:
-A system HOME reads from: `github`, `linear`, `control-room`, `software-factory`. HOME never becomes the authority for a fact another Source System owns.
+A system Homer reads from: `github`, `linear`, `control-room`, `software-factory`. Homer never becomes the authority for a fact another Source System owns.
 _Avoid_: integration, provider
 
 **Authority**:
-The one Source System whose value wins for a fact. Linear is the Authority for Task ownership, priority and status. GitHub is the Authority for Repository Events. The Control Room is the Authority for Work Sessions and Handoffs. software-factory is the Authority for Work Packet stage and Verdicts. HOME is the Authority only for Observations and Projections.
+The one Source System whose value wins for a fact. Linear is the Authority for Task ownership, priority and status. GitHub is the Authority for Repository Events. The Control Room is the Authority for Work Sessions and Handoffs. software-factory is the Authority for Work Packet stage and Verdicts. Homer is the Authority only for Observations and Projections.
 _Avoid_: owner (for systems), source of truth
 
 **Collector**:
@@ -110,11 +110,11 @@ A condition a release must pass: CI green, a passing software-factory Verdict, a
 ## software-factory
 
 **Work Request**:
-HOME's versioned request to software-factory to start a Work Packet at intake. HOME never advances a packet past intake.
+Homer's versioned request to software-factory to start a Work Packet at intake. Homer never advances a packet past intake.
 _Avoid_: job, task (for factory work)
 
 **Work Packet**:
-software-factory's unit of work (`factory/packet/work_packet.schema.json`). HOME reads it; software-factory owns it.
+software-factory's unit of work (`factory/packet/work_packet.schema.json`). Homer reads it; software-factory owns it.
 
 **Verdict**:
 software-factory's independent judge result for one PR head SHA. Only software-factory produces one.
@@ -125,7 +125,7 @@ A versioned Activity Event that software-factory emits about a Work Packet stage
 ## Context
 
 **Context Pin**:
-The exact `Zero-State-LLC/agent-context` commit HOME consumes, with the sha256 of each consumed file. Changing it is a reviewed PR.
+The exact `Zero-State-LLC/agent-context` commit Homer consumes, with the sha256 of each consumed file. Changing it is a reviewed PR.
 _Avoid_: vendored copy, fork
 
 ## Views

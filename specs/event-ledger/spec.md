@@ -2,7 +2,7 @@
 
 Status — Accepted by Danny on 2026-11-19
 
-- Foundation intent — [HOME foundation](../../docs/intent/home-foundation.md)
+- Foundation intent — [Homer foundation](../../docs/intent/home-foundation.md)
 - Task — [ZER-9](https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines)
 
 ## Scope

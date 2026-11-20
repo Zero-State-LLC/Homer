@@ -1,4 +1,4 @@
-# HOME merge review handoff
+# Homer merge review handoff
 
 Daniel explicitly authorized merging and continuing in this conversation on
 2026-11-18 Pacific Time. That authorization is recorded here; it does not replace
@@ -22,14 +22,14 @@ budget. Never paste provider credentials into a PR, packet or shell transcript.
 ## Execute independent review
 
 Use the existing software-factory installation and its authenticated GitHub access.
-Obtain HOME at the Projection branch to read these packet files. Run from the
+Obtain Homer at the Projection branch to read these packet files. Run from the
 factory checkout, passing absolute packet paths as appropriate:
 
 ```sh
-factory judge run --repo Zero-State-LLC/home --pr 5 --packet /path/to/home/docs/review/pr-5.packet.json --model z-ai/glm-5.3 --reproduce --out /tmp/home-pr-5.verdict.json
-factory judge gate --verdict /tmp/home-pr-5.verdict.json
-factory judge run --repo Zero-State-LLC/home --pr 6 --packet /path/to/home/docs/review/pr-6.packet.json --model z-ai/glm-5.3 --reproduce --out /tmp/home-pr-6.verdict.json
-factory judge gate --verdict /tmp/home-pr-6.verdict.json
+factory judge run --repo Zero-State-LLC/Homer --pr 5 --packet /path/to/Homer/docs/review/pr-5.packet.json --model z-ai/glm-5.3 --reproduce --out /tmp/homer-pr-5.verdict.json
+factory judge gate --verdict /tmp/homer-pr-5.verdict.json
+factory judge run --repo Zero-State-LLC/Homer --pr 6 --packet /path/to/Homer/docs/review/pr-6.packet.json --model z-ai/glm-5.3 --reproduce --out /tmp/homer-pr-6.verdict.json
+factory judge gate --verdict /tmp/homer-pr-6.verdict.json
 ```
 
 The runner fetches the live head SHA; packets do not pin a stale SHA. Keep the
