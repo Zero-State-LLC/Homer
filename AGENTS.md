@@ -1,6 +1,6 @@
-# Agent contract — HOME
+# Agent contract — Homer
 
-You are working in **HOME** (`Zero-State-LLC/home`), the Zero State engineering headquarters.
+You are working in **Homer** (`Zero-State-LLC/Homer`), the Zero State engineering headquarters.
 This file is the canonical contract for Cursor, Claude, Codex, Grok, Hermes and OpenClaw.
 Harness adapters (`CLAUDE.md`) only point here.
 
@@ -29,9 +29,9 @@ Read [`CONTEXT.md`](CONTEXT.md) first. Use its terms exactly in code, tests, spe
 - The Event Ledger is append-only. Fix a wrong Activity Event with a Correction, never an edit.
 - Never attribute an Activity Event to an Actor without an Identity Binding. Unattributed is a valid answer.
 - Never invent a Milestone date. Unknown Date is a valid answer.
-- Linear owns Tasks, GitHub owns Repository Events, the Control Room owns Work Sessions, software-factory owns Work Packets and Verdicts. HOME observes and projects.
+- Linear owns Tasks, GitHub owns Repository Events, the Control Room owns Work Sessions, software-factory owns Work Packets and Verdicts. Homer observes and projects.
 - Do not copy software-factory code or agent-context skills into this repo. Integrate through `specs/integration-contracts/` and the Context Pin.
-- Never expose One Mind content through any HOME API or Projection.
+- Never expose One Mind content through any Homer API or Projection.
 - Do not put secrets, tokens, account ids or live credentials in the tree, logs or PR text.
 
 ## Escalation
@@ -60,7 +60,7 @@ Org and partner status is not this repo. Load `Zero-State-LLC/agent-context`:
 3. `DECISIONS.md` only if a prior choice affects this task
 
 Clone: `gh repo clone Zero-State-LLC/agent-context ~/agent-context`.
-Pull `--ff-only` before trusting a local copy. HOME pins the files it consumes in `agent-context.pin.json`.
+Pull `--ff-only` before trusting a local copy. Homer pins the files it consumes in `agent-context.pin.json`.
 
 ## Skills
 
