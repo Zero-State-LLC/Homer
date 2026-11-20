@@ -2,7 +2,7 @@
   "source": "linear:ZER-9",
   "who": "Zero State operators and trusted Collectors",
   "scope": {
-    "repo": "Zero-State-LLC/home"
+    "repo": "Zero-State-LLC/Homer"
   },
   "risk_tier": "medium",
   "budget_usd": 5,
@@ -38,7 +38,8 @@
     "Project Timeline preserves unknown dates, requires matching trusted completion evidence, keeps Linear Milestone authority, and exposes dependencies, cycles and source-scoped Blockers.",
     "Source Freshness uses explicit checkpoints and budgets, preserves last successful collection after failures and leaves missing, invalid or future observations unknown.",
     "Migration documentation identifies the live source baseline, access and data preservation boundaries, staged acceptance, rollback and outstanding production work.",
-    "The existing site was not deployed or cut over, no live identity or completion was invented, and compiled Projection exports and acceptance tests pass."
+    "The existing site was not deployed or cut over, no live identity or completion was invented, and compiled Projection exports and acceptance tests pass.",
+    "Duplicate and invalid Source Freshness checkpoints remain Unknown with diagnostics, and Projection replay consumes the public Event Ledger export."
   ],
-  "links": ["https://github.com/Zero-State-LLC/home/pull/6"]
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/6"]
 }

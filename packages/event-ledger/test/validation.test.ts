@@ -29,3 +29,12 @@ it("refuses non-JSON values before storage, without invoking accessors", () => {
   ])
     expect(validateEvent({ ...event(), data: { bad } }).ok).toBe(false);
 });
+
+it("refuses deeply nested JSON instead of escaping validation with a stack error", () => {
+  let nested: unknown = null;
+  for (let i = 0; i < 10000; i++) nested = { child: nested };
+  expect(validateEvent({ ...event(), data: { nested } })).toEqual({
+    ok: false,
+    errors: ["Activity Event must be valid canonical JSON"],
+  });
+});

@@ -68,3 +68,21 @@ failed attempt does not replace the last success. No default budgets are implied
 
 `npm run check` runs the existing checks plus the package's pure projection tests.
 No production release is part of this package. The migration plan governs cutover.
+
+## Projection edge semantics
+
+- Actual Date is the full UTC completion instant, including source precision.
+  Planned Date is a civil date. Render Actual Date in the viewer's Display Time
+  Zone; do not convert Planned Date through UTC midnight.
+- The latest Milestone Activity Event in ledger order supplies its subject.
+  A completion can change the subject without proving completion; only a trusted
+  completion receipt sets Actual Date. The subject is descriptive, not evidence.
+- Blocker ids are scoped to the Source System. A clear from another Source System
+  cannot clear a same-named Blocker. Collectors must preserve this identity.
+- Each Source Freshness result includes `warnings`. Missing, duplicate, invalid,
+  or future checkpoints remain Unknown with a diagnostic. Duplicate checkpoints
+  never select a winner. The Project Timeline includes diagnostics for supplied
+  checkpoints; an unconfigured Source System remains Unknown without a timeline
+  warning. This is an additive Projection result field, not a ledger wire change.
+- Replay in Projection tests uses the public Event Ledger export. Canonical hash
+  helpers are used only to construct synthetic history, not as a runtime API.

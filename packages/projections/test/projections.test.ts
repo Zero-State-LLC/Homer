@@ -5,9 +5,9 @@ import {
   projectProjectTimeline,
   projectSourceFreshness,
 } from "../src/index.js";
-import { replayEffectiveHistory } from "../../event-ledger/src/history.js";
+import { replayEffectiveHistory } from "@zs-home/event-ledger";
 import { comparisonDigest, digest, entryBody } from "../../event-ledger/src/canonical.js";
-import type { LedgerEntry } from "../../event-ledger/src/index.js";
+import type { LedgerEntry } from "@zs-home/event-ledger";
 import { event } from "../../event-ledger/test/fixture.js";
 const options = { timeZone: "America/Los_Angeles", bucket: "day" as const };
 const asOf = "2026-11-19T01:00:00Z";
@@ -240,4 +240,40 @@ it("rebuilds from Corrections while preserving the original history", () => {
   ).toBe("2026-12-01");
   expect(projectActivityCalendar(effective, options).flatMap((b) => b.events)).toHaveLength(1);
   expect(original.data?.plannedDate).toBe("2026-11-20");
+});
+
+it("reports conflicting checkpoints without choosing a success or budget", () => {
+  const checkpoints = [
+    { sourceSystem: "github" as const, lastSuccessAt: asOf, maxAgeSeconds: 60 },
+    { sourceSystem: "github" as const, lastSuccessAt: "2026-11-18T00:00:00Z", maxAgeSeconds: 120 },
+  ];
+  const snapshot = structuredClone(checkpoints);
+  const result = projectSourceFreshness(checkpoints, asOf)[0]!;
+  expect(result).toMatchObject({
+    status: "unknown",
+    lastSuccessAt: null,
+    maxAgeSeconds: null,
+    warnings: ["github: multiple checkpoints"],
+  });
+  expect(
+    projectProjectTimeline([], { projectId: "project:fixture", asOf, checkpoints }).warnings,
+  ).toContain("github: multiple checkpoints");
+  expect(checkpoints).toEqual(snapshot);
+});
+it("distinguishes missing, invalid and future Source Freshness inputs", () => {
+  const result = projectSourceFreshness(
+    [
+      { sourceSystem: "github", lastSuccessAt: "invalid", maxAgeSeconds: 60 },
+      { sourceSystem: "linear", lastSuccessAt: "2027-01-01T00:00:00Z", maxAgeSeconds: 60 },
+      { sourceSystem: "control-room", lastSuccessAt: asOf, maxAgeSeconds: -1 },
+    ],
+    asOf,
+  );
+  expect(result.map((s) => s.status)).toEqual(["unknown", "unknown", "unknown", "unknown"]);
+  expect(result.map((s) => s.warnings)).toEqual([
+    ["github: invalid last success"],
+    ["linear: last success is in the future"],
+    ["control-room: invalid freshness budget"],
+    ["software-factory: missing checkpoint"],
+  ]);
 });

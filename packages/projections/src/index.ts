@@ -73,6 +73,7 @@ export interface SourceCheckpoint {
 }
 export interface SourceFreshness extends SourceCheckpoint {
   status: "fresh" | "stale" | "unknown";
+  warnings: string[];
 }
 export function projectSourceFreshness(
   checkpoints: readonly SourceCheckpoint[],
@@ -87,20 +88,26 @@ export function projectSourceFreshness(
         ? matches[0]!
         : { sourceSystem, lastSuccessAt: null, maxAgeSeconds: null };
     let status: SourceFreshness["status"] = "unknown";
-    if (
-      c.lastSuccessAt !== null &&
-      c.maxAgeSeconds !== null &&
-      Number.isSafeInteger(c.maxAgeSeconds) &&
-      c.maxAgeSeconds >= 0
-    ) {
-      try {
-        const age = now - instant(c.lastSuccessAt);
-        if (age >= 0n) status = age <= BigInt(c.maxAgeSeconds) * 1000000000n ? "fresh" : "stale";
-      } catch {
-        /* Invalid checkpoints remain Unknown. */
+    const warnings: string[] = [];
+    if (matches.length === 0) warnings.push(`${sourceSystem}: missing checkpoint`);
+    else if (matches.length > 1) warnings.push(`${sourceSystem}: multiple checkpoints`);
+    else {
+      const validBudget =
+        c.maxAgeSeconds !== null && Number.isSafeInteger(c.maxAgeSeconds) && c.maxAgeSeconds >= 0;
+      if (!validBudget) warnings.push(`${sourceSystem}: invalid freshness budget`);
+      if (c.lastSuccessAt === null) warnings.push(`${sourceSystem}: missing last success`);
+      else {
+        try {
+          const age = now - instant(c.lastSuccessAt);
+          if (age < 0n) warnings.push(`${sourceSystem}: last success is in the future`);
+          else if (validBudget)
+            status = age <= BigInt(c.maxAgeSeconds!) * 1000000000n ? "fresh" : "stale";
+        } catch {
+          warnings.push(`${sourceSystem}: invalid last success`);
+        }
       }
     }
-    return { ...structuredClone(c), status };
+    return { ...structuredClone(c), status, warnings };
   });
 }
 export interface VerifiedCompletion {
@@ -238,12 +245,18 @@ export function projectProjectTimeline(
     visited.add(id);
   }
   [...milestones.keys()].sort(lexical).forEach(visit);
+  const sourceFreshness = projectSourceFreshness(options.checkpoints ?? [], options.asOf);
+  for (const source of sourceFreshness) {
+    // Absence is normal before a Collector is configured; supplied bad inputs are not.
+    if (options.checkpoints?.some((c) => c.sourceSystem === source.sourceSystem))
+      warnings.push(...source.warnings);
+  }
   return {
     projectId: options.projectId,
     milestones: [...milestones.values()].sort((a, b) => lexical(a.id, b.id)),
     blockers: [...blockers.values()].sort((a, b) => lexical(a.id, b.id)),
     releaseGates,
-    sourceFreshness: projectSourceFreshness(options.checkpoints ?? [], options.asOf),
+    sourceFreshness,
     warnings: [...new Set(warnings)],
   };
 }

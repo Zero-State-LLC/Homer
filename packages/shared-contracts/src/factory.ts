@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { isRecord } from "./json.js";
 import { upstreamWorkPacketDir } from "./paths.js";
+import { validateWorkRequest } from "./validators.js";
 import type { WorkRequest } from "./types.js";
 
 /**
@@ -15,6 +16,10 @@ export function toWorkPacket(request: WorkRequest, now: Date): object {
   if (Number.isNaN(now.getTime())) {
     throw new Error("now must be a valid Date");
   }
+
+  const validated = validateWorkRequest(request);
+  if (!validated.ok) throw new Error(`Invalid Work Request: ${validated.errors.join("; ")}`);
+  request = structuredClone(validated.value);
 
   const scope: { repo: string; paths?: string[]; out_of_scope?: string[] } = {
     repo: request.repository,
