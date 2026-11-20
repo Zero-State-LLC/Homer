@@ -4,6 +4,14 @@ import { canonicalJson, comparisonDigest, digest, entryBody } from "./canonical.
 import { correctionTargetErrors, validateCorrection, validateEvent } from "./validation.js";
 import { EventLedgerIntegrityError } from "./types.js";
 import type { AppendOutcome, Correction, LedgerEntry, TrustedHead } from "./types.js";
+import {
+  createLedgerArchive,
+  verifyLedgerArchive,
+  ledgerArchiveBytes,
+  MAX_LEDGER_ARCHIVE_BYTES,
+  MAX_LEDGER_ARCHIVE_ENTRIES,
+  type LedgerArchive,
+} from "./archive.js";
 
 export interface Env {
   EVENT_LEDGER: DurableObjectNamespace<EventLedgerObject>;
@@ -85,6 +93,20 @@ export class EventLedgerObject extends DurableObject<Env> {
       .toArray()[0];
     return row ? this.#checked(row) : undefined;
   }
+  #insert(entry: LedgerEntry): void {
+    this.ctx.storage.sql.exec(
+      "INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      entry.sequence,
+      entry.entryType,
+      entry.entryType === "activity_event" ? entry.payload.eventKey : null,
+      entry.entryType === "correction" ? entry.payload.correctionId : null,
+      entry.entryType === "correction" ? entry.payload.targetEventKey : null,
+      entry.comparisonDigest,
+      entry.previousDigest,
+      entry.entryDigest,
+      canonicalJson(entryBody(entry)),
+    );
+  }
   #append(input: unknown, entryType: "activity_event" | "correction"): AppendOutcome {
     const result =
       entryType === "activity_event" ? validateEvent(input) : validateCorrection(input);
@@ -132,18 +154,7 @@ export class EventLedgerObject extends DurableObject<Env> {
           ? { ...base, entryType, payload: payload as ActivityEvent }
           : { ...base, entryType, payload: payload as Correction };
       const entryDigest = digest(body);
-      this.ctx.storage.sql.exec(
-        "INSERT INTO entries VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        base.sequence,
-        entryType,
-        payload.contract === "home.activity-event/v1" ? payload.eventKey : null,
-        payload.contract === "home.correction/v1" ? payload.correctionId : null,
-        payload.contract === "home.correction/v1" ? payload.targetEventKey : null,
-        comparison,
-        base.previousDigest,
-        entryDigest,
-        canonicalJson(body),
-      );
+      this.#insert({ ...body, entryDigest, comparisonDigest: comparison });
       return { outcome: "appended", receipt: { sequence: base.sequence, entryDigest } };
     });
   }
@@ -156,6 +167,32 @@ export class EventLedgerObject extends DurableObject<Env> {
   head(): TrustedHead | null {
     const last = this.#last();
     return last ? { sequence: last.sequence, entryDigest: last.entryDigest } : null;
+  }
+  /** Trusted maintenance RPC only. A separately retained head is mandatory. */
+  exportArchive(expectedHead: TrustedHead | null): LedgerArchive {
+    const entries: LedgerEntry[] = [];
+    let bytes = 0;
+    for (const row of this.ctx.storage.sql.exec(
+      "SELECT * FROM entries ORDER BY sequence LIMIT ?",
+      MAX_LEDGER_ARCHIVE_ENTRIES + 1,
+    )) {
+      if (entries.length === MAX_LEDGER_ARCHIVE_ENTRIES)
+        throw new Error("ledger_archive_too_large");
+      const entry = this.#checked(row);
+      bytes += ledgerArchiveBytes(entry);
+      if (bytes > MAX_LEDGER_ARCHIVE_BYTES) throw new Error("ledger_archive_too_large");
+      entries.push(entry);
+    }
+    return createLedgerArchive(entries, expectedHead);
+  }
+  restoreArchive(input: unknown, expectedHead: TrustedHead | null, expectedDigest: string) {
+    const archive = verifyLedgerArchive(input, expectedHead, expectedDigest);
+    return this.ctx.storage.transactionSync(() => {
+      if (this.ctx.storage.sql.exec("SELECT sequence FROM entries LIMIT 1").toArray().length)
+        throw new Error("restore_target_not_empty");
+      for (const entry of archive.entries) this.#insert(entry);
+      return { head: archive.head, entries: archive.entries.length, digest: archive.digest };
+    });
   }
   readHistory(options: { fromSequence?: number; throughSequence?: number } = {}): LedgerEntry[] {
     const from = options.fromSequence ?? 1;
