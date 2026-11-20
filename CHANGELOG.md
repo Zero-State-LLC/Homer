@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Front-door map (`docs/map.md`), a cite-the-file-used rule, and a "Land the fix" section in `CONTRIBUTING.md`.
+
 - Renamed the product and repository from HOME (`Zero-State-LLC/home`) to Homer (`Zero-State-LLC/Homer`).
 - Cloudflare Durable Object Event Ledger with Corrections, digest verification and paged replay.
 - Build-time Workers validator, plain runtime smoke, Activity Calendar and Project Timeline data.

@@ -21,6 +21,8 @@ source migration plan. The live Control Room has not been cut over to Homer.
 
 ## Start here
 
+See the [front-door map](docs/map.md) for repository and source authority.
+
 Read [AGENTS.md](AGENTS.md), [CONTEXT.md](CONTEXT.md), the
 [accepted foundation intent](docs/intent/home-foundation.md), and
 [CONTRIBUTING.md](CONTRIBUTING.md).

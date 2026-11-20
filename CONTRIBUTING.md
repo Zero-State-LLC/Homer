@@ -18,6 +18,17 @@ Zero State SDLC (from agent-context, `templates/sdlc/README.md` at the Context P
 - Fill in the PR template, including the exact test commands you ran and their results.
 - Squash merge only. Agents never merge.
 
+## Land the fix
+
+If you discover a wrong term, rule, date, or Activity Event, land the fix in the authoritative file. Do not leave it only in a chat or a draft.
+
+- A glossary term goes in [`CONTEXT.md`](CONTEXT.md).
+- The agent contract or Escalation goes in [`AGENTS.md`](AGENTS.md).
+- An accepted outcome or constraint goes in `docs/intent/`.
+- Evidence of a check or decision goes in `docs/receipts/`.
+- A wrong Activity Event is fixed with a Correction, never an edit.
+- Team-wide status or a decision goes in agent-context `STATUS.md` or `DECISIONS.md`. Do not fork a second copy into Homer.
+
 ## Tests
 
 - Tests come with the change. Never skip, delete or loosen a test to get green CI; open a `defect` issue instead.
