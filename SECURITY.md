@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-HOME has no production deployment yet. Only `main` is supported. Fixes land there through a reviewed pull request.
+Homer has no production deployment yet. Only `main` is supported. Fixes land there through a reviewed pull request.
 
 ## Reporting a vulnerability
 

@@ -1,9 +1,9 @@
-# Intent — HOME ops brain on Galadriel
+# Intent — Homer ops brain on Galadriel
 
 Author: Grok Bot for Danny (scrimshawlife-ctrl)
 Date: 2026-11-20
 Status: draft
-Product: HOME (`Zero-State-LLC/home`)
+Product: Homer (`Zero-State-LLC/Homer`)
 
 This file is a proto-spec. It comes **before** specify.
 The next stage is `specs/` (spec-kit specify). Do not skip to code.
@@ -13,7 +13,7 @@ authorizes implementation, a deploy, or a hardware purchase.
 
 ## Problem / why now
 
-Danny wants a HOME ops brain to eventually run on Galadriel, when Aaron
+Danny wants a Homer ops brain to eventually run on Galadriel, when Aaron
 brings the machine. The brain would watch CI, GitHub, traces, stack and
 site health, the fleet of machines, SSH paths, and secret expiry, and it
 would alert on change rather than requiring a human to poll each system.
@@ -51,7 +51,7 @@ Boof's requested additions:
 - A single status view, with change-only alerts that link to runbooks.
 - Spend and usage per provider, including Langfuse per-bot cost.
 - A deploy-and-merge watch. The developer decides deploy behavior per
-  use case. HOME does not own deploy policy. It watches for and alerts
+  use case. Homer does not own deploy policy. It watches for and alerts
   on unapproved production deploys, and on the known auto-deploy
   repositories named in the earlier scope (Autogive, Impact-Relay,
   Portfolio-Signals, JChain, and zer0state). The watch observes and
@@ -62,7 +62,7 @@ Boof's requested additions:
 - GPU and fleet load, temperature, and disk.
 - Backup restore drills (evidence that a restore was practiced, not
   only that a backup job ran).
-- Brain upkeep: the HOME map, the `CONTEXT.md` glossary, Corrections,
+- Brain upkeep: the Homer map, the `CONTEXT.md` glossary, Corrections,
   vault–Notion parity, and documentation drift.
 - A NIM-first model fallback, served locally. If NIM is not used, the
   reason is recorded.
@@ -72,9 +72,9 @@ Boof's requested additions:
 - Users: Danny; Aaron (named as the person bringing Galadriel);
   other humans and authorized agents who will read status or alerts,
   once access is specified.
-- Systems (proposed): HOME; GitHub; Langfuse; Cloudflare Access;
+- Systems (proposed): Homer; GitHub; Langfuse; Cloudflare Access;
   local and cloud CI runners; the named machines; SSH; the Source
-  Systems HOME already names (GitHub, Linear, the Control Room,
+  Systems Homer already names (GitHub, Linear, the Control Room,
   software-factory) where they are relevant to status. Hosting,
   inventory, and current health of each are unknown unless a later
   receipt verifies them.
@@ -95,7 +95,7 @@ Product-true locks (do not reopen in implement):
 - NVIDIA-first: consider NIM, DCGM, and other NVIDIA options first for
   local model serving and GPU telemetry. If one is not used, record
   the reason. Do not switch a model provider silently.
-- HOME remains the Authority only for Observations and Projections. It
+- Homer remains the Authority only for Observations and Projections. It
   never becomes the Authority for a fact another Source System owns.
 - A wrong Activity Event is fixed with a Correction, never an edit.
 - Do not invent machine specifications, site lists, inventory, or
@@ -107,12 +107,12 @@ Non-goals:
 - Accepting this intent without a human yes (`Status` stays `draft`
   until then).
 - Replacing the software-factory pipeline or its judge.
-- A second skills library or new agent bots in HOME.
+- A second skills library or new agent bots in Homer.
 - Changing branch protection, repository visibility, or Actions
   secrets.
-- HOME itself merging or deploying, including a production cutover of
+- Homer itself merging or deploying, including a production cutover of
   zer0state.com, without Danny's yes. Deploy policy for each repository
-  stays with the developer; HOME only watches and alerts.
+  stays with the developer; Homer only watches and alerts.
 
 ## NVIDIA-first notes
 
@@ -123,7 +123,7 @@ NVIDIA product is already running on Galadriel.
 | --- | --- | --- | --- | --- |
 | Local model fallback | NIM, served locally | Other hosted or local runtimes | NIM-FIRST | Boof's addition, under the org NVIDIA-first rule. If NIM is unavailable or unfit, record why before choosing an alternative. |
 | GPU telemetry (load, temperature) | DCGM | Vendor-neutral exporters, unstated vendor tools | DCGM-FIRST to evaluate | Named fleet includes DGX Sparks and a Jetson; DCGM is the NVIDIA path to consider first once hardware is inventoried. |
-| Coordination / status UI | none applicable yet | TypeScript or other HOME stack | NOT DECIDED | No GPU or model is required for a status Projection; stack choice waits on specify. |
+| Coordination / status UI | none applicable yet | TypeScript or other Homer stack | NOT DECIDED | No GPU or model is required for a status Projection; stack choice waits on specify. |
 
 No NVIDIA product is claimed as in use on Galadriel.
 
@@ -151,11 +151,11 @@ No NVIDIA product is claimed as in use on Galadriel.
 
 | Claim | Label |
 | --- | --- |
-| Danny wants a HOME ops brain to eventually run on Galadriel, brought by Aaron | `[assumed: Danny's chat on 2026-11-20; not independently verified]` |
+| Danny wants a Homer ops brain to eventually run on Galadriel, brought by Aaron | `[assumed: Danny's chat on 2026-11-20; not independently verified]` |
 | Named machines are Delphi, Morpheus (DGX Sparks), the Bosgame, the new Mac Ultra, the Jetson, and Galadriel | `[assumed: named in that chat; not an inventoried asset list]` |
 | Hardware specifications and current health of those machines | `[unknown: not verified in this stream]` |
 | Langfuse will be the trace (and per-bot cost) system | `[assumed: named in that chat; current deployment unknown]` |
-| The developer decides deploy behavior per use case; HOME watches and alerts on unapproved production deploys and the known auto-deploy repositories, and does not own deploy policy | `[verified: Danny's decision in chat on 2026-11-20]` |
+| The developer decides deploy behavior per use case; Homer watches and alerts on unapproved production deploys and the known auto-deploy repositories, and does not own deploy policy | `[verified: Danny's decision in chat on 2026-11-20]` |
 | Known auto-deploy repositories named for the watch: Autogive, Impact-Relay, Portfolio-Signals, JChain, and zer0state | `[assumed: named in the earlier approved scope; exact slugs not re-verified here]` |
 
 ## Next
