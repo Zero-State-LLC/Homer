@@ -17,4 +17,4 @@ Danny accepted the Event Ledger specification on 2026-11-19. FORGE owns the impl
 
 ## Runtime evidence
 
-The HOME workspace supports Node 22 and later. A local probe on Node `v22.23.5` loaded `node:sqlite` and queried SQLite `3.54.1` in memory. This establishes availability on that Node version. Disk durability, concurrency, and compatibility with the minimum runtime need their own evidence if FORGE selects SQLite.
+The Homer workspace supports Node 22 and later. A local probe on Node `v22.23.5` loaded `node:sqlite` and queried SQLite `3.54.1` in memory. This establishes availability on that Node version. Disk durability, concurrency, and compatibility with the minimum runtime need their own evidence if FORGE selects SQLite.

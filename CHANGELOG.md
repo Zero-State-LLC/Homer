@@ -1,11 +1,12 @@
 # Changelog
 
-All notable changes to HOME are recorded here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions: [SemVer](https://semver.org/).
+All notable changes to Homer are recorded here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions: [SemVer](https://semver.org/).
 
 ## Unreleased
 
 ### Added
 
+- Renamed the product and repository from HOME (`Zero-State-LLC/home`) to Homer (`Zero-State-LLC/Homer`).
 - Cloudflare Durable Object Event Ledger with Corrections, digest verification and paged replay.
 - Build-time Workers validator and plain runtime smoke.
 

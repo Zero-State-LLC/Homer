@@ -1,6 +1,6 @@
 # @zs-home/shared-contracts
 
-Types and validators for HOME integration contracts.
+Types and validators for Homer integration contracts.
 
 Run `npm run build` from the repository root before importing the package in Node.
 

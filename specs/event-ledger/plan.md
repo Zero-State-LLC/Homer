@@ -58,7 +58,7 @@ Exit path: the schema is ordinary SQLite. The core (canonical JSON, digests, cla
 
 ### Costs of one object
 
-- One object serializes every append. The soft limit is about 1,000 requests per second for the whole Event Ledger. HOME's Collectors are far below that today. This plan does not measure that rate.
+- One object serializes every append. The soft limit is about 1,000 requests per second for the whole Event Ledger. Homer's Collectors are far below that today. This plan does not measure that rate.
 - Point-in-time recovery cannot be tested locally.
 - Errors thrown inside the object reach the caller as RPC errors. The client wraps them. See [Interfaces](#interfaces).
 
@@ -333,7 +333,7 @@ The done-when items for each slice live in the [Work Packets](work-packets/). Ea
 ## Fresh checkout
 
 ```sh
-git clone https://github.com/Zero-State-LLC/home.git && cd home
+git clone https://github.com/Zero-State-LLC/Homer.git && cd Homer
 npm ci --no-audit --no-fund
 npm run check
 ```
@@ -358,7 +358,7 @@ Zero State's standing rule is to prefer an NVIDIA Inception product when one fit
 
 ## Out of scope
 
-Live Collectors, Identity Binding config, Projections, the Activity Calendar, the Project Timeline, Source Freshness budgets, any HOME API, route, or MCP server, Scope enforcement, deployment, and the Control Room migration. Those stay with later ZER-9 work.
+Live Collectors, Identity Binding config, Projections, the Activity Calendar, the Project Timeline, Source Freshness budgets, any Homer API, route, or MCP server, Scope enforcement, deployment, and the Control Room migration. Those stay with later ZER-9 work.
 
 ## Workflows
 
@@ -416,7 +416,7 @@ Gaps left open on purpose:
 
 ## Implementation notes (2026-11-18 PT)
 
-The implementation under the current HOME completion request uses the recommended
+The implementation under the current Homer completion request uses the recommended
 Durable Object backend and build-time Workers validator. No paid model calls or
 Cloudflare resources were created. The ledger exposes `comparisonDigest` on each
 read entry so corruption of that stored field is detectable. Storage-column

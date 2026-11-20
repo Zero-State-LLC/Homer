@@ -1,4 +1,4 @@
-# Contributing to HOME
+# Contributing to Homer
 
 ## Order of work
 
