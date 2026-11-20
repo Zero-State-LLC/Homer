@@ -1,0 +1,27 @@
+{
+  "name": "@zs-home/event-ledger",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/ledger-object.d.ts",
+      "default": "./dist/ledger-object.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@zs-home/shared-contracts": "0.0.0",
+    "canonicalize": "5.1.0"
+  }
+}

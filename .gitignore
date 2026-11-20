@@ -1,4 +1,3 @@
-# Generated output and local secrets. Keep negation rules after the broader globs.
 node_modules/
 dist/
 coverage/
@@ -8,3 +7,4 @@ coverage/
 .dev.vars
 *.log
 .DS_Store
+.wrangler/

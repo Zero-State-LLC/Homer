@@ -1,5 +1,5 @@
 name: Docs
-# Lint Markdown, check links, and verify the agent-context Context Pin.
+# Markdown lint, link check, and the agent-context Context Pin check.
 on:
   push:
     branches: [main]

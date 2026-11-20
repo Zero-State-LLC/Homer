@@ -1,0 +1,29 @@
+{
+  "id": "WP-2026-11-20-homer-pr-12-review",
+  "source": "github:Zero-State-LLC/Homer#12",
+  "pain": "The reconciled PR needs independent review against its current head before the stack can land.",
+  "who": "Homer maintainers and authorized internal consumers",
+  "done_when": [
+    "The README retains the existing hero asset and Homer safety-console branding, with appropriate alt text and workflow links.",
+    "Current product names and repository URLs identify Homer while accepted historical intent records remain unchanged.",
+    "No runtime feature, accepted Galadriel intent or production deployment is claimed by this branding change."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Changing merge protections",
+      "Accepting the Galadriel draft intent"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'bash scripts/check-context-pin.sh && bash scripts/test-check-context-pin.sh && npx --yes markdownlint-cli2 \"**/*.md\"'",
+  "links": [
+    "https://github.com/Zero-State-LLC/Homer/pull/12",
+    "https://github.com/Zero-State-LLC/Homer/issues/13"
+  ]
+}

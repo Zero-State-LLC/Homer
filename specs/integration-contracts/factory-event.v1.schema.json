@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/factory-event/v1",
+  "title": "Factory Event",
+  "description": "A versioned message software-factory emits about a Work Packet stage change or a Verdict.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "packetId", "type", "at", "repository"],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.factory-event/v1"
+    },
+    "packetId": {
+      "type": "string",
+      "pattern": "^WP-[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]{1,48}$"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["stage_changed", "verdict_recorded"]
+    },
+    "at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^Zero-State-LLC/[A-Za-z0-9._-]+$"
+    },
+    "from": {
+      "type": "string",
+      "enum": ["intake", "spec", "implement", "verify", "merge", "deploy", "learn", "done"]
+    },
+    "to": {
+      "type": "string",
+      "enum": ["intake", "spec", "implement", "verify", "merge", "deploy", "learn", "done"]
+    },
+    "reason": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "mode", "headSha", "judgeModel", "authorModel", "pr"],
+      "properties": {
+        "result": {
+          "type": "string",
+          "enum": ["pass", "fail"]
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["online", "offline"]
+        },
+        "headSha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "judgeModel": {
+          "type": "string"
+        },
+        "authorModel": {
+          "type": "string"
+        },
+        "pr": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": { "const": "stage_changed" }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "enum": ["intake", "spec", "implement", "verify", "merge", "deploy", "learn", "done"]
+          },
+          "to": {
+            "type": "string",
+            "enum": ["intake", "spec", "implement", "verify", "merge", "deploy", "learn", "done"]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "verdict": false
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": { "const": "verdict_recorded" }
+        },
+        "required": ["type"]
+      },
+      "then": {
+        "required": ["verdict"],
+        "properties": {
+          "verdict": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["result", "mode", "headSha", "judgeModel", "authorModel", "pr"],
+            "properties": {
+              "result": {
+                "type": "string",
+                "enum": ["pass", "fail"]
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["online", "offline"]
+              },
+              "headSha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              },
+              "judgeModel": {
+                "type": "string"
+              },
+              "authorModel": {
+                "type": "string"
+              },
+              "pr": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "from": false,
+          "to": false,
+          "reason": false
+        }
+      }
+    }
+  ]
+}

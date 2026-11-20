@@ -17,11 +17,11 @@ body:
   - type: textarea
     id: evidence
     attributes:
-      label: Evidence (Event Keys, source links, commands, and output)
+      label: Evidence (Event Keys, source links, commands and output)
   - type: checkboxes
     id: security
     attributes:
       label: Security
       options:
-        - label: This is not a security issue (security issues go to the owner privately; see SECURITY.md)
+        - label: This is not a security issue (security issues go to the owner privately, see SECURITY.md)
           required: true

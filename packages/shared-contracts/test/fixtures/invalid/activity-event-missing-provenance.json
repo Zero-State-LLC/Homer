@@ -1,0 +1,23 @@
+{
+  "contract": "home.activity-event/v1",
+  "eventKey": "github:commit.pushed:abc123def",
+  "kind": "commit.pushed",
+  "occurredAt": "2026-11-18T15:04:05Z",
+  "actor": {
+    "sourceAccount": "github:octocat",
+    "actorId": "actor:danny",
+    "actorKind": "human"
+  },
+  "projectId": "project:home",
+  "repository": "Zero-State-LLC/home",
+  "subject": "Record a pushed commit on home",
+  "evidence": [
+    {
+      "label": "commit",
+      "url": "https://github.com/Zero-State-LLC/home/commit/abc123def"
+    }
+  ],
+  "data": {
+    "ref": "refs/heads/main"
+  }
+}
