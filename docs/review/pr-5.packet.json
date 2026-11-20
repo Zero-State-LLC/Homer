@@ -1,0 +1,45 @@
+{
+  "source": "linear:ZER-9",
+  "who": "Zero State operators and trusted Collectors",
+  "scope": {
+    "repo": "Zero-State-LLC/Homer"
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "history": [
+    {
+      "from": "intake",
+      "to": "spec",
+      "at": "2026-11-19T00:02:46Z",
+      "reason": "Source: commit 48f84ee on PR #3, which specifies Event Ledger behavior and acceptance for ZER-9."
+    },
+    {
+      "from": "spec",
+      "to": "implement",
+      "at": "2026-11-19T01:49:15Z",
+      "reason": "Source: commit 318c023 on PR #5, which implements the Cloudflare Event Ledger."
+    },
+    {
+      "from": "implement",
+      "to": "verify",
+      "at": "2026-11-19T01:58:15Z",
+      "reason": "Source: commit 3000897 on PR #6, which wrote this packet at stage verify."
+    }
+  ],
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "id": "WP-2026-11-18-review-event-ledger",
+  "pain": "Accepted Activity Events need atomic durable storage, deduplication, integrity verification and Correction replay.",
+  "done_when": [
+    "The SQLite-backed Durable Object stores validated Activity Events atomically with unique Event Keys, append-only enforcement, stable duplicate receipts and conflict refusal.",
+    "History exposes entryDigest and comparisonDigest; verification detects altered payloads, links, sequences, comparison digests and truncation against a trusted head.",
+    "Corrections require valid targets and Provenance, preserve the original event identity and replay Supersede, Retract and restore in append order.",
+    "Concurrent-writer, rollback, restart, uncertain-receipt, tampering and independent canonical-vector tests are present and passing.",
+    "Generated Workers validation agrees with Node fixtures, compiled package exports load, and plain local Wrangler smoke runs without runtime code generation.",
+    "There is no production deployment, public HTTP endpoint, secret, One Mind content or weakening of existing assertions.",
+    "Client input and integrity failures remain distinguishable from RPC storage failures; large entries exercise byte-limited pagination; the smoke route refuses requests without compile-time local enablement."
+  ],
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/5"]
+}

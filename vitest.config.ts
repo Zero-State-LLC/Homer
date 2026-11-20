@@ -8,6 +8,7 @@ export default defineConfig({
           include: [
             "packages/shared-contracts/test/**/*.test.ts",
             "packages/event-ledger/test/canonical.test.ts",
+            "packages/projections/test/**/*.test.ts",
             "packages/event-ledger/test/client.test.ts",
             "packages/event-ledger/test/validation.test.ts",
           ],

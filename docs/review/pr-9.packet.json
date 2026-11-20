@@ -1,0 +1,30 @@
+{
+  "id": "WP-2026-11-20-homer-pr-9-review",
+  "source": "github:Zero-State-LLC/Homer#9",
+  "pain": "The reconciled PR needs independent review against its current head before the stack can land.",
+  "who": "Homer maintainers and authorized internal consumers",
+  "done_when": [
+    "The plan selects a SQLite-backed Durable Object and specifies synchronous transactions, canonical SHA-256 entries, paged reads and verified replay.",
+    "The six intake slice packets preserve their stage and proposed budgets; source links use retained commits rather than a superseded branch.",
+    "Replay corruption coverage is assigned to ZER-21; reproduce commands execute all shell segments.",
+    "All inherited contract tests and Markdown checks pass; no deployment or intent acceptance is implied."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Changing merge protections",
+      "Accepting the Galadriel draft intent"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check && npm audit --audit-level=high && npx --yes markdownlint-cli2 \"**/*.md\"'",
+  "links": [
+    "https://github.com/Zero-State-LLC/Homer/pull/9",
+    "https://github.com/Zero-State-LLC/Homer/issues/13"
+  ]
+}

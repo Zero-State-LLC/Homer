@@ -1,0 +1,45 @@
+{
+  "source": "linear:ZER-9",
+  "who": "Zero State operators and trusted Collectors",
+  "scope": {
+    "repo": "Zero-State-LLC/Homer"
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "history": [
+    {
+      "from": "intake",
+      "to": "spec",
+      "at": "2026-11-19T01:50:03Z",
+      "reason": "Source: commit d8f33dd on PR #6, which adds specs/projections/spec.md for ZER-9."
+    },
+    {
+      "from": "spec",
+      "to": "implement",
+      "at": "2026-11-19T01:50:03Z",
+      "reason": "Source: commit d8f33dd. The same commit carries the implementation, so GitHub records no separate spec-to-implement time."
+    },
+    {
+      "from": "implement",
+      "to": "verify",
+      "at": "2026-11-19T01:58:15Z",
+      "reason": "Source: commit 3000897 on PR #6, which wrote this packet at stage verify."
+    }
+  ],
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "id": "WP-2026-11-18-review-activity-projections",
+  "pain": "Operators need reliable calendar and timeline data and a migration plan that preserves the existing Control Room.",
+  "done_when": [
+    "Activity Calendar buckets effective events by an explicit IANA time zone for day, Monday week and month, preserving UTC values and supporting Project and Actor filters.",
+    "Tests cover Pacific spring and fall DST, week boundaries, nanosecond ordering, Unattributed actors and composed filters.",
+    "Project Timeline preserves unknown dates, requires matching trusted completion evidence, keeps Linear Milestone authority, and exposes dependencies, cycles and source-scoped Blockers.",
+    "Source Freshness uses explicit checkpoints and budgets, preserves last successful collection after failures and leaves missing, invalid or future observations unknown.",
+    "Migration documentation identifies the live source baseline, access and data preservation boundaries, staged acceptance, rollback and outstanding production work.",
+    "The existing site was not deployed or cut over, no live identity or completion was invented, and compiled Projection exports and acceptance tests pass.",
+    "Duplicate and invalid Source Freshness checkpoints remain Unknown with diagnostics, and Projection replay consumes the public Event Ledger export."
+  ],
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/6"]
+}

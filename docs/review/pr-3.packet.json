@@ -1,0 +1,29 @@
+{
+  "id": "WP-2026-11-20-homer-pr-3-review",
+  "source": "github:Zero-State-LLC/Homer#3",
+  "pain": "The reconciled PR needs independent review against its current head before the stack can land.",
+  "who": "Homer maintainers and authorized internal consumers",
+  "done_when": [
+    "The Event Ledger specification defines stable Event Keys, Duplicate and Conflict classification, Correction identity rules, atomic append, verified replay and trusted-head truncation detection.",
+    "The planning handoff assigns backend and interface decisions and acceptance tests; the acceptance date identifies UTC and Pacific Time consistently.",
+    "The change preserves contract checks and contains no production deploy or fabricated identity mapping."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Changing merge protections",
+      "Accepting the Galadriel draft intent"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check && npm audit --audit-level=high && npx --yes markdownlint-cli2 \"**/*.md\"'",
+  "links": [
+    "https://github.com/Zero-State-LLC/Homer/pull/3",
+    "https://github.com/Zero-State-LLC/Homer/issues/13"
+  ]
+}
