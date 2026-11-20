@@ -1,5 +1,5 @@
 name: Bug report
-description: HOME behaves differently from its spec or contract.
+description: Homer behaves differently from its spec or contract.
 labels: ["type:bug"]
 body:
   - type: textarea

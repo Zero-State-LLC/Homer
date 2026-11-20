@@ -1,4 +1,4 @@
-# Contributing to HOME
+# Contributing to Homer
 
 ## Order of work
 
@@ -27,7 +27,7 @@ If you discover a wrong term, rule, date, or Activity Event, land the fix in the
 - An accepted outcome or constraint goes in `docs/intent/`.
 - Evidence of a check or decision goes in `docs/receipts/`.
 - A wrong Activity Event is fixed with a Correction, never an edit.
-- Team-wide status or a decision goes in agent-context `STATUS.md` or `DECISIONS.md`. Do not fork a second copy into HOME.
+- Team-wide status or a decision goes in agent-context `STATUS.md` or `DECISIONS.md`. Do not fork a second copy into Homer.
 
 ## Tests
 
