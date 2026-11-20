@@ -110,3 +110,23 @@ live object still uses a new revision through the normal If-Match API.
 Acceptance includes denied reader/anonymous exports, altered content/digest,
 revision gaps, invalid audit fields, oversized archives, occupied targets,
 concurrent restores, injected mid-import failure, and restart reconciliation.
+
+## Hosted recovery runner
+
+A separate maintenance Worker may run the catalog drill through a Cloudflare
+Workflow invoked by the authenticated management API. It has no HTTP operation,
+public hostname, schedule or Access policy. Its source binding reads the staging
+catalog; its recovery binding targets its own SQLite namespace. Private R2 stores
+one immutable archive per drill identifier. The source catalog is never replaced.
+The runner requires an independently retained expected digest and an explicit
+runtime enable flag. No inventory, principal or hosting account is compiled in.
+
+The restore workflow validates and saves the archive before touching the target,
+reads the backup back, restores an empty target, and re-exports every revision for
+exact comparison. A retry may acknowledge an already identical target; any
+other occupied target fails. A verify-only invocation reads the existing backup
+and target without creating either. Workflow outputs contain only the archive
+key, digest, revision count and verification outcome, never archive rows or
+principal digests. Disable the runner and remove the source binding after the
+drill. Keep private backup and recovery storage for evidence; do not delete
+history as cleanup. Production cutover and Event Ledger restoration are separate.

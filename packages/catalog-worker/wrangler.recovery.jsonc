@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "homer-catalog-recovery",
+  "main": "src/recovery-workflow.ts",
+  "compatibility_date": "2026-11-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": { "RECOVERY_ENABLED": "false" },
+  "durable_objects": {
+    "bindings": [{ "name": "RECOVERY_CATALOG", "class_name": "MappingCatalogObject" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MappingCatalogObject"] }],
+}

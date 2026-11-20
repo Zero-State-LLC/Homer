@@ -177,3 +177,32 @@ request input. Grant maintenance bindings only to a reviewed, authorized operato
 Worker, and remove temporary capabilities after the drill. This operation does
 not restore the Event Ledger and does not authorize a production cutover. Keep
 hosted catalog and Event Ledger recovery gates open until separately demonstrated.
+
+### Management API recovery Workflow
+
+The separate `wrangler.recovery.jsonc` entrypoint supplies
+`CatalogRecoveryWorkflow`. It defaults to disabled and returns 404 for all HTTP
+requests. Deployment must supply SOURCE_CATALOG bound to the staging gateway's
+namespace, SOURCE_CATALOG_NAME, RECOVERY_CATALOG bound to a separate namespace
+owned by this maintenance Worker, and ARCHIVE_BUCKET bound to a private R2 bucket.
+Verify the namespace IDs differ. Do not attach a public route, preview URL,
+public bucket domain, recurring schedule or Access policy.
+
+Obtain and independently retain the expected archive digest before invocation.
+An authenticated Cloudflare administrator creates an instance with parameters
+`{drillId, expectedDigest, mode: "restore"}`. The runner exports through the source
+RPC, validates the expected digest, saves with an R2 create-only condition, reads
+the backup back, and restores the separate target. It compares the entire recovered
+archive and checks that the source stayed unchanged. A repeated invocation with
+the same drillId can acknowledge an exactly matching target but cannot overwrite
+other history. A second instance with mode `verify` performs only reads and must
+find both the backup and the restored target already present.
+
+The expected digest must come from separate trusted evidence, not an unverified
+archive supplied by a caller. Workflow outputs contain only a compact receipt.
+Do not return archives from Workflow steps or print their content in logs.
+After the drill, set RECOVERY_ENABLED to false and remove SOURCE_CATALOG and
+SOURCE_CATALOG_NAME from the maintenance Worker. Preserve the private backup,
+recovered namespace and receipts. The primary catalog and Event Ledger Worker
+configurations remain unchanged. This Workflow is an operator-run drill, not a
+scheduled backup policy or production recovery claim.
