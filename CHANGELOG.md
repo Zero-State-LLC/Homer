@@ -7,6 +7,9 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 ### Added
 
 - Renamed the product and repository from HOME (`Zero-State-LLC/home`) to Homer (`Zero-State-LLC/Homer`).
+- Cloudflare Durable Object Event Ledger with Corrections, digest verification and paged replay.
+- Build-time Workers validator and plain runtime smoke.
+
 - TypeScript workspace (`npm run check`) and versioned integration contracts for the Activity Event, the Work Request, and the Factory Event, with contract tests against the pinned software-factory Work Packet schema.
 - Governance foundation: `AGENTS.md`, `CLAUDE.md` adapter, `CONTEXT.md` glossary, `SECURITY.md`, `CONTRIBUTING.md`, CODEOWNERS, issue and PR templates.
 - Accepted stage-zero intent `docs/intent/home-foundation.md`.
@@ -21,3 +24,5 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - Treat rate-limited documentation links as failed checks after retries.
 - Clarify the specification acceptance date in UTC and Pacific Time.
 - Pin Work Packet plan links to a retained commit and assign replay corruption coverage to ZER-21.
+- Preserve client input and integrity errors, cover byte-capped paging, align runtime versions, and guard the local smoke route.
+- Poll a read-only readiness route before the smoke check writes synthetic events.

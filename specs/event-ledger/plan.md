@@ -79,7 +79,7 @@ Hashing inside `transactionSync` has to be synchronous. Use `createHash("sha256"
 
 Publish no `fetch` handler. Callers reach the object through Workers RPC on the binding. The spec defines no authentication surface, so a route would be an unauthenticated write path. [Open questions for Danny](#open-questions-for-danny) records that gap.
 
-Development and tests require Node 22.12.0 or later. `wrangler` 4.165.0, `@cloudflare/vitest-plugin` 1.8.5, and the repository's Vitest 5.1.1 declare that floor. Move the root `engines` field from `>=22` to `>=22.12.0` to match.
+Development supports Node 22.13+, Node 24, or Node 26+. Wrangler requires at least 22.12, but the existing ESLint 10.15.0 requires 22.13 within the Node 22 line. The root `engines` range reflects the intersection with Vitest's supported major versions.
 
 ## Validation in the Workers runtime
 
@@ -342,7 +342,7 @@ npm run check
 
 ## CI in slice 1
 
-Leave the workflow files unchanged. The `check` job stays on Node 22, which meets the 22.12.0 floor. Do not add the earlier `node:sqlite` Node matrix (22.13.0, 22, and 24). Keep the `audit` job as it is.
+The `check` job stays on current Node 22. Build workspace dependencies before lint and typecheck so compiled exports exist on a clean checkout, and run the plain Workers smoke after the build. The `node:sqlite` Node matrix is dropped. Keep `audit` as it is.
 
 ## NVIDIA products
 
@@ -413,3 +413,23 @@ Gaps left open on purpose:
 4. May ZER-18 add a Workers-safe Activity Event validator, generated at build time, to `@zs-home/shared-contracts`? The current validator cannot run in the deployed Workers runtime.
 5. Access: the spec defines no authentication surface, so this delivery publishes no route and only binding holders can call the object. Who calls it first, and through which authenticated surface? This remains a gap until a later ZER-9 Task answers it.
 6. Deploy: which Cloudflare account and which plan (Free or Paid), and who runs the first `wrangler deploy`? Nothing deploys until that is decided.
+
+## Implementation notes (2026-11-18 PT)
+
+The implementation under the current Homer completion request uses the recommended
+Durable Object backend and build-time Workers validator. No paid model calls or
+Cloudflare resources were created. The ledger exposes `comparisonDigest` on each
+read entry so corruption of that stored field is detectable. Storage-column
+inconsistency raises an integrity error before replay. Complete client reads
+verify a fixed paged prefix; replay also supports a separately trusted head.
+
+Payloads are capped at 1 MiB to bound storage and RPC costs. Indexed duplicate
+and target reads verify their stored bytes before trusting classification.
+`storage_metadata_mismatch` and `invalid_payload` are additional explicit integrity
+reasons. Package behavior, tests and the local-only runtime smoke are documented
+in the [Event Ledger README](../../packages/event-ledger/README.md).
+
+The first internal package is implemented as one cohesive review unit, with all
+six acceptance slices tested together. This avoids a test-only slice depending
+on a replay function that has not yet landed. Work Packet acceptance items remain
+applicable; they are not claims of merge or production completion.
