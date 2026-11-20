@@ -10,6 +10,8 @@ Read the active intent in `docs/intent/` before you edit. The next stage is the 
 
 If the change is non-trivial and no intent exists, draft one from the agent-context template (`templates/intent.md.template` at the Context Pin) and wait for a human to accept it.
 
+Cite the intent, the spec section, any `CONTEXT.md` term, and any pinned agent-context file (`HANDOFF.md`, `STATUS.md`, `DECISIONS.md`) you used; if you could not find one, say so.
+
 ## Language
 
 Read [`CONTEXT.md`](CONTEXT.md) first. Use its terms exactly in code, tests, specs, issues, and pull requests (Activity Event, not log entry; Task, not ticket; Collector, not sync job).
