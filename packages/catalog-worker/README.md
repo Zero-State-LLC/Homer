@@ -8,6 +8,7 @@ claims. It does not trust identity headers alone.
 | Operation | Route | Access application |
 | --- | --- | --- |
 | Read mappings/listings | `GET /v1/catalog` | Read or admin audience |
+| Export complete catalog history | `GET /v1/admin/catalog/archive` | Admin audience only |
 | Replace mappings | `PUT /v1/admin/catalog` | Admin audience only |
 | Collect merged PR | `POST /v1/hooks/github` | GitHub HMAC-SHA256, separate from Access |
 
@@ -27,6 +28,11 @@ repositories are ignored; changed content at an existing Event Key is a Conflict
 Configure the webhook secret and a binding to the existing Event Ledger before
 enabling this route. See the [webhook spec](../../specs/github-webhook/spec.md).
 Historical backfill and automatic delivery recovery are not implemented.
+
+Catalog archives preserve revision audit fields and include a SHA-256 digest.
+The trusted-binding restore operation accepts only an empty target and imports
+atomically. There is no HTTP restore route. Archives are limited to 768 KiB and
+1,000 revisions; larger histories fail explicitly without returning partial data.
 
 See the [Cloudflare runbook](../../docs/deployment/cloudflare-catalog.md) and
 [specification](../../specs/catalog-worker/spec.md). Local tests and a bundle dry

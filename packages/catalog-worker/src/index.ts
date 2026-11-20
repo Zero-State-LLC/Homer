@@ -15,10 +15,11 @@ export async function handleRequest(
 ): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);
-  if (url.pathname !== "/v1/catalog" && url.pathname !== "/v1/admin/catalog")
+  const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
+  if (url.pathname !== "/v1/catalog" && url.pathname !== "/v1/admin/catalog" && !archiveRoute)
     return json({ error: "not_found" }, 404);
   if (
-    (url.pathname === "/v1/catalog" && request.method !== "GET") ||
+    ((url.pathname === "/v1/catalog" || archiveRoute) && request.method !== "GET") ||
     (url.pathname === "/v1/admin/catalog" && request.method !== "PUT")
   )
     return json({ error: "method_not_allowed" }, 405);
@@ -33,11 +34,21 @@ export async function handleRequest(
   if (!token || token.length > 16384) return json({ error: "unauthorized" }, 401);
   let principal: string;
   try {
-    principal = await verifyAccess(token, env, request.method === "PUT", key);
+    principal = await verifyAccess(token, env, url.pathname.startsWith("/v1/admin/"), key);
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
   const store = env.MAPPING_CATALOG.get(env.MAPPING_CATALOG.idFromName(env.CATALOG_NAME));
+  if (archiveRoute) {
+    try {
+      const archive = await store.exportArchive();
+      return json(archive, 200, archive.headRevision);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("archive_too_large"))
+        return json({ error: "archive_too_large" }, 413);
+      return json({ error: "catalog_unavailable" }, 503);
+    }
+  }
   if (request.method === "GET") {
     try {
       const snapshot = await store.read();

@@ -235,3 +235,33 @@ it("rolls back a failed insert and records only a digest of the authenticated pr
     expect(JSON.stringify(row)).not.toContain("synthetic-principal");
   });
 });
+
+it("requires admin Scope for archive exports and exposes no HTTP restore route", async () => {
+  const e = testEnv();
+  const source = e.MAPPING_CATALOG.get(e.MAPPING_CATALOG.idFromName(e.CATALOG_NAME));
+  await source.replace(0, next, "a".repeat(64));
+  const archiveRequest = (jwt: string | null, method = "GET") =>
+    new Request("https://homer.example/v1/admin/catalog/archive", {
+      method,
+      headers: jwt ? { "Cf-Access-Jwt-Assertion": jwt } : {},
+    });
+  expect((await handleRequest(archiveRequest(null), e, key)).status).toBe(401);
+  expect(
+    (await handleRequest(archiveRequest(await token(config.ACCESS_READ_AUD)), e, key)).status,
+  ).toBe(401);
+  const response = await handleRequest(archiveRequest(await token()), e, key);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("Cache-Control")).toBe("no-store");
+  expect(response.headers.get("ETag")).toBe('"1"');
+  expect(await response.json()).toEqual(await source.exportArchive());
+  expect((await handleRequest(archiveRequest(await token(), "POST"), e, key)).status).toBe(405);
+  expect(
+    (
+      await handleRequest(
+        new Request("https://homer.example/v1/admin/catalog/restore", { method: "POST" }),
+        e,
+        key,
+      )
+    ).status,
+  ).toBe(404);
+});
