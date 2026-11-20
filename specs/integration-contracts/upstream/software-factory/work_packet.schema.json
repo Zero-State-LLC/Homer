@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Zero-State-LLC/software-factory/factory/packet/work_packet.schema.json",
+  "title": "Work packet",
+  "description": "One unit of factory work, from intake to learn. Emitted by GAP (PAIN/WHO/...), carried through every stage.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "source", "pain", "who", "done_when", "scope", "risk_tier", "budget_usd", "owner_agent", "stage"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^WP-[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9-]{1,48}$",
+      "description": "WP-YYYY-MM-DD-slug"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^(linear:ZER-[0-9]+|github:[A-Za-z0-9-]+/[A-Za-z0-9._-]+#[0-9]+|manual:[a-z0-9-]+)$",
+      "description": "Where the work came from, e.g. linear:ZER-123"
+    },
+    "pain": {"type": "string", "minLength": 10, "description": "What hurts, in one or two sentences"},
+    "who": {"type": "string", "minLength": 2, "description": "Who feels the pain"},
+    "done_when": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 5},
+      "description": "Checkable conditions; the judge gives evidence per item"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo"],
+      "properties": {
+        "repo": {"type": "string", "pattern": "^Zero-State-LLC/[A-Za-z0-9._-]+$"},
+        "paths": {"type": "array", "items": {"type": "string"}},
+        "out_of_scope": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "risk_tier": {
+      "enum": ["low", "medium", "high"],
+      "description": "high = touches auth, money, secrets, data deletion, or prod infra"
+    },
+    "budget_usd": {"type": "number", "exclusiveMinimum": 0, "maximum": 500, "description": "Hard spend cap for model calls on this packet"},
+    "owner_agent": {"enum": ["Boof", "PROMETHEUS", "ADVERSARY", "LANDER", "GAP", "SCRIBE"]},
+    "stage": {"enum": ["intake", "spec", "implement", "verify", "merge", "deploy", "learn", "done"]},
+    "author_model": {
+      "type": "string",
+      "description": "provider/model that wrote the change, e.g. openrouter:deepseek/deepseek-v4.1-flash; the judge must differ"
+    },
+    "test_command": {"type": "string", "description": "Command the reproduce check runs in a clean checkout"},
+    "links": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^https://"}
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "at"],
+        "properties": {
+          "from": {"type": "string"},
+          "to": {"type": "string"},
+          "at": {"type": "string"},
+          "reason": {"type": "string"}
+        }
+      }
+    }
+  }
+}

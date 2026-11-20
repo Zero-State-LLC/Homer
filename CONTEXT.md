@@ -1,6 +1,6 @@
 # Homer glossary
 
-Homer is the Zero State engineering headquarters. It observes work in GitHub, Linear, the Control Room, and software-factory, records that work in one Event Ledger, and projects it into calendars and timelines. This file is the ubiquitous language only. Code, specs, tests, issues, and pull requests use these terms exactly.
+Homer is the Zero State engineering headquarters: it observes work in GitHub, Linear, the Control Room and software-factory, records it in one Event Ledger, and projects it into calendars and timelines. This file is the ubiquitous language only. Code, specs, tests, issues and PRs use these terms exactly.
 
 ## Sources and authority
 

@@ -1,0 +1,53 @@
+{
+  "id": "WP-2026-11-18-home-foundation-event-ledger-spec",
+  "source": "github:Zero-State-LLC/home#3",
+  "pain": "The Event Ledger has no specification, so Duplicate, Conflict, Correction and integrity behavior cannot be planned or tested.",
+  "who": "FORGE, which plans the Event Ledger, and the Collectors and Projections that will append to and replay it.",
+  "done_when": [
+    "At head f799057b743c0c26a84cdfe81d4327c19509680a, the PR changes only specs/event-ledger/spec.md and specs/event-ledger/handoff.md relative to foundation/contracts.",
+    "spec.md defines Event Key derivation, the four append outcomes, Duplicate comparison that excludes only provenance.collectedAt, provenance.collector and provenance.collectorVersion, and that validation precedes Duplicate classification.",
+    "spec.md defines Supersede and Retract Corrections, that a Correction never releases an Event Key, and repeat-identifier Duplicate and Conflict rules.",
+    "spec.md defines contiguous sequences from 1, SHA-256 over RFC 8785 canonical JSON, one atomic append, consistent reads, and verification with an optional trusted head.",
+    "spec.md has an acceptance scenario table covering concurrent writes, failed appends, reopen and corrupt history, and a Workflows section naming skills and GitHub Actions workflows.",
+    "spec.md uses CONTEXT.md terms, and handoff.md lists the decisions for FORGE.",
+    "npx markdownlint-cli2 '**/*.md' reports 0 errors and npm run check still passes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/home",
+    "paths": ["specs/event-ledger/spec.md", "specs/event-ledger/handoff.md"],
+    "out_of_scope": [
+      "Merging, deploying or approving the PR",
+      "Paid model spend beyond the approved OpenRouter judge",
+      "Any change outside the PR's listed paths"
+    ]
+  },
+  "risk_tier": "low",
+  "budget_usd": 5,
+  "owner_agent": "Boof",
+  "stage": "verify",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check && npx --yes markdownlint-cli2 '\"'\"'**/*.md'\"'\"''",
+  "links": [
+    "https://github.com/Zero-State-LLC/home/pull/3",
+    "https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines"
+  ],
+  "history": [
+    {
+      "from": "intake",
+      "to": "spec",
+      "at": "2026-11-19T00:02:46Z",
+      "reason": "Source: commit 48f84ee on PR #3, which adds specs/event-ledger/spec.md."
+    },
+    {
+      "from": "spec",
+      "to": "implement",
+      "at": "2026-11-19T00:02:46Z",
+      "reason": "Source: commit 48f84ee. The deliverable is the spec itself, so GitHub records no separate spec-to-implement time."
+    },
+    {
+      "from": "implement",
+      "to": "verify",
+      "at": "2026-11-19T01:12:04Z",
+      "reason": "Source: commit bde74d8 on PR #4, which wrote this packet at stage verify for head f799057."
+    }
+  ]
+}

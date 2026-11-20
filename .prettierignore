@@ -1,0 +1,7 @@
+dist
+node_modules
+coverage
+package-lock.json
+*.md
+# Pinned snapshot. Reformatting would change the sha256 in PIN.json.
+specs/integration-contracts/upstream

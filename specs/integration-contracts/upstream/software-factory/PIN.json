@@ -1,0 +1,7 @@
+{
+  "repository": "Zero-State-LLC/software-factory",
+  "commit": "7f8efeadf545c1d644027f2a4de8144348e69634",
+  "path": "factory/packet/work_packet.schema.json",
+  "sha256": "efd8f633638ce7810eb6b5717ea67fa05428abbc6e853d91d3d6a77778a0d543",
+  "note": "Snapshot of the upstream contract schema (not code). Refresh with scripts/check-factory-schema.sh by a reviewed PR."
+}
