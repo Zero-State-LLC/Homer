@@ -50,12 +50,12 @@ Boof's requested additions:
 
 - A single status view, with change-only alerts that link to runbooks.
 - Spend and usage per provider, including Langfuse per-bot cost.
-- A deploy-and-merge guard for repositories that auto-deploy on merge.
-  The named set in this request is Autogive, Impact-Relay,
-  Portfolio-Signals, JChain, and zer0state. Exact org/repo slugs, and
-  whether "zer0state" means Zero-State Pages / zer0state.com, are open
-  questions. The guard observes and alerts; it does not merge or deploy
-  without Danny's yes.
+- A deploy-and-merge watch. The developer decides deploy behavior per
+  use case. HOME does not own deploy policy. It watches for and alerts
+  on unapproved production deploys, and on the known auto-deploy
+  repositories named in the earlier scope (Autogive, Impact-Relay,
+  Portfolio-Signals, JChain, and zer0state). The watch observes and
+  alerts; it does not merge or deploy without Danny's yes.
 - A repository security watch: anomaly signals plus GHSA and Dependabot
   findings for what we actually run.
 - Agent and routine health.
@@ -110,8 +110,9 @@ Non-goals:
 - A second skills library or new agent bots in HOME.
 - Changing branch protection, repository visibility, or Actions
   secrets.
-- Production cutover of zer0state.com, or any auto-deploy, without
-  Danny's explicit yes.
+- HOME itself merging or deploying, including a production cutover of
+  zer0state.com, without Danny's yes. Deploy policy for each repository
+  stays with the developer; HOME only watches and alerts.
 
 ## NVIDIA-first notes
 
@@ -139,8 +140,6 @@ No NVIDIA product is claimed as in use on Galadriel.
 - Is Langfuse already in use, and where is it hosted?
 - Which websites count as "our own," and which SaaS and databases are
   in the degradation watch?
-- Confirm the auto-deploy repository list and exact slugs, including
-  whether "zer0state" is Zero-State Pages and/or zer0state.com.
 - Where do alerts go, and what is the freshness budget per Source
   System or machine?
 - How does this ops brain relate to the Control Room, to existing
@@ -156,7 +155,8 @@ No NVIDIA product is claimed as in use on Galadriel.
 | Named machines are Delphi, Morpheus (DGX Sparks), the Bosgame, the new Mac Ultra, the Jetson, and Galadriel | `[assumed: named in that chat; not an inventoried asset list]` |
 | Hardware specifications and current health of those machines | `[unknown: not verified in this stream]` |
 | Langfuse will be the trace (and per-bot cost) system | `[assumed: named in that chat; current deployment unknown]` |
-| Autogive, Impact-Relay, Portfolio-Signals, JChain, and zer0state auto-deploy on merge | `[assumed: named in the approved scope; exact slugs and current settings not re-verified here]` |
+| The developer decides deploy behavior per use case; HOME watches and alerts on unapproved production deploys and the known auto-deploy repositories, and does not own deploy policy | `[verified: Danny's decision in chat on 2026-11-20]` |
+| Known auto-deploy repositories named for the watch: Autogive, Impact-Relay, Portfolio-Signals, JChain, and zer0state | `[assumed: named in the earlier approved scope; exact slugs not re-verified here]` |
 
 ## Next
 
