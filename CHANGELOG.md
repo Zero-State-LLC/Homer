@@ -7,6 +7,7 @@ All notable changes to HOME are recorded here. Format: [Keep a Changelog](https:
 ### Added
 
 - Front-door map (`docs/map.md`), a cite-the-file-used rule, and a "Land the fix" section in `CONTRIBUTING.md`.
+- Draft intent for a HOME ops brain on Galadriel (`docs/intent/galadriel.md`).
 
 - Governance foundation: `AGENTS.md`, the `CLAUDE.md` adapter, the `CONTEXT.md` glossary, `SECURITY.md`, `CONTRIBUTING.md`, CODEOWNERS, and issue and pull request templates.
 - Accepted stage-zero intent `docs/intent/home-foundation.md`.
