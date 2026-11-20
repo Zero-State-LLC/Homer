@@ -1,0 +1,23 @@
+{
+  "contract": "home.activity-event/v1",
+  "eventKey": "software-factory:factory.verdict_recorded:WP-2026-11-18-home",
+  "kind": "factory.verdict_recorded",
+  "occurredAt": "2026-11-18T18:00:00.123456789Z",
+  "actor": {
+    "sourceAccount": "software-factory:gap",
+    "actorId": "actor:gap"
+  },
+  "repository": "Zero-State-LLC/home",
+  "subject": "Verdict recorded for the contracts packet",
+  "provenance": {
+    "sourceSystem": "software-factory",
+    "sourceObjectId": "WP-2026-11-18-home",
+    "sourceUrl": "https://github.com/Zero-State-LLC/home/pull/1",
+    "collector": "software-factory-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-18T18:00:01Z"
+  },
+  "data": {
+    "result": "pass"
+  }
+}

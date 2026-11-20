@@ -1,6 +1,6 @@
 # Keeps the SHA-pinned actions current. Dependabot rewrites both the commit SHA
-# and its trailing "# vX.Y.Z" comment. npm entries arrive with the TypeScript
-# workspace. Org standard: Dependabot (JChain), not Renovate.
+# and its trailing "# vX.Y.Z" comment. npm keeps the TypeScript workspace
+# current. Org standard: Dependabot (JChain), not Renovate.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -12,3 +12,14 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: ci
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Minor and patch updates come grouped, one pull request a week; a major
+    # version comes on its own (org standard, as in JChain).
+    groups:
+      npm-minor-and-patch:
+        update-types: ["minor", "patch"]
+    commit-message:
+      prefix: deps

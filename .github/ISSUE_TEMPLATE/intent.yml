@@ -1,5 +1,5 @@
 name: New change stream (intent)
-description: Propose a change stream. The intent file is stage 0. A human accepts it before specify.
+description: Propose a change stream. The intent file is stage 0; a human accepts it before specify.
 labels: ["intent"]
 body:
   - type: textarea

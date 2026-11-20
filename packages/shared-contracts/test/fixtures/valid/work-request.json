@@ -1,0 +1,20 @@
+{
+  "contract": "home.work-request/v1",
+  "requestId": "WR-2026-11-18-home-contracts",
+  "source": "linear:ZER-9",
+  "pain": "Nobody can answer who did what without reading each Source System.",
+  "who": "Danny",
+  "doneWhen": ["Activity Event contract validates", "Work Request maps to a Work Packet"],
+  "repository": "Zero-State-LLC/home",
+  "paths": ["specs/integration-contracts", "packages/shared-contracts"],
+  "outOfScope": ["production deploy"],
+  "riskTier": "low",
+  "budgetUsd": 25,
+  "requestedBy": {
+    "sourceAccount": "github:octocat",
+    "actorId": "actor:danny"
+  },
+  "requestedAt": "2026-11-18T16:00:00Z",
+  "testCommand": "npm test",
+  "links": ["https://github.com/Zero-State-LLC/home"]
+}

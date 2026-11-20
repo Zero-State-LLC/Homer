@@ -1,5 +1,3 @@
-# HOME docs lint. Line length is unrestricted. Repeated headings are allowed
-# when they are not siblings. Inline HTML is allowed in templates.
 config:
   default: true
   MD013: false

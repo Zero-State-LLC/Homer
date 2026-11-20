@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Proves check-context-pin.sh fails closed. A digest that does not match the
-# fetched file, and a commit that is not a full SHA, must both be refused.
+# Negative tests for check-context-pin.sh: a tampered digest and a short
+# commit must both fail. A pass here means the pin check can fail.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 tmp="$(mktemp -d)"

@@ -1,5 +1,5 @@
 name: Docs
-# Lint Markdown, check links, and verify the agent-context Context Pin.
+# Markdown lint, link check, and the agent-context Context Pin check.
 on:
   push:
     branches: [main]
@@ -31,7 +31,7 @@ jobs:
           args: >-
             --no-progress
             --max-retries 3
-            --accept 200,206,429
+            --accept 200,206
             "./**/*.md"
           fail: true
         env:

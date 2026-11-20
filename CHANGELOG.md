@@ -1,12 +1,21 @@
 # Changelog
 
-All notable changes to HOME are recorded here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions: [SemVer](https://semver.org/).
+All notable changes to Homer are recorded here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions: [SemVer](https://semver.org/).
 
 ## Unreleased
 
 ### Added
 
-- Governance foundation: `AGENTS.md`, the `CLAUDE.md` adapter, the `CONTEXT.md` glossary, `SECURITY.md`, `CONTRIBUTING.md`, CODEOWNERS, and issue and pull request templates.
+- Renamed the product and repository from HOME (`Zero-State-LLC/home`) to Homer (`Zero-State-LLC/Homer`).
+- TypeScript workspace (`npm run check`) and versioned integration contracts for the Activity Event, the Work Request, and the Factory Event, with contract tests against the pinned software-factory Work Packet schema.
+- Governance foundation: `AGENTS.md`, `CLAUDE.md` adapter, `CONTEXT.md` glossary, `SECURITY.md`, `CONTRIBUTING.md`, CODEOWNERS, issue and PR templates.
 - Accepted stage-zero intent `docs/intent/home-foundation.md`.
-- agent-context Context Pin, with a CI check and negative tests.
-- CI for docs lint, link check, gitleaks secret scan, and Dependabot for GitHub Actions.
+- agent-context Context Pin with a CI check and negative tests.
+- CI: docs lint, link check, gitleaks secret scan, Dependabot for GitHub Actions.
+
+### Fixed
+
+- Node consumers can import the built `@zs-home/shared-contracts` workspace package by name.
+
+- Validate Work Requests before packet conversion and detach caller-owned arrays.
+- Treat rate-limited documentation links as failed checks after retries.

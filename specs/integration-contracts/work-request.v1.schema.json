@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/work-request/v1",
+  "title": "Work Request",
+  "description": "HOME's versioned request to software-factory to start a Work Packet at intake. HOME never advances a packet past intake.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "requestId",
+    "source",
+    "pain",
+    "who",
+    "doneWhen",
+    "repository",
+    "riskTier",
+    "budgetUsd",
+    "requestedBy",
+    "requestedAt"
+  ],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.work-request/v1"
+    },
+    "requestId": {
+      "type": "string",
+      "pattern": "^WR-\\d{4}-\\d{2}-\\d{2}-[a-z0-9-]{1,48}$"
+    },
+    "source": {
+      "type": "string",
+      "pattern": "^(linear:ZER-[0-9]+|github:[A-Za-z0-9-]+/[A-Za-z0-9._-]+#[0-9]+|manual:[a-z0-9-]+)$"
+    },
+    "pain": {
+      "type": "string",
+      "minLength": 10
+    },
+    "who": {
+      "type": "string",
+      "minLength": 2
+    },
+    "doneWhen": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 5
+      }
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^Zero-State-LLC/[A-Za-z0-9._-]+$"
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "outOfScope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "riskTier": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "budgetUsd": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 500
+    },
+    "requestedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceAccount"],
+      "properties": {
+        "sourceAccount": {
+          "type": "string"
+        },
+        "actorId": {
+          "type": "string",
+          "description": "Set only from an Identity Binding."
+        }
+      }
+    },
+    "requestedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "testCommand": {
+      "type": "string"
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri",
+        "pattern": "^https://"
+      }
+    }
+  }
+}
