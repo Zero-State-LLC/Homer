@@ -5,3 +5,6 @@ package-lock.json
 *.md
 # Pinned snapshot. Reformatting would change the sha256 in PIN.json.
 specs/integration-contracts/upstream
+
+# Wrangler-generated binding declarations.
+packages/catalog-worker/src/bindings.d.ts

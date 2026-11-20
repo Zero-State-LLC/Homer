@@ -98,17 +98,21 @@ The first GitHub mapping slice is specified in
 [`specs/github-collector/spec.md`](../../specs/github-collector/spec.md). It maps
 merged PRs and loads repository listings and Project mappings from an injected,
 versioned runtime configuration store. It contains no production inventory.
-Production configuration, hosted recovery and transport/cursor
+Production configuration, hosted recovery and backfill/cursor
 management remain required before live collection. Identity Bindings remain
 unconfigured; source accounts stay Unattributed.
 
 The Cloudflare catalog implementation now supplies durable storage and verified
 read/admin JWT boundaries. See the [deployment runbook](../deployment/cloudflare-catalog.md).
 Actual Access application configuration, hosted recovery tests and production
-deployment are still pending. Transport/cursors and reviewed Identity Bindings
+deployment are still pending. Backfill/cursors and reviewed Identity Bindings
 remain separate work. All Homer hosting uses Cloudflare per Daniel's direction.
 
-- Live Collector implementation and source-specific acceptance fixtures.
+The signed [GitHub webhook Collector](../../specs/github-webhook/spec.md) now reads
+the runtime catalog and awaits Event Ledger receipts. Live webhook registration,
+delivery recovery and historical completeness are not yet verified.
+
+- Remaining Source System Collectors and live acceptance fixtures.
 - Reviewed Identity Bindings, Project mappings and Source Freshness budgets.
 - Authenticated access from the existing Control Room to the ledger binding.
 - Calendar/Timeline UI, mobile and accessibility verification in the existing Site.

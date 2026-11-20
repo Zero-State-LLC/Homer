@@ -1,47 +1,12 @@
+import type { CatalogBindings } from "./bindings.js";
 import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
 import { verifyAccess, validateAccessConfig, type AccessConfig } from "./access.js";
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
+import { json, readBytes } from "./http.js";
+import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
 export { MappingCatalogObject };
-export interface Env extends AccessConfig {
-  MAPPING_CATALOG: DurableObjectNamespace<MappingCatalogObject>;
-}
-const json = (data: unknown, status = 200, revision?: number) =>
-  Response.json(data, {
-    status,
-    headers: {
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      ...(revision !== undefined ? { ETag: `"${revision}"` } : {}),
-    },
-  });
-async function readBody(request: Request): Promise<unknown> {
-  const reader = request.body?.getReader();
-  if (!reader) throw new Error("invalid_json");
-  let total = 0;
-  const chunks: Uint8Array[] = [];
-  try {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_CATALOG_BYTES) {
-        await reader.cancel();
-        throw new Error("body_too_large");
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-}
+export interface Env extends CatalogBindings, AccessConfig, WebhookEnv {}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
 export async function handleRequest(
   request: Request,
@@ -49,6 +14,7 @@ export async function handleRequest(
   key?: JWTVerifyGetKey,
 ): Promise<Response> {
   const url = new URL(request.url);
+  if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);
   if (url.pathname !== "/v1/catalog" && url.pathname !== "/v1/admin/catalog")
     return json({ error: "not_found" }, 404);
   if (
@@ -91,7 +57,13 @@ export async function handleRequest(
     return json({ error: "unsupported_media_type" }, 415);
   let snapshot;
   try {
-    snapshot = parseMappingSnapshot(await readBody(request));
+    snapshot = parseMappingSnapshot(
+      JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(
+          await readBytes(request, MAX_CATALOG_BYTES),
+        ),
+      ),
+    );
     if (snapshot.revision !== expected + 1) return json({ error: "invalid_next_revision" }, 400);
   } catch (error) {
     return json(
