@@ -94,6 +94,14 @@ private export/restore procedure and explicitly reconcile writes made since expo
 
 ## Open delivery work
 
+The first GitHub mapping slice is specified in
+[`specs/github-collector/spec.md`](../../specs/github-collector/spec.md). It maps
+merged PRs and loads repository listings and Project mappings from an injected,
+versioned runtime configuration store. It contains no production inventory.
+Durable configuration storage, authenticated administration and transport/cursor
+management remain required before live collection. Identity Bindings remain
+unconfigured; source accounts stay Unattributed.
+
 - Live Collector implementation and source-specific acceptance fixtures.
 - Reviewed Identity Bindings, Project mappings and Source Freshness budgets.
 - Authenticated access from the existing Control Room to the ledger binding.

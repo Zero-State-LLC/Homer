@@ -20,6 +20,7 @@ source migration plan. The live Control Room has not been cut over to Homer.
 
 | Component | Responsibility |
 | --- | --- |
+| [github-sync](packages/github-sync/) | Runtime repository catalog and safe merged-PR mapping; live storage and transport integration pending |
 | [shared-contracts](packages/shared-contracts/) | Versioned Activity Event, Work Request and Factory Event validation; generated Workers-safe Activity Event validator |
 | [event-ledger](packages/event-ledger/) | Durable Object storage, atomic append, Duplicate/Conflict detection, Corrections, digest verification and replay |
 | [projections](packages/projections/) | Day/week/month calendar, Actor/Project filters, Milestones, evidence-linked Actual Dates, Blockers and Source Freshness |

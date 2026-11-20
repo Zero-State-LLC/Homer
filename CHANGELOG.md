@@ -6,6 +6,9 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Runtime GitHub repository mappings and listings with validated revision updates,
+  plus a merged-PR mapping that excludes free text and preserves unknown identity.
+
 - Homer hero artwork and repository branding.
 
 - Draft Galadriel intent for the operations and orchestration layer.
