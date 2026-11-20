@@ -1,13 +1,13 @@
 # Integration contracts
 
-Versioned, language-neutral contracts between HOME and the Source Systems it observes.
+Versioned, language-neutral contracts between Homer and the Source Systems it observes.
 JSON Schema draft 2020-12 is the artifact. `@zs-home/shared-contracts` loads these files; it does not copy them.
 
 ## Contracts
 
 - Activity Event (`activity-event.v1.schema.json`): a Collector produces one and the Event Ledger consumes it. Provenance is required. The Event Key prefix before the first `:` must equal `provenance.sourceSystem` (enforced in TypeScript; JSON Schema cannot say that). `actorKind` is present only when `actorId` is present. Both come from an Identity Binding. Unattributed is valid: the raw source account is kept and no Actor is guessed.
-- Work Request (`work-request.v1.schema.json`): HOME produces one. software-factory consumes it to start a Work Packet at intake. HOME never advances a packet past intake.
-- Factory Event (`factory-event.v1.schema.json`): software-factory produces one when a Work Packet stage changes or a Verdict is recorded. HOME consumes it.
+- Work Request (`work-request.v1.schema.json`): Homer produces one. software-factory consumes it to start a Work Packet at intake. Homer never advances a packet past intake.
+- Factory Event (`factory-event.v1.schema.json`): software-factory produces one when a Work Packet stage changes or a Verdict is recorded. Homer consumes it.
 
 ## Upstream Work Packet
 
