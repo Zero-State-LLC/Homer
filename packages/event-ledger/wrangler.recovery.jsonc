@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "homer-event-ledger-recovery",
+  "main": "src/recovery-workflow.ts",
+  "compatibility_date": "2026-11-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": { "RECOVERY_ENABLED": "false" },
+  "durable_objects": {
+    "bindings": [{ "name": "RECOVERY_LEDGER", "class_name": "EventLedgerObject" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["EventLedgerObject"] }],
+  "observability": { "enabled": true, "traces": { "enabled": true, "head_sampling_rate": 0.01 } },
+}

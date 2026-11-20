@@ -71,6 +71,67 @@ A Correction is its own ledger entry with a stable identifier supplied by a trus
 
 ## Workflows
 
+### Bounded archive and isolated restore
+
+The trusted internal binding supports `exportArchive(expectedHead)` and
+`restoreArchive(archive, expectedHead, expectedDigest)`. The operator obtains the
+expected head separately and retains it with the archive digest in private
+recovery evidence. A null expected head means a genuinely empty ledger, never an
+unspecified checkpoint. No HTTP route or new caller permission is introduced.
+
+An archive is canonical JSON with exactly `{version: 1, head, entries, digest}`.
+The SHA-256 archive digest covers the canonical `{version, head, entries}` object.
+Every complete LedgerEntry retains its sequence, entry type, original payload,
+previous digest, entry digest and comparison digest. Export reads synchronously,
+checks storage metadata and verifies the entire chain against the expected head.
+It refuses source changes, gaps, damaged entries and truncated history. It never
+exports only effective Projection data or rewrites collection Provenance.
+
+The first atomic format is capped at 4 MiB of complete canonical JSON and 1,000
+entries. Each payload must also fit the existing 1 MiB append limit. Export and
+restore fail explicitly beyond these bounds; no partial archive is successful.
+A paginated successor is required before a ledger exceeds this format.
+
+Restore validates the JSON domain, exact field names, archive digest, trusted head,
+payloads, contiguous sequence, hashes, uniqueness and Correction targets before
+writing. One synchronous transaction checks that the target has no entries and
+inserts the complete history. Any failure leaves it empty. An occupied target is
+refused even if its effective Projection is empty or its history is identical.
+The ordinary append-only SQL triggers remain active. No history is cleared.
+
+After restore, independently compare every entry and the trusted head, reopen the
+object, and verify Duplicate/Conflict outcomes and Correction replay. New appends
+must continue at the next sequence with the restored head digest. Preserve the
+source, recovery target and private backup; do not repoint Collectors or Projections
+without separate cutover approval. Local acceptance does not establish a hosted
+restore drill, a scheduled backup policy or production recovery readiness.
+
+Acceptance covers malformed and unknown fields, altered digests and heads,
+truncated history, invalid Corrections, oversized input and stored history,
+occupied targets, concurrent restores, concurrent ordinary appends, mid-import
+failure rollback, restart reconciliation and unchanged source history.
+
+### Hosted recovery runner
+
+A separate maintenance Worker runs a management-invoked Workflow with no HTTP
+operation, public route or recurring schedule. Runtime configuration supplies the
+source object name, source namespace, isolated recovery namespace and private R2
+bucket. The runner defaults to disabled. No source or project inventory is compiled in.
+
+Parameters name a bounded drill identifier, independently retained head and archive
+digest, and restore or verify mode. The runner exports and verifies the source,
+saves the archive with a create-only R2 condition, reads it back and verifies it
+before restore. It accepts an identical already-restored target on a retry but
+refuses other occupied targets. Verify mode creates or repairs nothing. Both modes
+compare the full restored history and confirm the source remains unchanged.
+Workflow step output contains only head, digest, count, archive key and outcome.
+At the trusted RPC response boundary only, remove Cloudflare's root Symbol.dispose
+transport property before canonical validation. Preserve every other descriptor;
+arbitrary symbols, getters and non-JSON data remain invalid. Imported archives
+and private backup reads do not receive this transport normalization.
+After the drill, disable the runner and remove its source binding. Retain private
+backup, recovered history and receipts. No Collector or Projection is repointed.
+
 ### Skills
 
 - `anti-slop-code`

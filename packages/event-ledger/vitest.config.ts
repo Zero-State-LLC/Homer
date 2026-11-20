@@ -10,6 +10,7 @@ export default defineConfig({
     include: [
       "packages/event-ledger/test/ledger.test.ts",
       "packages/event-ledger/test/concurrency.test.ts",
+      "packages/event-ledger/test/archive.test.ts",
     ],
     testTimeout: 30000,
   },
