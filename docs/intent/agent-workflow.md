@@ -57,9 +57,13 @@ Pocock workflow:
 Trail-code index:
 
 - A contributor runs `trail init --team --agents claude` and commits only
-  the repository files it writes: `.claude/skills/trail/SKILL.md`,
-  `.claude/settings.json`, `.mcp.json`, `.trail/`, and the `.gitignore`
-  and `.ignore` updates. The `graft/` map stays gitignored.
+  the shared files it writes: one SessionStart hook in
+  `.claude/settings.json`, `.trail/` (the `hook.cjs` shim and
+  `learnings/`), and its `.gitignore` and `.ignore` updates. Personal
+  files stay out of git: `.claude/settings.local.json`,
+  `.trail/statusline.cjs`, and the skill in `~/.claude/skills/`. The
+  `graft/` map stays gitignored. `trail init --dry-run` lists the files
+  before anything is written.
 - `trail status` on a fresh clone reports a built map. The exact CLI
   version, the `trail init` flags, and the `trail status` output land as
   a receipt in `docs/receipts/`.
@@ -95,9 +99,9 @@ Product-true locks (do not reopen in implement):
   adapter. Pocock's setup skill edits `CLAUDE.md` when it exists; in
   Homer the block goes in `AGENTS.md` instead.
 - No second skills library. Do not copy `mattpocock/skills` into Homer
-  with `npx skills add` or by hand. The one generated skill file
-  allowed is Trail-code's `.claude/skills/trail/SKILL.md`, because it is
-  tool wiring, not a skill library.
+  with `npx skills add` or by hand. Trail-code keeps its skill in
+  `~/.claude/skills/`, outside the repository, so no skill file is
+  committed.
 - Linear stays the Authority for Tasks. Use `CONTEXT.md` terms: a Pocock
   "ticket" is a Task, and an "issue" means a Task unless it is a GitHub
   defect.
@@ -166,7 +170,8 @@ Still open:
 | --- | --- |
 | Pocock's setup skill writes an `## Agent skills` block and `docs/agents/*.md`, edits `CLAUDE.md` before `AGENTS.md`, and offers to rename `CONTEXT.md` to `GLOSSARY.md` | `[verified: mattpocock/skills@abeeaf9, skills/engineering/setup-matt-pocock-skills/SKILL.md]` |
 | Pocock's `/to-spec` publishes its spec to the issue tracker with the `ready-for-agent` label | `[verified: mattpocock/skills@abeeaf9, skills/engineering/to-spec/SKILL.md]` |
-| `trail init --team` writes `.claude/skills/trail/SKILL.md`, `.claude/settings.json`, `.mcp.json`, and `.trail/`, and gitignores `graft/` | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
+| For Claude Code, `trail init` shares a SessionStart hook in `.claude/settings.json` and `.trail/hook.cjs`, keeps `.claude/settings.local.json` and `.trail/statusline.cjs` personal, writes its skill to `~/.claude/skills/`, and writes no `.mcp.json`. The README still describes an older layout with `.claude/skills/trail/SKILL.md` and `.mcp.json` in the repo | `[verified: trailhq/trail-code@d8a59c1, src/claude/init.ts claudeTargetsFor]` |
+| `trail init` gitignores `graft/` | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
 | Without `--no-global`, `trail init` writes user-level hooks and MCP config, including `~/.claude/settings.json` and `~/.claude.json` | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
 | `trail init` seeds learnings from the contributor's past Claude Code sessions and from merged pull request reviews | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
 | The code map is built locally with tree-sitter, with no model and no network | `[assumed: vendor README at d8a59c1; not independently tested]` |
