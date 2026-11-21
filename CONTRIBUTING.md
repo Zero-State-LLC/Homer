@@ -11,6 +11,13 @@ Zero State SDLC (from agent-context, `templates/sdlc/README.md` at the Context P
 5. Review and evidence
 6. Land — Danny's yes, under the software-factory merge contract
 
+Pocock's engineering skills fit this order; they do not replace it. Install them per machine (`claude plugin install mattpocock-skills@claude-plugins-official`), never into the repo. [`docs/agents/`](docs/agents/) says where each one writes.
+
+- Stages 1–2: `/grill-with-docs` sharpens an intent and `CONTEXT.md`; `/to-spec` drafts the spec in `specs/`.
+- Stage 3: FORGE owns plan and tasks. `/to-tickets` only proposes Tasks until a human says yes.
+- Stage 4: `/tdd` and `/implement`.
+- Stage 5: `/code-review` and `/pr` prepare the pull request. They are not a Verdict.
+
 ## Pull requests
 
 - One change per PR. Branch names: `<area>/<short-slug>`, or the Linear branch name when a Task exists (`zer0state/zer-N-...`).
