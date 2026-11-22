@@ -2,7 +2,7 @@ import type { JWTVerifyGetKey } from "jose";
 import { validateAccessConfig, verifyAccessIdentity } from "./access.js";
 import type { RunnerEnv } from "./runner-http.js";
 import { json, readBytes } from "./http.js";
-import { parseControllerBinding } from "./runner-store.js";
+import { parseControllerBinding, parseLifecycleRequest } from "./runner-store.js";
 export interface ControllerBindings {
   RUNNER_CONTROLLER_AUD?: string;
   RUNNER_HEARTBEAT_BUDGET_SECONDS?: string;
@@ -13,6 +13,7 @@ export const controllerPaths = new Set([
   "/v1/runner-controller/report",
   "/v1/admin/runners/binding",
   "/v1/admin/runners/observation",
+  "/v1/admin/runners/lifecycle",
 ]);
 export async function handleControllerRequest(
   request: Request,
@@ -23,13 +24,16 @@ export async function handleControllerRequest(
   if (!controllerPaths.has(url.pathname)) return json({ error: "not_found" }, 404);
   const controller = url.pathname.startsWith("/v1/runner-controller/");
   const binding = url.pathname.endsWith("/binding");
+  const lifecycle = url.pathname.endsWith("/lifecycle");
   const report = url.pathname.endsWith("/report");
   if (
     !(report
       ? request.method === "POST"
-      : binding
-        ? ["GET", "PUT"].includes(request.method)
-        : request.method === "GET")
+      : lifecycle
+        ? ["GET", "POST"].includes(request.method)
+        : binding
+          ? ["GET", "PUT"].includes(request.method)
+          : request.method === "GET")
   )
     return json({ error: "method_not_allowed" }, 405);
   try {
@@ -50,7 +54,9 @@ export async function handleControllerRequest(
   if (!token || token.length > 16384) return json({ error: "unauthorized" }, 401);
   let principal: string;
   try {
-    principal = (await verifyAccessIdentity(token, env, !controller, key, controller)).principal;
+    const identity = await verifyAccessIdentity(token, env, !controller, key, controller);
+    if (lifecycle && identity.kind !== "human") return json({ error: "unauthorized" }, 401);
+    principal = identity.principal;
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
@@ -64,24 +70,25 @@ export async function handleControllerRequest(
     return json({ error: "invalid_machine" }, 400);
   if (!env.RUNNER_FLEET) return json({ error: "runner_fleet_unavailable" }, 503);
   const store = env.RUNNER_FLEET.get(env.RUNNER_FLEET.idFromName(env.CATALOG_NAME));
+  const raw = env.RUNNER_HEARTBEAT_BUDGET_SECONDS;
+  const budget =
+    raw && /^[1-9][0-9]*$/.test(raw) && Number.isSafeInteger(Number(raw)) && Number(raw) <= 86400
+      ? Number(raw) * 1000
+      : null;
   try {
     if (controller && !report) {
       const command = await store.controllerPoll(machineId, principal);
       return command ? json(command) : json({ error: "forbidden" }, 403);
     }
     if (!controller && request.method === "GET") {
+      if (lifecycle) {
+        const result = await store.lifecycle(machineId, budget);
+        return result ? json(result) : json({ error: "unknown_machine" }, 404);
+      }
       if (binding) {
         const result = await store.controllerBinding(machineId);
         return json(result, 200, result.revision);
       }
-      const raw = env.RUNNER_HEARTBEAT_BUDGET_SECONDS;
-      const budget =
-        raw &&
-        /^[1-9][0-9]*$/.test(raw) &&
-        Number.isSafeInteger(Number(raw)) &&
-        Number(raw) <= 86400
-          ? Number(raw) * 1000
-          : null;
       return json(await store.controllerObservation(machineId, budget));
     }
     let expected = 0;
@@ -105,6 +112,17 @@ export async function handleControllerRequest(
     } catch (error) {
       const large = error instanceof Error && error.message === "body_too_large";
       return json({ error: large ? "body_too_large" : "invalid_payload" }, large ? 413 : 400);
+    }
+    if (lifecycle) {
+      const result = await store.transitionLifecycle(
+        machineId,
+        parseLifecycleRequest(input),
+        principal,
+        budget,
+      );
+      return typeof result === "string"
+        ? json({ error: result }, result === "unknown_machine" ? 404 : 409)
+        : json(result);
     }
     if (binding) {
       const parsed = parseControllerBinding(input);

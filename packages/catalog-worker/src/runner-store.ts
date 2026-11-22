@@ -161,11 +161,40 @@ type ReportRow = {
   principal_digest: string;
   binding_revision: number;
 };
+export interface LifecycleRequest {
+  action: "resume" | "drain" | "disconnect" | "revoke";
+  configRevision: number;
+  bindingRevision: number;
+  operationRevision: number;
+}
+export function parseLifecycleRequest(value: unknown): LifecycleRequest {
+  const v = object(value, ["action", "configRevision", "bindingRevision", "operationRevision"]);
+  if (
+    !["resume", "drain", "disconnect", "revoke"].includes(v.action as string) ||
+    [v.configRevision, v.bindingRevision, v.operationRevision].some(
+      (n) => !Number.isSafeInteger(n) || (n as number) < 0,
+    )
+  )
+    throw new Error("invalid_config");
+  return v as unknown as LifecycleRequest;
+}
+interface LifecycleOperation {
+  operationRevision: number;
+  action: LifecycleRequest["action"];
+  operatorDigest: string;
+  requestedAt: string;
+  outcome: "requested" | "pending" | "revoked";
+  configRevision: number;
+  bindingRevision: number;
+}
 export class RunnerFleetObject extends DurableObject<unknown> {
   constructor(ctx: DurableObjectState, env: unknown) {
     super(ctx, env);
     ctx.storage.sql
-      .exec(`CREATE TABLE IF NOT EXISTS runner_history (revision INTEGER PRIMARY KEY, previous_revision INTEGER NOT NULL, config TEXT NOT NULL, operator_digest TEXT NOT NULL, requested_at TEXT NOT NULL) STRICT;
+      .exec(`CREATE TABLE IF NOT EXISTS runner_operations (machine_id TEXT NOT NULL, revision INTEGER NOT NULL, operation TEXT NOT NULL, PRIMARY KEY(machine_id,revision)) STRICT;
+ CREATE TRIGGER IF NOT EXISTS operation_no_update BEFORE UPDATE ON runner_operations BEGIN SELECT RAISE(ABORT,'Operation history is immutable'); END;
+ CREATE TRIGGER IF NOT EXISTS operation_no_delete BEFORE DELETE ON runner_operations BEGIN SELECT RAISE(ABORT,'Operation history is immutable'); END;
+ CREATE TABLE IF NOT EXISTS runner_history (revision INTEGER PRIMARY KEY, previous_revision INTEGER NOT NULL, config TEXT NOT NULL, operator_digest TEXT NOT NULL, requested_at TEXT NOT NULL) STRICT;
  CREATE TABLE IF NOT EXISTS controller_reports (sequence INTEGER PRIMARY KEY, machine_id TEXT NOT NULL, report_id TEXT NOT NULL UNIQUE, report TEXT NOT NULL, receipt TEXT NOT NULL, principal_digest TEXT NOT NULL, binding_revision INTEGER NOT NULL) STRICT;
  CREATE INDEX IF NOT EXISTS controller_reports_machine_sequence ON controller_reports(machine_id, sequence);
  CREATE TRIGGER IF NOT EXISTS report_no_update BEFORE UPDATE ON controller_reports BEGIN SELECT RAISE(ABORT,'Report history is immutable'); END;
@@ -175,6 +204,133 @@ export class RunnerFleetObject extends DurableObject<unknown> {
  CREATE TRIGGER IF NOT EXISTS binding_no_delete BEFORE DELETE ON controller_bindings BEGIN SELECT RAISE(ABORT,'Binding history is immutable'); END;
  CREATE TRIGGER IF NOT EXISTS runner_no_update BEFORE UPDATE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;
  CREATE TRIGGER IF NOT EXISTS runner_no_delete BEFORE DELETE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;`);
+  }
+  lifecycle(machineId: string, budgetMs: number | null) {
+    const config = this.read().config;
+    const machine = config.machines.find((m) => m.id === machineId);
+    if (!machine) return null;
+    const binding = this.controllerBinding(machineId).binding;
+    const rows = this.ctx.storage.sql
+      .exec<{ operation: string }>(
+        "SELECT operation FROM runner_operations WHERE machine_id=? ORDER BY revision DESC LIMIT 21",
+        machineId,
+      )
+      .toArray();
+    const history = rows
+      .slice(0, 20)
+      .reverse()
+      .map((row) => JSON.parse(row.operation) as LifecycleOperation);
+    const latest = history.at(-1);
+    const observation = this.controllerObservation(machineId, budgetMs);
+    const current =
+      observation.latest?.bindingRevision === binding?.revision &&
+      observation.latest?.principalDigest === binding?.principalDigest;
+    const connectionState = !binding
+      ? "unenrolled"
+      : !binding.enabled
+        ? "revoked"
+        : !current
+          ? "unknown"
+          : observation.freshness === "fresh"
+            ? "connected"
+            : observation.freshness === "stale"
+              ? "stale"
+              : "unknown";
+    return {
+      machineId,
+      configRevision: config.revision,
+      bindingRevision: binding?.revision ?? 0,
+      operationRevision: latest?.operationRevision ?? 0,
+      connectionState,
+      desiredState: machine.desiredState,
+      disconnectPending: latest?.action === "disconnect" && latest.outcome === "pending",
+      observation,
+      binding,
+      history,
+      historyTruncated: rows.length > 20,
+    };
+  }
+  transitionLifecycle(
+    machineId: string,
+    input: unknown,
+    operatorDigest: string,
+    budgetMs: number | null,
+  ) {
+    const request = parseLifecycleRequest(input);
+    if (!/^[a-f0-9]{64}$/.test(operatorDigest)) throw new Error("invalid_config");
+    return this.ctx.storage.transactionSync(() => {
+      const state = this.lifecycle(machineId, budgetMs);
+      if (!state) return "unknown_machine";
+      if (
+        request.configRevision !== state.configRevision ||
+        request.bindingRevision !== state.bindingRevision ||
+        request.operationRevision !== state.operationRevision
+      )
+        return "revision_conflict";
+      if (!state.binding?.enabled) return "missing_enrollment";
+      if (state.operationRevision === Number.MAX_SAFE_INTEGER) return "revision_exhausted";
+      const finalize =
+        request.action === "revoke" ||
+        (request.action === "disconnect" &&
+          state.disconnectPending &&
+          state.desiredState === "maintenance" &&
+          state.observation.operationState === "complete");
+      if (finalize && state.bindingRevision === Number.MAX_SAFE_INTEGER)
+        return "revision_exhausted";
+      const config = this.read().config;
+      const desiredState = request.action === "resume" ? "enabled" : "maintenance";
+      const requestedAt = new Date().toISOString();
+      if (state.desiredState !== desiredState) {
+        if (config.revision === Number.MAX_SAFE_INTEGER) return "revision_exhausted";
+        config.revision += 1;
+        config.machines = config.machines.map((m) =>
+          m.id === machineId ? { ...m, desiredState } : m,
+        );
+        this.ctx.storage.sql.exec(
+          "INSERT INTO runner_history VALUES (?,?,?,?,?)",
+          config.revision,
+          state.configRevision,
+          JSON.stringify(config),
+          operatorDigest,
+          requestedAt,
+        );
+      }
+      const operation: LifecycleOperation = {
+        operationRevision: state.operationRevision + 1,
+        action: request.action,
+        operatorDigest,
+        requestedAt,
+        outcome: "requested",
+        configRevision: config.revision,
+        bindingRevision: state.bindingRevision,
+      };
+      if (request.action === "disconnect") operation.outcome = "pending";
+      if (finalize) {
+        const binding = parseControllerBinding({
+          principalDigest: state.binding.principalDigest,
+          evidenceRef: state.binding.evidenceRef,
+          revision: state.bindingRevision + 1,
+          enabled: false,
+        });
+        this.ctx.storage.sql.exec(
+          "INSERT INTO controller_bindings VALUES (?,?,?,?,?)",
+          machineId,
+          binding.revision,
+          JSON.stringify(binding),
+          operatorDigest,
+          requestedAt,
+        );
+        operation.bindingRevision = binding.revision;
+        operation.outcome = "revoked";
+      }
+      this.ctx.storage.sql.exec(
+        "INSERT INTO runner_operations VALUES (?,?,?)",
+        machineId,
+        operation.operationRevision,
+        JSON.stringify(operation),
+      );
+      return this.lifecycle(machineId, budgetMs);
+    });
   }
   controllerBinding(machineId: string) {
     const rows = this.ctx.storage.sql

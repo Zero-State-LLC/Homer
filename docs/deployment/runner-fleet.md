@@ -77,3 +77,34 @@ The portable reconciliation core has no shell, service installation or provider
 credentials. Its trusted host adapter must prove admission closure before stopping
 an idle runner. Until a native adapter is qualified, this remains a repository
 component, not a remotely managed PC/Mac service.
+
+## Connect and disconnect operations
+
+Use a machine-local controller making outbound HTTPS requests through the dedicated
+Cloudflare Access workload audience. The PC/Mac does not need a public address,
+inbound listener or Cloudflare Tunnel for this control channel. GitHub runner job
+communication remains independent. Tunnel is optional for separately approved private
+services, never proof of runner identity or safe job termination.
+
+The lifecycle admin surface provides reviewed enrollment for an already provisioned
+principal, plus Resume, Drain, Disconnect and Revoke access now. Enrollment requires
+an exact principal digest and nonsecret evidence reference, not a secret pasted into
+the UI. The UI does not provision Cloudflare credentials or install local services.
+Use distinct per-machine Access identities stored outside job accounts. The local
+controller needs a durable journal, service ownership and tested native adapter.
+These deployment prerequisites remain outstanding until verified on the real hosts.
+
+Drain retains the controller binding and requests maintenance. Disconnect records a
+pending drain; after fresh stopped/idle/admission-closed evidence, Finish disconnect
+atomically checks current configuration and binding revisions before disabling the
+Homer binding. If the host is unreachable, disconnection remains pending. Revoking
+Homer access cannot independently stop a GitHub runner or revoke its GitHub registration.
+It also does not revoke the Cloudflare service credential itself: credential lifecycle
+is a separately authenticated operation. Keep those statuses distinct in operator work.
+
+A fully revoked machine needs reviewed re-enrollment. A drained machine remains
+reachable and can receive Resume. Existing operation history is retained in both
+cases. Every lifecycle mutation carries config, binding and operation revisions;
+read back uncertain results before a manual retry. Never auto-replay a write.
+
+See [machine lifecycle contract](../../specs/runner-lifecycle/spec.md).
