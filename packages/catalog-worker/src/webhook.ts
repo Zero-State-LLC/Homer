@@ -1,14 +1,18 @@
 import type { CatalogBindings } from "./bindings.js";
-import { mapMergedPullRequest, parseMappingSnapshot } from "@zs-home/github-sync";
+import { mapMergedPullRequest, mapWorkflowJobWebhook, parseMappingSnapshot } from "@zs-home/github-sync";
 import { openEventLedger } from "@zs-home/event-ledger";
 import type { EventLedgerObject } from "@zs-home/event-ledger/worker";
 import { json, readBytes } from "./http.js";
+import { WorkflowJobEvidenceObject } from "./job-evidence-store.js";
 
 export interface WebhookEnv extends CatalogBindings {
   CATALOG_NAME: string;
   // Optional until an operator binds the existing ledger and provisions the secret.
   EVENT_LEDGER?: DurableObjectNamespace<EventLedgerObject>;
   GITHUB_WEBHOOK_SECRET?: string;
+  /** Explicit activation gate. No workflow job collection when absent. */
+  GITHUB_JOB_INGEST_ENABLED?: string;
+  JOB_EVIDENCE?: DurableObjectNamespace<WorkflowJobEvidenceObject>;
 }
 export const MAX_WEBHOOK_BYTES = 1024 * 1024;
 
@@ -32,6 +36,81 @@ function record(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : undefined;
+}
+
+/**
+ * This branch adds a fail-closed workflow_job path behind an explicit flag.
+ * The caller has already verified the original bytes with GitHub HMAC.
+ * Durable delivery receipts are operational evidence, not Event Ledger Activity Events.
+ */
+async function handleWorkflowJobDelivery(
+  payload: Record<string, unknown>,
+  request: Request,
+  bytes: Uint8Array<ArrayBuffer>,
+  env: WebhookEnv,
+): Promise<Response> {
+  if (env.GITHUB_JOB_INGEST_ENABLED !== "true")
+    return json({ outcome: "ignored", reason: "job_ingest_disabled" });
+  if (!env.JOB_EVIDENCE) return json({ error: "job_evidence_not_configured" }, 503);
+  const deliveryId = request.headers.get("X-GitHub-Delivery");
+  if (!deliveryId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(deliveryId))
+    return json({ error: "invalid_delivery_id" }, 400);
+  const repository = record(payload.repository);
+  if (
+    !repository ||
+    !Number.isSafeInteger(repository.id) ||
+    (repository.id as number) <= 0 ||
+    typeof repository.full_name !== "string"
+  )
+    return json({ error: "invalid_job_repository" }, 400);
+  let snapshot;
+  try {
+    const store = env.MAPPING_CATALOG.get(env.MAPPING_CATALOG.idFromName(env.CATALOG_NAME));
+    snapshot = parseMappingSnapshot(await store.read());
+  } catch {
+    return json({ error: "catalog_unavailable" }, 503);
+  }
+  const revision = snapshot.revision;
+  const mapping = snapshot.repositories.find((entry) => entry.repositoryId === repository.id);
+  if (!mapping?.enabled || mapping.repository !== repository.full_name)
+    return json({ outcome: "ignored", reason: "repository_not_enabled", revision });
+  const collectedAt = new Date().toISOString();
+  const mapped = mapWorkflowJobWebhook(payload, {
+    repositoryId: mapping.repositoryId,
+    repository: mapping.repository,
+    collectedAt,
+    deliveryId,
+  });
+  if (mapped.outcome === "ignored") return json({ ...mapped, revision }, 200);
+  if (mapped.outcome === "refused")
+    return json({ error: mapped.reason, revision }, 422);
+  try {
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const payloadSha256 = Array.from(
+      new Uint8Array(digest),
+      (value) => value.toString(16).padStart(2, "0"),
+    ).join("");
+    const store = env.JOB_EVIDENCE.get(env.JOB_EVIDENCE.idFromName(env.CATALOG_NAME));
+    const result = await store.admit({
+      deliveryId,
+      payloadSha256,
+      receivedAt: collectedAt,
+      observation: mapped.observation,
+    });
+    if (result.outcome === "conflict")
+      return json({ error: result.reason, revision }, 409);
+    if (result.outcome === "refused")
+      return json(
+        { error: result.reason, revision },
+        result.reason === "evidence_capacity_exhausted" ? 503 : 422,
+      );
+    return json(
+      { outcome: result.outcome, receipt: result.receipt, revision },
+      result.outcome === "appended" ? 201 : 200,
+    );
+  } catch {
+    return json({ error: "job_evidence_unavailable", revision }, 503);
+  }
 }
 
 export async function handleGitHubWebhook(request: Request, env: WebhookEnv): Promise<Response> {
@@ -75,6 +154,7 @@ export async function handleGitHubWebhook(request: Request, env: WebhookEnv): Pr
   const eventType = request.headers.get("X-GitHub-Event");
   if (!eventType) return json({ error: "missing_event_type" }, 400);
   if (eventType === "ping") return json({ outcome: "pong" });
+  if (eventType === "workflow_job") return handleWorkflowJobDelivery(payload, request, bytes, env);
   if (eventType !== "pull_request") return json({ outcome: "ignored", reason: "event_type" });
   if (typeof payload.action !== "string") return json({ error: "invalid_action" }, 400);
   if (payload.action !== "closed") return json({ outcome: "ignored", reason: "action" });
