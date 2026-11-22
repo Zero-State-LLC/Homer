@@ -25,6 +25,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - A "Say how risky the change is" section in `CONTRIBUTING.md`: blast radius, rollback cost, error detection, and screenshots for operator-screen changes.
 - Accepted CI feedback intent and spec (`specs/ci-feedback/spec.md`), ADRs 008 to 010, and a measured CI baseline receipt.
 
+- Optional signed `workflow_job` admission with an isolated append-only Durable Object for original delivery receipts; defaults disabled and does not dispatch CI.
+
 - Pure GitHub workflow-job evidence mapper and read-only run enrichment contract, with source identity and rerun attribution tests. Live collection remains disabled.
 
 - Strict read-only GitHub Job Attempt timing Projection, source evidence validation, comparable sample grouping and synthetic tests. No CI routing or host operations.
