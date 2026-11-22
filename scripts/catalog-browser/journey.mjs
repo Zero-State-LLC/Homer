@@ -28,10 +28,17 @@ const jwt = (aud, sub = "synthetic-browser") =>
 writeFileSync(
   join(temp, "worker.ts"),
   `import {handleRequest} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
-export {MappingCatalogObject} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
+export {MappingCatalogObject,RunnerFleetObject} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
 import {createLocalJWKSet} from ${JSON.stringify(require.resolve("jose"))};
+export {EventLedgerObject} from '/workspace/scratch/054471a804c3/Homer-calendar-runners/packages/event-ledger/src/ledger-object.ts';
+import {event} from '/workspace/scratch/054471a804c3/Homer-calendar-runners/packages/event-ledger/test/fixture.ts';
 const key=createLocalJWKSet({keys:[${JSON.stringify(jwk)}]});
-export default {fetch(request, env){
+export default {async fetch(request, env){
+ if(new URL(request.url).pathname==='/__fixture/calendar-seed'){
+  const ledger=env.EVENT_LEDGER.get(env.EVENT_LEDGER.idFromName('event-ledger'));
+  for(const e of [{...event('browser-human'),subject:'Synthetic reviewed implementation',occurredAt:'2026-11-21T01:00:00Z',actor:{sourceAccount:'synthetic-human',actorId:'actor:fixture',actorKind:'human'}},{...event('browser-unknown'),subject:'Synthetic unattributed merge',occurredAt:'2026-11-22T01:00:00Z'}]){const result=await ledger.appendActivityEvent(e);if(!['appended','duplicate'].includes(result.outcome))return Response.json(result,{status:500});}
+  return Response.json({seeded:true});
+ }
  const mode=request.headers.get('X-Synthetic-Directory');
  const original=env.CREDENTIAL_DIRECTORY;
  const configured={...env,CREDENTIAL_DIRECTORY:mode==='missing'?undefined:{fetch: req=>original.fetch(new Request(req,{headers:{'X-Synthetic-Directory':mode||'ready'}}))}};
@@ -54,9 +61,18 @@ writeFileSync(
     },
     services: [{ binding: "CREDENTIAL_DIRECTORY", service: "homer-directory-fixture" }],
     durable_objects: {
-      bindings: [{ name: "MAPPING_CATALOG", class_name: "MappingCatalogObject" }],
+      bindings: [
+        { name: "MAPPING_CATALOG", class_name: "MappingCatalogObject" },
+        { name: "RUNNER_FLEET", class_name: "RunnerFleetObject" },
+        { name: "EVENT_LEDGER", class_name: "EventLedgerObject" },
+      ],
     },
-    migrations: [{ tag: "v1", new_sqlite_classes: ["MappingCatalogObject"] }],
+    migrations: [
+      {
+        tag: "v1",
+        new_sqlite_classes: ["MappingCatalogObject", "RunnerFleetObject", "EventLedgerObject"],
+      },
+    ],
   }),
 );
 writeFileSync(
@@ -497,6 +513,90 @@ try {
   }
   console.log(
     "PASS: scoped credential search, detail consumers, keyboard focus, developer setup, mobile reflow and distinct missing/denied/unavailable/empty states through fixture directory service",
+  );
+  // Isolated synthetic Event Ledger only. No production append endpoint is introduced.
+  assert.equal((await fetch(base + "/__fixture/calendar-seed")).status, 200);
+  const workContext = await browser.newContext({
+    extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": await jwt("synthetic-read") },
+  });
+  const work = await workContext.newPage();
+  await work.goto(base + "/v1/workspace/calendar");
+  assert.equal(await work.locator("article").count(), 2);
+  assert.match(await work.locator("main").innerText(), /actor:fixture/);
+  assert.match(await work.locator("main").innerText(), /Unattributed/);
+  await work.getByLabel("Day", { exact: true }).fill("2026-11-20");
+  await work.getByRole("button", { name: "Apply filters", exact: true }).click();
+  await work.waitForURL(/day=2026-11-20/);
+  assert.equal(await work.locator("article").count(), 1);
+  assert.match(await work.locator("article").innerText(), /Synthetic reviewed implementation/);
+  await work.getByText("Evidence and Provenance", { exact: true }).click();
+  assert.equal(
+    await work.getByRole("link", { name: "Source link", exact: true }).getAttribute("href"),
+    "https://example.test/evidence",
+  );
+  await work.reload();
+  assert.equal(await work.getByLabel("Day", { exact: true }).inputValue(), "2026-11-20");
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await work.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "calendar-desktop.png"),
+      fullPage: true,
+    });
+  await work.setViewportSize({ width: 320, height: 740 });
+  assert(await work.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await work.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "calendar-mobile.png"),
+      fullPage: true,
+    });
+  assert.equal((await work.request.get(base + "/v1/admin/runners/config")).status(), 401);
+  await workContext.close();
+  const fleetContext = await browser.newContext({
+    extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": await jwt("synthetic-admin") },
+  });
+  const fleet = await fleetContext.newPage();
+  await fleet.goto(base + "/v1/admin/runners");
+  await fleet.getByLabel("Machine ID", { exact: true }).fill("fixture-pc");
+  await fleet.getByLabel("Alias", { exact: true }).fill("Fixture PC");
+  await fleet.getByLabel("Repository scope", { exact: true }).fill("Zero-State-LLC/fixture");
+  await fleet.getByLabel("Operating system", { exact: true }).selectOption("windows");
+  await fleet.getByLabel("Desired mode", { exact: true }).selectOption("maintenance");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /maintenance/);
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).waitFor();
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  await fleet.getByRole("button", { name: "New machine", exact: true }).click();
+  await fleet.getByLabel("Machine ID", { exact: true }).fill("fixture-mac");
+  await fleet.getByLabel("Alias", { exact: true }).fill("Fixture Mac");
+  await fleet.getByLabel("Machine kind", { exact: true }).selectOption("mac");
+  await fleet.getByLabel("Architecture", { exact: true }).selectOption("arm64");
+  await fleet.getByLabel("Repository scope", { exact: true }).fill("Zero-State-LLC/fixture");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.getByRole("button", { name: "Edit Fixture Mac", exact: true }).waitFor();
+  await fleet.reload();
+  await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).waitFor();
+  const fleetData = await (await fleet.request.get(base + "/v1/admin/runners/config")).json();
+  assert.equal(fleetData.config.revision, 2);
+  assert.equal(fleetData.config.machines.length, 2);
+  assert.equal(fleetData.observedState, "unknown");
+  assert.equal(fleetData.requestStatus, "pending");
+  assert.match(await fleet.locator("#fleet").innerText(), /Desired: maintenance/);
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await fleet.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "runners-desktop.png"),
+      fullPage: true,
+    });
+  await fleet.setViewportSize({ width: 320, height: 740 });
+  assert(await fleet.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await fleet.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "runners-mobile.png"),
+      fullPage: true,
+    });
+  await fleetContext.close();
+  console.log(
+    "PASS: real ledger calendar evidence, Pacific day filters and URLs; PC/Mac durable fleet review/readback, pending maintenance, denied reader access and mobile reflow",
   );
 } finally {
   await browser?.close();

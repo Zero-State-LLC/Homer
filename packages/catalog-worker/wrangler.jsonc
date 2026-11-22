@@ -12,7 +12,13 @@
     "traces": { "enabled": true, "head_sampling_rate": 0.01 },
   },
   "durable_objects": {
-    "bindings": [{ "name": "MAPPING_CATALOG", "class_name": "MappingCatalogObject" }],
+    "bindings": [
+      { "name": "RUNNER_FLEET", "class_name": "RunnerFleetObject" },
+      { "name": "MAPPING_CATALOG", "class_name": "MappingCatalogObject" },
+    ],
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MappingCatalogObject"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["MappingCatalogObject"] },
+    { "tag": "runner-v1", "new_sqlite_classes": ["RunnerFleetObject"] },
+  ],
 }

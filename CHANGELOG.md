@@ -4,6 +4,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ## Unreleased
 
+- Add ADRs and operator surfaces for evidence-linked work calendars and revisioned PC/Mac runner fleet intent.
+
 ### Added
 
 - Read-only scoped Credentials and My setup use a trusted versioned Credential Directory,
