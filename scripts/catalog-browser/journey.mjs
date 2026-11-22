@@ -961,6 +961,62 @@ try {
   assert.equal(lifecycle.connectionState, "revoked");
   assert.equal(lifecycle.history.at(-1).outcome, "revoked");
   assert.equal(lifecycle.history.filter((x) => x.action === "disconnect").length, 2);
+  // A failed or mixed-revision lifecycle snapshot must block every mutation.
+  const lifecyclePattern = "**/v1/admin/runners/lifecycle?machineId=fixture-pc";
+  await fleet.route(lifecyclePattern, (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: '{"error":"synthetic_unavailable"}',
+    }),
+  );
+  await fleet.reload();
+  await fleet.waitForFunction(
+    () =>
+      document.getElementById("fields").disabled &&
+      document.getElementById("fleet").textContent.includes("readback unavailable"),
+  );
+  assert.doesNotMatch(await pc.innerText(), /Operation: complete/);
+  assert.equal(
+    await pc.getByRole("button", { name: "Enroll/Reconnect", exact: true }).isEnabled(),
+    false,
+  );
+  await fleet.unroute(lifecyclePattern);
+  await fleet.getByRole("button", { name: "Read back configuration", exact: true }).click();
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  await fleet.route(lifecyclePattern, async (route) => {
+    await fleet.unroute(lifecyclePattern);
+    const before = await (await fleet.request.get(base + "/v1/admin/runners/config")).json();
+    const updated = {
+      ...before.config,
+      revision: before.config.revision + 1,
+      machines: before.config.machines.map((m) =>
+        m.id === "fixture-pc" ? { ...m, repository: "Zero-State-LLC/concurrent-scope" } : m,
+      ),
+    };
+    const concurrent = await fleet.request.put(base + "/v1/admin/runners/config", {
+      headers: { "If-Match": '"' + before.config.revision + '"' },
+      data: updated,
+    });
+    assert.equal(concurrent.status(), 200);
+    await route.continue();
+  });
+  await fleet.reload();
+  await fleet.waitForFunction(
+    () =>
+      document.getElementById("fields").disabled &&
+      document.getElementById("fleet").textContent.includes("readback unavailable"),
+  );
+  assert.equal(
+    await pc.getByRole("button", { name: "Enroll/Reconnect", exact: true }).isEnabled(),
+    false,
+  );
+  await fleet.getByRole("button", { name: "Read back configuration", exact: true }).click();
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  assert.match(await pc.innerText(), /Zero-State-LLC\/concurrent-scope/);
+  console.log(
+    "PASS: lifecycle read failures and mixed configuration revisions disable mutations until fresh consistent readback",
+  );
   if (process.env.ADMIN_SCREENSHOT_DIR)
     await fleet.screenshot({
       path: join(process.env.ADMIN_SCREENSHOT_DIR, "runner-lifecycle-mobile.png"),
