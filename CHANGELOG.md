@@ -9,6 +9,7 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - Authenticated admin Overview shows observed Repository admission and unknown collection health.
   Field-based mapping review lists added, changed and removed mappings, retains drafts
   after conflicts or uncertain saves, and requires readback before another mutation.
+  Validation identifies invalid fields and duplicate rows with linked error summaries.
 
 - Pocock skills: `/to-tickets` writes Tasks to Linear team ZER, `/triage` is on with labels mapped in `docs/agents/triage-labels.md`, and `/implement-spec` may run implementers in parallel.
 

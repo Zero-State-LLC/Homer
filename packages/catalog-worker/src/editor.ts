@@ -1,3 +1,5 @@
+import { adminHeaders } from "./admin-headers.js";
+
 /** Static assets only. Inventory is loaded through the authenticated runtime API. */
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -156,14 +158,6 @@ export function editorResponse(path: string): Response {
         ? [css, "text/css"]
         : [html, "text/html"];
   return new Response(body, {
-    headers: {
-      "Content-Type": `${type}; charset=utf-8`,
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "DENY",
-      "Referrer-Policy": "no-referrer",
-      "Content-Security-Policy":
-        "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-    },
+    headers: adminHeaders(type),
   });
 }

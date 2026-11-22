@@ -4,7 +4,7 @@ export const repositoryScript = String.raw`"use strict";
  const el = id => document.getElementById(id);
  const options = {credentials:"same-origin", cache:"no-store", redirect:"error"};
  let current = null, original = null, fresh = null, reviewed = null;
- let busy = false, dirty = false, reconcile = false;
+ let busy = false, dirty = false, reconcile = false, rowSequence = 0;
  const status = message => { el("status").textContent = message; };
  const format = value => JSON.stringify(value, null, 2);
  function controls() {
@@ -15,23 +15,30 @@ export const repositoryScript = String.raw`"use strict";
    el("rebase").disabled = busy || !fresh;
  }
  function invalidate() { reviewed = null; el("preview").hidden = true; controls(); }
- function input(label, name, value, type = "text") {
-   const wrapper = document.createElement("label"); wrapper.textContent = label;
-   const field = document.createElement("input"); field.name = name; field.type = type;
+ function clearErrors() {
+   el("validation-summary").hidden = true; el("validation-errors").replaceChildren();
+   for (const field of el("rows").querySelectorAll("input")) {
+     field.removeAttribute("aria-invalid"); field.removeAttribute("aria-describedby");
+   }
+   for (const error of el("rows").querySelectorAll(".field-error")) error.remove();
+ }
+ function input(rowId, label, name, value, type = "text") {
+   const wrapper = document.createElement("div"), caption = document.createElement("label"); caption.textContent = label;
+   const field = document.createElement("input"); field.name = name; field.type = type; field.id = rowId + "-" + name;
    if (type === "checkbox") field.checked = value; else field.value = value;
    if (name === "repositoryId") {field.required=true; field.min="1";field.step="1";}
    if (name === "repository") {field.required=true;field.pattern="Zero-State-LLC/[A-Za-z0-9._\\-]+";}
    if (name === "projectId") field.pattern="project:[a-z0-9\\-]+";
-   wrapper.append(field);return wrapper;
+   caption.htmlFor = field.id; wrapper.append(caption, field);return wrapper;
  }
  function addRow(mapping = {repositoryId:"",repository:"",enabled:false}) {
-   const row=document.createElement("fieldset"); row.className="mapping-row";
-   const legend=document.createElement("legend");legend.textContent="Repository mapping";row.append(legend);
+   const row=document.createElement("fieldset"); row.className="mapping-row"; row.id="mapping-"+(++rowSequence);
+   const legend=document.createElement("legend");legend.textContent="Repository mapping "+rowSequence;row.append(legend);
    const fields=document.createElement("div");fields.className="mapping-fields";
-   fields.append(input("Repository ID","repositoryId",mapping.repositoryId,"number"),input("Repository name","repository",mapping.repository),input("Project ID","projectId",mapping.projectId ?? ""),input("Enabled","enabled",mapping.enabled,"checkbox"));
+   fields.append(input(row.id,"Repository ID","repositoryId",mapping.repositoryId,"number"),input(row.id,"Repository name","repository",mapping.repository),input(row.id,"Project ID","projectId",mapping.projectId ?? ""),input(row.id,"Enabled","enabled",mapping.enabled,"checkbox"));
    row.append(fields);
    const remove=document.createElement("button");remove.type="button";remove.textContent="Remove mapping";
-   remove.addEventListener("click",()=>{row.remove();dirty=true;invalidate();el("add").focus();});
+   remove.addEventListener("click",()=>{row.remove();clearErrors();dirty=true;invalidate();el("add").focus();});
    row.append(remove);el("rows").append(row);return row;
  }
  function draft() {
@@ -43,7 +50,7 @@ export const repositoryScript = String.raw`"use strict";
  }
  function adopt(snapshot) {
    current=snapshot;original=snapshot;fresh=null;dirty=false;reconcile=false;
-   el("rows").replaceChildren();snapshot.repositories.forEach(addRow);
+   clearErrors();el("rows").replaceChildren();snapshot.repositories.forEach(addRow);
    el("revision").textContent="Observed catalog revision "+snapshot.revision;
    el("reconciliation").hidden=true;invalidate();
  }
@@ -72,7 +79,7 @@ export const repositoryScript = String.raw`"use strict";
  }
  el("add").addEventListener("click",()=>{if(busy||!current||reconcile)return;const row=addRow();dirty=true;invalidate();row.querySelector("input").focus();});
  el("mappings").addEventListener("submit",event=>event.preventDefault());
- el("mappings").addEventListener("input",()=>{dirty=true;invalidate();});
+ el("mappings").addEventListener("input",()=>{clearErrors();dirty=true;invalidate();});
  el("rebase").addEventListener("click",()=>{
    if(busy||!fresh)return;current=fresh;original=fresh;fresh=null;reconcile=false;
    el("reconciliation").hidden=true;el("revision").textContent="Observed catalog revision "+current.revision;
@@ -80,11 +87,33 @@ export const repositoryScript = String.raw`"use strict";
  });
  el("review").addEventListener("click",()=>{
    if(busy||!current||reconcile)return;invalidate();
-   if(!el("mappings").reportValidity()){status("Correct the indicated fields. Nothing was saved.");return;}
-   const proposed=draft(),ids=new Set(),names=new Set();
-   for(const row of proposed){
-     if(!Number.isSafeInteger(row.repositoryId)||row.repositoryId<1||ids.has(row.repositoryId)||names.has(row.repository.toLowerCase())){status("Repository IDs must be positive safe integers. Repository IDs and names must be unique. Nothing was saved.");return;}
-     ids.add(row.repositoryId);names.add(row.repository.toLowerCase());
+   clearErrors();
+   const proposed=draft(), rows=[...el("rows").querySelectorAll(".mapping-row")], errors=new Map();
+   const addError=(field,message)=>{if(!errors.has(field))errors.set(field,message);};
+   for(const row of rows) for(const field of row.querySelectorAll("input")) {
+     if(!field.validity.valid)addError(field,field.validationMessage);
+   }
+   for(let i=0;i<proposed.length;i++){
+     const value=proposed[i], field=name=>rows[i].querySelector('[name="'+name+'"]');
+     if(!Number.isSafeInteger(value.repositoryId)||value.repositoryId<1)
+       addError(field("repositoryId"),"Repository ID must be a positive safe integer.");
+     if(proposed.some((other,j)=>j!==i&&other.repositoryId===value.repositoryId))
+       addError(field("repositoryId"),"Repository ID duplicates another mapping. Use a unique ID.");
+     if(proposed.some((other,j)=>j!==i&&other.repository.toLowerCase()===value.repository.toLowerCase()))
+       addError(field("repository"),"Repository name duplicates another mapping. Use a unique name.");
+   }
+   if(errors.size){
+     for(const [field,message] of errors){
+       const error=document.createElement("span");error.id=field.id+"-error";error.className="field-error";error.textContent=message;
+       field.parentElement.append(error);field.setAttribute("aria-invalid","true");field.setAttribute("aria-describedby",error.id);
+       const item=document.createElement("li"),link=document.createElement("a");
+       link.href="#"+field.id;link.textContent=field.closest("fieldset").querySelector("legend").textContent+", "+field.labels[0].textContent+": "+message;
+       link.addEventListener("click",event=>{event.preventDefault();field.focus();});
+       item.append(link);el("validation-errors").append(item);
+     }
+     el("mappings").reportValidity();
+     el("validation-summary").hidden=false;el("validation-summary").focus();
+     status("Correct the linked fields. Nothing was saved.");return;
    }
    if(!Number.isSafeInteger(current.revision+1)){status("Catalog revision exhausted. Nothing was saved.");return;}
    const same=(a,b)=>a.repository===b.repository && a.projectId===b.projectId && a.enabled===b.enabled;

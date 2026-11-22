@@ -1,6 +1,6 @@
 import type { MappingSnapshot } from "@zs-home/github-sync";
 import { repositoryScript } from "./repositories.js";
-import { editorResponse } from "./editor.js";
+import { adminHeaders } from "./admin-headers.js";
 
 export const adminPaths = new Set([
   "/v1/admin/overview",
@@ -14,7 +14,7 @@ const escape = (value: string) =>
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
   );
 export function adminPage(title: string, content: string, script = ""): Response {
-  const headers = new Headers(editorResponse("/v1/admin/catalog/editor").headers);
+  const headers = adminHeaders();
   return new Response(
     `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)} | Homer</title><link rel="stylesheet" href="/v1/admin/catalog/editor.css"><link rel="stylesheet" href="/v1/admin/admin.css">${script ? `<script src="${script}" defer></script>` : ""}</head><body><main><header><p>Homer administration</p><nav aria-label="Administration"><a href="/v1/admin/overview">Overview</a> · <a href="/v1/admin/repositories">Repository mappings</a></nav><p>Scope: catalog administration. Environment: catalog-wide configuration; no environment-specific mutation is available.</p><h1>${escape(title)}</h1></header>${content}</main></body></html>`,
     { headers },
@@ -36,6 +36,7 @@ export function adminAsset(path: string): Response | undefined {
 <p>Changes apply to future collection. Historical Activity Events stay unchanged. Enter source-verified Repository and Project IDs; source identity lookup is unavailable.</p>
 <p id="status" role="status" aria-live="polite">Loading current mappings…</p>
 <button id="load" type="button">Read current mappings for reconciliation</button>
+<section id="validation-summary" tabindex="-1" aria-labelledby="validation-title" hidden><h2 id="validation-title">Correct Repository mapping fields</h2><p>Nothing was saved. Follow a link to correct the field.</p><ul id="validation-errors"></ul></section>
 <p id="revision"></p><form id="mappings"><fieldset id="fields" disabled><legend>Edit Repository admission</legend><div id="rows"></div><button id="add" type="button">Add Repository mapping</button></fieldset></form>
 <button id="review" type="button" disabled>Review changes</button>
 <section id="reconciliation" hidden><h2>Reconcile retained draft</h2><p>Compare the original revision, current stored mappings, and your proposed mappings. No write has been retried.</p><h3>Original</h3><pre id="original"></pre><h3>Current readback</h3><pre id="readback"></pre><h3>Retained draft</h3><pre id="retained"></pre><button id="rebase" type="button">Use current revision and review my draft</button></section>
@@ -43,8 +44,7 @@ export function adminAsset(path: string): Response | undefined {
 <noscript>JavaScript is required to edit mappings.</noscript>`,
       "/v1/admin/repositories.js",
     );
-  const response = editorResponse("/v1/admin/catalog/editor");
-  const headers = new Headers(response.headers);
+  const headers = adminHeaders();
   headers.set(
     "Content-Type",
     path.endsWith(".js") ? "text/javascript; charset=utf-8" : "text/css; charset=utf-8",
@@ -52,7 +52,7 @@ export function adminAsset(path: string): Response | undefined {
   return new Response(
     path.endsWith(".js")
       ? repositoryScript
-      : `input{box-sizing:border-box;max-width:100%;min-height:44px;font:inherit;padding:.5rem}input[type=checkbox]{min-width:24px}fieldset{min-width:0;padding:1rem;margin:1rem 0;border:1px solid #789;border-radius:.4rem}a{color:inherit}nav{display:flex;gap:1rem;flex-wrap:wrap}a:focus-visible,input:focus-visible{outline:3px solid #328dd0;outline-offset:3px}article{overflow-wrap:anywhere}.mapping-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}@media(max-width:650px){.mapping-fields{grid-template-columns:1fr}}`,
+      : `input{box-sizing:border-box;max-width:100%;min-height:44px;font:inherit;padding:.5rem}input[type=checkbox]{min-width:24px}fieldset{min-width:0;padding:1rem;margin:1rem 0;border:1px solid #789;border-radius:.4rem}a{color:inherit}nav{display:flex;gap:1rem;flex-wrap:wrap}#validation-summary:focus,a:focus-visible,input:focus-visible{outline:3px solid #328dd0;outline-offset:3px}article{overflow-wrap:anywhere}.mapping-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}@media(max-width:650px){.mapping-fields{grid-template-columns:1fr}}`,
     { headers },
   );
 }

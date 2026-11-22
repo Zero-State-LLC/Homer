@@ -96,7 +96,7 @@ try {
   assert(ready, output);
   browser = await chromium.launch({
     headless: true,
-    executablePath: process.env.CHROMIUM_PATH ?? "/usr/bin/chromium",
+    executablePath: process.env.CHROMIUM_PATH,
     args: ["--no-sandbox", "--no-zygote"],
   });
   const context = await browser.newContext({
@@ -111,6 +111,53 @@ try {
   await page.getByLabel("Repository name", { exact: true }).fill("Zero-State-LLC/browser");
   await page.getByLabel("Project ID", { exact: true }).fill("project:homer");
   await page.getByLabel("Enabled", { exact: true }).check();
+  const originalId = await page.getByLabel("Repository ID", { exact: true }).getAttribute("id");
+  await page.getByRole("button", { name: "Add Repository mapping", exact: true }).click();
+  const rows = page.locator(".mapping-row");
+  await rows.nth(1).getByLabel("Repository ID", { exact: true }).fill("123");
+  await rows.nth(1).getByLabel("Repository name", { exact: true }).fill("Zero-State-LLC/BROWSER");
+  await page.getByRole("button", { name: "Review changes", exact: true }).click();
+  assert.equal(await page.locator('[aria-invalid="true"]').count(), 4);
+  assert.equal(await page.locator("#validation-errors a").count(), 4);
+  assert.equal(
+    await page.locator("#validation-summary").evaluate((node) => node === document.activeElement),
+    true,
+  );
+  assert.equal(await page.locator("#preview").isHidden(), true);
+  for (const link of await page.locator("#validation-errors a").all()) {
+    const target = await link.getAttribute("href");
+    await link.focus();
+    await page.keyboard.press("Enter");
+    assert.equal(
+      await page.locator(target).evaluate((node) => node === document.activeElement),
+      true,
+    );
+    const description = await page.locator(target).getAttribute("aria-describedby");
+    assert.match(await page.locator("#" + description).innerText(), /duplicates another mapping/);
+  }
+  await rows.nth(1).getByRole("button", { name: "Remove mapping", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Repository ID", { exact: true }).getAttribute("id"),
+    originalId,
+  );
+  assert.equal(await page.locator("#validation-summary").isHidden(), true);
+  await page.getByLabel("Project ID", { exact: true }).fill("invalid project");
+  await page.getByRole("button", { name: "Review changes", exact: true }).click();
+  assert.equal(
+    await page
+      .getByLabel("Project ID", { exact: true })
+      .evaluate((node) => node.validity.patternMismatch),
+    true,
+  );
+  assert.equal(
+    await page.getByLabel("Project ID", { exact: true }).getAttribute("aria-invalid"),
+    "true",
+  );
+  await page.getByLabel("Project ID", { exact: true }).fill("project:homer");
+  assert.equal(await page.locator('[aria-invalid="true"]').count(), 0);
+  console.log(
+    "PASS: duplicate fields and native invalid input have linked errors, keyboard focus and correction recovery",
+  );
   await page.getByRole("button", { name: "Review changes", exact: true }).click();
   assert.match(await page.locator("#changes").innerText(), /Added/);
   await page.getByRole("button", { name: "Save reviewed changes", exact: true }).click();

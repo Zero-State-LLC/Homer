@@ -363,6 +363,11 @@ it("offers a protected field-based Repository mapping review without granting ot
     expect(response.headers.get("Content-Security-Policy")).toContain("script-src 'self'");
     if (path === "repositories") {
       const page = await response.text();
+      expect(page).toContain(
+        'id="validation-summary" tabindex="-1" aria-labelledby="validation-title" hidden',
+      );
+      expect(page).toContain('<h2 id="validation-title">Correct Repository mapping fields</h2>');
+      expect(page).toContain('<ul id="validation-errors"></ul>');
       expect(page).toContain("Add Repository mapping");
       expect(page).toContain("Review changes");
       expect(page).toContain("Read current mappings for reconciliation");
