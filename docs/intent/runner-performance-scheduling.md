@@ -1,6 +1,6 @@
 # Intent: evidence-based CI runner performance and scheduling
 
-Status: draft, awaiting Daniel's acceptance. Documentation-only exploration does not authorize dispatch changes, host enrollment, paid services, or deployment.
+Status: accepted for specification and offline, read-only measurement implementation by Daniel's "Continue" instruction on November 22, 2026 PT. Automated routing, host enrollment, paid services, merges, and deployment remain unapproved.
 Product: Homer
 Date: 2026-11-22 PT
 
@@ -51,7 +51,7 @@ This stream extends the accepted [calendar and runners intent](calendar-runners.
 2. Observe GitHub workflow-job attempts and relevant source evidence through the authorized Collector; keep missing data Unknown.
 3. Benchmark identical representative workflows with comparable cold-cache and warm-cache runs; preserve raw result links and environment details.
 4. Produce deterministic, explainable advisory candidates after enforcing all trust, scope, freshness and capacity gates.
-5. Request separate human acceptance of the stage-zero intent and then specify a versioned contract, plan and Linear Tasks. Only after that may implementation and real-machine qualification proceed.
+5. Specify the versioned measurement contract, FORGE plan and Linear Tasks. Implement source-linked, read-only measurement before an independently approved automated routing change; real-machine qualification remains a separate gate.
 
 ## Claims and references
 
@@ -63,4 +63,4 @@ This stream extends the accepted [calendar and runners intent](calendar-runners.
 
 ## Next
 
-Daniel accepts or revises this intent. Then produce `specs/runner-scheduling/spec.md` with a `## Workflows` section, a bounded evidence schema, deterministic policy fixtures, threat model, test plan and a FORGE plan. The proposed architecture is in [ADR 005](../../specs/adr/005-runner-performance-scheduling.md). No code or live configuration changes from this draft.
+Specify `specs/runner-scheduling/spec.md` with a `## Workflows` section, bounded evidence schema, deterministic policy fixtures, threat model, test plan and a FORGE plan. The design is in [ADR 005](../../specs/adr/005-runner-performance-scheduling.md). Keep operational dispatch, live host control, paid provider use, merges and production deployment behind separate gates.
