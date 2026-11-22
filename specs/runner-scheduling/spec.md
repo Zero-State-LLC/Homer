@@ -59,6 +59,7 @@ Statistics group by repository ID, reviewed workflow family, OS/architecture, ru
 ## Advisory Candidate evaluation
 
 Advisory selection is **specified for later work**, not enabled by measurement collection. Candidate eligibility must require:
+
 1. Valid, reviewed repository/workflow and GitHub runner-group authorization beyond labels.
 2. Verified trust class, isolation guarantee and no untrusted PR execution on a persistent personal machine.
 3. Compatible OS/architecture/toolchain/resources, with no required facts missing.
