@@ -1,0 +1,53 @@
+# Intent: credential administration
+
+Author: ChatGPT for Daniel
+Date: 2026-11-21
+Status: draft
+Product: Homer (`Zero-State-LLC/Homer`)
+
+## Problem / why now
+
+Daniel requested an admin section for adding and rotating stack and developer
+keys. The current admin surface edits repository mappings only. Trace archival
+also needs scoped credential management.
+
+[verified: current catalog-worker editor and Daniel's request in this conversation]
+
+## Proposed outcome
+
+- Authorized operators manage shared credentials and their consumer bindings.
+- Developers manage their own approved integration credentials.
+- Saved values remain in a managed secret backend and are never revealed by Homer.
+- Rotation includes consumer validation and provider revocation evidence.
+
+## Affected users / systems
+
+Developers, credential operators, Homer, Cloudflare secret storage, and explicitly
+supported credential providers and consumer services.
+
+## Constraints
+
+- No One Mind content or secret values in Event Ledger events or Projections.
+- Identity Bindings determine ownership; existing catalog admin is not secret admin.
+- Personal local credentials remain local unless deliberately enrolled.
+- No credentials are collected through chat or committed to Git.
+- No live credential changes, new access grants or production deployment in this draft.
+- Preserve the trace archive work in PR #30 as a separate change stream.
+
+## Open questions
+
+Initial provider adapters, operator membership, production activation authority,
+centrally held developer integrations, overlap policy and recovery owner.
+
+## Claims
+
+| Claim | Label |
+| --- | --- |
+| Current Homer admin UI supports repository mappings | verified: catalog-worker source |
+| Cloudflare provides managed write-only administration of saved secret values | verified: official documentation cited in the spec; bound services can read values |
+| Rotation must verify actual consumers and old-key revocation | proposed acceptance requirement |
+
+## Next
+
+Review this intent and the accompanying [draft specification](../../specs/credential-admin/spec.md).
+Accept the intent before implementation. The draft adds no running credential surface.
