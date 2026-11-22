@@ -86,6 +86,17 @@ bounded snapshot returns the complete permitted matching set. My setup derives
 its Actor from authentication, never a query-selected Actor. Scope describes
 access, not Project assignment. Integration metadata does not prove connection.
 
+The Credentials interface offers exact Project, environment and owner filters from
+My setup's already-authorized scope subset, with search applied through the same
+inventory API. Options do not contain principal digests or raw policy. Cards show
+configured consumer counts and discovery limits; zero configured consumers is not
+proof of zero impact. Inventory and fresh detail each display their own metadata
+revision and observation time, so a newer detail cannot inherit an older inventory
+observation. Detail URLs use the non-sensitive opaque `credential` query parameter
+on the workspace page. Search and filters also survive reload and browser history;
+closing detail retains them. Every detail read still authenticates and authorizes
+at the existing API, including bookmarks to inaccessible Credentials.
+
 Responses are no-store. Missing binding is 503 `credential_directory_not_configured`;
 failed or invalid source is 503 `credential_directory_unavailable`; missing Identity
 Binding is 403 `identity_binding_required`; missing permitted grant is 403

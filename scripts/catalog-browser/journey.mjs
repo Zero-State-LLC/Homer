@@ -65,6 +65,7 @@ writeFileSync(
 export default {fetch(request){
  const mode=request.headers.get('X-Synthetic-Directory');
  if(mode==='unavailable')return new Response('Fixture unavailable',{status:503});
+ if(mode==='changed')return Response.json({...snapshot,metadataRevision:2,observedAt:'2026-11-21T00:00:00Z',credentials:snapshot.credentials.map(c=>({...c,activeVersion:'fixture_version_two'}))});
  return Response.json(mode==='empty'?{...snapshot,credentials:[]}:snapshot);
 }};`,
 );
@@ -339,6 +340,40 @@ try {
       fullPage: true,
     });
   }
+  assert.match(
+    await directoryPage.locator("#inventory").innerText(),
+    /Configured consumer count: 1/,
+  );
+  assert.match(
+    await directoryPage.locator("#inventory").innerText(),
+    /Configured consumer count: 0/,
+  );
+  assert.deepEqual(await directoryPage.locator("#ownerActorId option").allTextContents(), [
+    "All authorized owners",
+    "human:fixture",
+    "human:other",
+  ]);
+  for (const [filter, value, expected, excluded] of [
+    ["Project", "project:homer", "Developer diagnostic", "Shared archive"],
+    ["Environment", "production", "Shared archive", "Developer diagnostic"],
+    ["Owner", "human:other", "Shared archive", "Developer diagnostic"],
+  ]) {
+    await directoryPage.getByLabel(filter, { exact: true }).selectOption(value);
+    await directoryPage.getByRole("button", { name: "Search", exact: true }).click();
+    await directoryPage.getByRole("button", { name: "Inspect " + expected, exact: true }).waitFor();
+    assert.doesNotMatch(
+      await directoryPage.locator("#inventory").innerText(),
+      new RegExp(excluded),
+    );
+    await directoryPage.reload();
+    await directoryPage.getByRole("button", { name: "Inspect " + expected, exact: true }).waitFor();
+    assert.equal(await directoryPage.getByLabel(filter, { exact: true }).inputValue(), value);
+    await directoryPage.getByLabel(filter, { exact: true }).selectOption("");
+    await directoryPage.getByRole("button", { name: "Search", exact: true }).click();
+    await directoryPage
+      .getByRole("button", { name: "Inspect Developer diagnostic", exact: true })
+      .waitFor();
+  }
   await directoryPage.getByLabel("Search authorized metadata").fill("private");
   await directoryPage.getByRole("button", { name: "Search", exact: true }).click();
   await directoryPage.waitForFunction(
@@ -350,6 +385,8 @@ try {
     name: "Inspect Developer diagnostic",
     exact: true,
   });
+  // The directory changes after inventory observation and before the fresh detail read.
+  await directoryPage.setExtraHTTPHeaders({ "X-Synthetic-Directory": "changed" });
   await inspect.focus();
   await directoryPage.keyboard.press("Enter");
   await directoryPage
@@ -365,8 +402,52 @@ try {
       .evaluate((node) => node === document.activeElement),
     true,
   );
+  assert.match(
+    await directoryPage.locator("#observed").innerText(),
+    /Inventory Metadata revision 1/,
+  );
+  assert.match(
+    await directoryPage.locator("#detail-body").innerText(),
+    /Detail Metadata revision 2/,
+  );
+  assert.match(await directoryPage.locator("#detail-body").innerText(), /fixture_version_two/);
+  const observedDates = await directoryPage.evaluate(() => {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return ["2026-11-20T00:00:00Z", "2026-11-21T00:00:00Z"].map((value) =>
+      new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "long",
+        timeZone: zone,
+      }).format(new Date(value)),
+    );
+  });
+  assert((await directoryPage.locator("#observed").innerText()).includes(observedDates[0]));
+  assert((await directoryPage.locator("#detail-body").innerText()).includes(observedDates[1]));
+  const bookmark = directoryPage.url();
+  assert.equal(new URL(bookmark).searchParams.get("credential"), "fixture_owned");
+  await directoryPage.reload();
+  await directoryPage
+    .getByText("Synthetic diagnostic consumer (fixture_consumer)", { exact: true })
+    .waitFor();
   await directoryPage.getByRole("button", { name: "Close detail", exact: true }).click();
   assert.equal(await inspect.evaluate((node) => node === document.activeElement), true);
+  assert.equal(new URL(directoryPage.url()).searchParams.has("credential"), false);
+  assert.equal(new URL(directoryPage.url()).searchParams.get("q"), "diagnostic");
+  await directoryPage.goBack();
+  await directoryPage
+    .getByText("Synthetic diagnostic consumer (fixture_consumer)", { exact: true })
+    .waitFor();
+  await directoryPage.goForward();
+  await directoryPage.locator("#detail").waitFor({ state: "hidden" });
+  await directoryPage.goto(bookmark);
+  await directoryPage
+    .getByText("Synthetic diagnostic consumer (fixture_consumer)", { exact: true })
+    .waitFor();
+  await directoryPage.goto(base + "/v1/workspace/credentials?credential=fixture_hidden");
+  await directoryPage
+    .getByText("Credential not found or outside your permitted scope.", { exact: true })
+    .waitFor();
+  assert.doesNotMatch(await directoryPage.locator("#detail-body").innerText(), /Another developer/);
   await directoryPage.getByRole("link", { name: "My setup", exact: true }).click();
   await directoryPage
     .getByRole("heading", { name: "Local instrumentation", exact: true })

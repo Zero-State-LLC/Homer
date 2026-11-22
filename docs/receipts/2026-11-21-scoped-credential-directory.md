@@ -62,3 +62,33 @@ No live Access policy, directory enrollment, provider/backend calls, credentials
 consumer configuration or production deployment changed. Task closure, independent
 Verdict/reproduce and main merge remain separate gates. Later mutation Tasks still
 need their explicit provider/backend contracts and enrolled staging inputs.
+
+## Spec review repairs
+
+November 21, 2026 PT. Closes the three read-surface gaps against operator
+experience sections 3, 5 and 6 and the directory contract's HTTP boundary:
+
+- Fresh detail displays its own metadata revision and observation time, separately
+  from the inventory's observation.
+- Opaque Credential selection, search and exact filters live in the workspace
+  URL. Reload, bookmarks and browser history restore selection; closing detail
+  preserves search and filters and restores focus. The existing authorized detail
+  API still decides visibility for every selection.
+- Project, environment and owner selectors come from the authenticated My setup
+  authorized scope subset. Inventory cards show configured consumer counts with
+  discovery limitations. No API response fields or authorization rules changed.
+
+The actual Worker browser journey now changes the synthetic source after inventory
+load and checks distinct observation dates/revisions plus fresh detail facts. It
+also checks all three exact filters, filter reload, zero/nonzero consumer counts,
+selection reload/bookmark/back/forward/close and a denied detail bookmark. Fixture
+controls remain isolated from runtime source. No VM browser substitute was added.
+
+`npm run check` passed with 190 tests across 20 files, 10 built-runtime checks,
+build, format, lint, typecheck and plain Wrangler/workerd smoke. Context Pin and
+negative checks, browser journey syntax and diff whitespace checks passed.
+The expanded browser journey could not navigate locally: Wrangler again failed
+with `uv_interface_addresses` EPERM after locating installed Playwright. Its new
+behavior assertions have not yet been qualified; CI must run them on this candidate.
+No UI red/green claim is made from this infrastructure failure. There is no new
+HTTP contract requiring an additional HTTP red/green cycle.

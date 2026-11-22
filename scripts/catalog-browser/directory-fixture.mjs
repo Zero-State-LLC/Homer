@@ -50,9 +50,28 @@ export const directoryFixture = {
       projectId: "project:homer",
       environment: "staging",
     },
+    {
+      principalDigest,
+      capability: "metadata-read",
+      ownershipClass: "shared-service",
+      ownerActorId: "human:other",
+      projectId: "project:archive",
+      environment: "production",
+    },
   ],
   credentials: [
     credential,
+    {
+      ...credential,
+      credentialId: "fixture_shared",
+      purpose: "Shared archive",
+      ownershipClass: "shared-service",
+      ownerActorId: "human:other",
+      projectId: "project:archive",
+      environment: "production",
+      consumers: [],
+      consumerDiscovery: "configured-only",
+    },
     {
       ...credential,
       credentialId: "fixture_hidden",
