@@ -279,7 +279,11 @@ try {
   await page.route("**/v1/admin/catalog", async (route) => {
     writes++;
     const committed = await route.fetch();
-    assert.equal(committed.status(), 200);
+    assert.equal(
+      committed.status(),
+      200,
+      JSON.stringify({ request: route.request().postDataJSON(), response: await committed.text() }),
+    );
     await route.abort("connectionfailed");
   });
   await page.getByRole("button", { name: "Save reviewed changes", exact: true }).click();
@@ -866,6 +870,172 @@ try {
       })
     ).status(),
     403,
+  );
+  // Reviewed lifecycle controls operate against the same isolated Worker fixture.
+  await fleet.clock.resume();
+  await fleet.reload();
+  const pc = fleet.locator('article.machine[data-machine-id="fixture-pc"]');
+  await pc.getByRole("button", { name: "Enroll/Reconnect", exact: true }).click();
+  await fleet.locator("#enrollment-digest").fill(principalDigest);
+  await fleet.locator("#enrollment-evidence").fill("synthetic-local-enrollment");
+  await fleet.locator("#lifecycle-confirm").click();
+  await fleet.waitForFunction(() =>
+    document
+      .querySelector('[data-machine-id="fixture-pc"]')
+      ?.textContent.includes("Connection: unknown"),
+  );
+  const bindingAfter = await (
+    await fleet.request.get(base + "/v1/admin/runners/binding?machineId=fixture-pc")
+  ).json();
+  assert.equal(bindingAfter.revision, 3);
+  assert.equal(bindingAfter.binding.enabled, true);
+  const perform = async (action) => {
+    await pc.getByRole("button", { name: action, exact: true }).click();
+    await fleet.locator("#lifecycle-confirm").click();
+    await fleet.waitForFunction(
+      () =>
+        document.getElementById("lifecycle-review").hidden &&
+        !document.getElementById("reload").disabled,
+    );
+  };
+  const lifecycleURL = base + "/v1/admin/runners/lifecycle?machineId=fixture-pc";
+  await fleet.route("**/v1/admin/runners/lifecycle?machineId=fixture-pc", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const committed = await route.fetch();
+    assert.equal(
+      committed.status(),
+      200,
+      JSON.stringify({ request: route.request().postDataJSON(), response: await committed.text() }),
+    );
+    await route.abort("failed");
+  });
+  await perform("Resume");
+  await fleet.unroute("**/v1/admin/runners/lifecycle?machineId=fixture-pc");
+  let operations = await (await fleet.request.get(lifecycleURL)).json();
+  assert.equal(operations.history.filter((x) => x.action === "resume").length, 1);
+  await fleet.route("**/v1/admin/runners/lifecycle?machineId=fixture-pc", async (route) => {
+    if (route.request().method() !== "POST") return route.continue();
+    const competing = await route.fetch();
+    assert.equal(
+      competing.status(),
+      200,
+      JSON.stringify({ request: route.request().postDataJSON(), response: await competing.text() }),
+    );
+    await route.continue();
+  });
+  await perform("Drain");
+  await fleet.unroute("**/v1/admin/runners/lifecycle?machineId=fixture-pc");
+  operations = await (await fleet.request.get(lifecycleURL)).json();
+  assert.equal(operations.history.filter((x) => x.action === "drain").length, 1);
+  const draining = await (
+    await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")
+  ).json();
+  assert.equal(draining.desiredState, "maintenance");
+  const sendState = async (listener, job, acceptingJobs) => {
+    const response = await host.request.post(
+      base + "/v1/runner-controller/report?machineId=fixture-pc",
+      {
+        data: {
+          reportId: crypto.randomUUID(),
+          operationId: draining.operationId,
+          revision: draining.revision,
+          observedAt: new Date().toISOString(),
+          listener,
+          job,
+          acceptingJobs,
+        },
+      },
+    );
+    assert.equal(response.status(), 200);
+  };
+  await sendState("running", "busy", false);
+  await fleet.reload();
+  await perform("Disconnect");
+  await pc.getByRole("button", { name: "Finish disconnect", exact: true }).waitFor();
+  assert.equal(
+    await pc.getByRole("button", { name: "Finish disconnect", exact: true }).isEnabled(),
+    false,
+  );
+  assert.equal(
+    (await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")).status(),
+    200,
+  );
+  await sendState("stopped", "idle", false);
+  await fleet.reload();
+  await perform("Finish disconnect");
+  assert.equal(
+    (await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")).status(),
+    403,
+  );
+  const lifecycle = await (
+    await fleet.request.get(base + "/v1/admin/runners/lifecycle?machineId=fixture-pc")
+  ).json();
+  assert.equal(lifecycle.connectionState, "revoked");
+  assert.equal(lifecycle.history.at(-1).outcome, "revoked");
+  assert.equal(lifecycle.history.filter((x) => x.action === "disconnect").length, 2);
+  // A failed or mixed-revision lifecycle snapshot must block every mutation.
+  const lifecyclePattern = "**/v1/admin/runners/lifecycle?machineId=fixture-pc";
+  await fleet.route(lifecyclePattern, (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: '{"error":"synthetic_unavailable"}',
+    }),
+  );
+  await fleet.reload();
+  await fleet.waitForFunction(
+    () =>
+      document.getElementById("fields").disabled &&
+      document.getElementById("fleet").textContent.includes("readback unavailable"),
+  );
+  assert.doesNotMatch(await pc.innerText(), /Operation: complete/);
+  assert.equal(
+    await pc.getByRole("button", { name: "Enroll/Reconnect", exact: true }).isEnabled(),
+    false,
+  );
+  await fleet.unroute(lifecyclePattern);
+  await fleet.getByRole("button", { name: "Read back configuration", exact: true }).click();
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  await fleet.route(lifecyclePattern, async (route) => {
+    const before = await (await fleet.request.get(base + "/v1/admin/runners/config")).json();
+    const updated = {
+      ...before.config,
+      revision: before.config.revision + 1,
+      machines: before.config.machines.map((m) =>
+        m.id === "fixture-pc" ? { ...m, repository: "Zero-State-LLC/concurrent-scope" } : m,
+      ),
+    };
+    const concurrent = await fleet.request.put(base + "/v1/admin/runners/config", {
+      headers: { "If-Match": '"' + before.config.revision + '"' },
+      data: updated,
+    });
+    assert.equal(concurrent.status(), 200);
+    await route.continue();
+  });
+  await fleet.reload();
+  await fleet.waitForFunction(
+    () =>
+      document.getElementById("fields").disabled &&
+      document.getElementById("fleet").textContent.includes("readback unavailable"),
+  );
+  assert.equal(
+    await pc.getByRole("button", { name: "Enroll/Reconnect", exact: true }).isEnabled(),
+    false,
+  );
+  await fleet.unroute(lifecyclePattern);
+  await fleet.getByRole("button", { name: "Read back configuration", exact: true }).click();
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  assert.match(await pc.innerText(), /Zero-State-LLC\/concurrent-scope/);
+  console.log(
+    "PASS: lifecycle read failures and mixed configuration revisions disable mutations until fresh consistent readback",
+  );
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await fleet.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "runner-lifecycle-mobile.png"),
+      fullPage: true,
+    });
+  console.log(
+    "PASS: reviewed reconnect, drain, busy disconnect pending and fresh stopped finalization preserve operation audit",
   );
   await host.close();
   console.log(
