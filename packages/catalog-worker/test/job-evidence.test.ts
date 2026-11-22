@@ -102,15 +102,9 @@ it("authenticates original bytes before parsing, including when disabled", async
     "X-Hub-Signature-256": "sha256=" + "0".repeat(64),
   });
   expect((await handleRequest(tampered, e)).status).toBe(401);
-  expect(
-    (
-      await handleRequest(await request(), {
-        ...e,
-        GITHUB_JOB_INGEST_ENABLED: "true",
-        JOB_EVIDENCE: undefined,
-      })
-    ).status,
-  ).toBe(503);
+  const missingBinding: Env = { ...e, GITHUB_JOB_INGEST_ENABLED: "true" };
+  delete missingBinding.JOB_EVIDENCE;
+  expect((await handleRequest(await request(), missingBinding)).status).toBe(503);
   expect((await store(e).readJob(repo.id, 202, 303)).receipts).toEqual([]);
 });
 it("requires an admitted repository and an exact delivery ID", async () => {
