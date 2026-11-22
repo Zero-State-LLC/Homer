@@ -6,6 +6,7 @@ import {
 import { calendarPaths, calendarResponse } from "./calendar.js";
 import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
 export { RunnerFleetObject } from "./runner-store.js";
+export { WorkflowJobEvidenceObject } from "./job-evidence-store.js";
 import type { CatalogBindings } from "./bindings.js";
 import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
