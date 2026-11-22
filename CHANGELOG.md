@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Accepted agent-workflow intent and Pocock engineering skills config: an `## Agent skills` block in `AGENTS.md`, `docs/agents/issue-tracker.md` (Tasks in Linear) and `docs/agents/domain.md` (`CONTEXT.md` glossary), and a `CLAUDE.md` import of `AGENTS.md`.
+
 - Signed GitHub merge webhook Collector with live catalog admission, awaited
   Event Ledger receipts, duplicate delivery protection and explicit failure results.
 
