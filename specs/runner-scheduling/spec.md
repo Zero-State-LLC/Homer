@@ -14,6 +14,7 @@ Cloudflare supplies the service control plane. Native CI workloads execute on Gi
 ## Domain vocabulary
 
 The following are specification-local objects, not substitutes for `CONTEXT.md` terms:
+
 - **Job Attempt**: one independently identifiable GitHub workflow job execution, scoped by repository numeric ID, workflow run ID, run attempt number and job ID. A rerun cannot replace another attempt.
 - **Measurement Sample**: bounded, immutable parsed timing evidence plus `Provenance` from a verified GitHub Job Attempt. A computed duration is a `Projection`, not a new Source System fact.
 - **Candidate**: a reviewed runner class or machine that is being considered, not a claim of eligible or available hardware.
