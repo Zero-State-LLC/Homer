@@ -385,6 +385,14 @@ try {
     name: "Inspect Developer diagnostic",
     exact: true,
   });
+  await inspect.waitFor();
+  await directoryPage.waitForFunction(
+    () => document.getElementById("status").textContent === "Authorized inventory loaded.",
+  );
+  assert.match(
+    await directoryPage.locator("#observed").innerText(),
+    /Inventory Metadata revision 1/,
+  );
   // The directory changes after inventory observation and before the fresh detail read.
   await directoryPage.setExtraHTTPHeaders({ "X-Synthetic-Directory": "changed" });
   await inspect.focus();
