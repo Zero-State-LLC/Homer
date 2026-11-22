@@ -82,7 +82,7 @@ Single-context: `CONTEXT.md`, decisions in `docs/receipts/` and agent-context. S
 
 ## Code map
 
-If `graft/` exists, run `trail ask "<task>" --source` before grepping. Otherwise start at `docs/map.md`. Do not copy a code map into this file.
+If `.trail/cache/` exists (Trail-code's local map; a grep from the root skips it), run `trail ask "<task>" --source` before grepping. Otherwise start at `docs/map.md`. Do not copy a code map into this file.
 
 ## Size
 

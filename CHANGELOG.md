@@ -38,6 +38,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Fixed
 
+- The `## Code map` rule in `AGENTS.md` now checks for `.trail/cache/`, where Trail 0.30.5 keeps the map, instead of `graft/`, which a repository on Trail does not have.
+
 - Node consumers can import the built `@zs-home/shared-contracts` workspace package by name.
 
 - Validate Work Requests before packet conversion and detach caller-owned arrays.
