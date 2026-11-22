@@ -61,7 +61,7 @@ function job() {
     completed_at: "2026-11-22T19:00:30Z",
   };
 }
-function mapped(p = payload()): GitHubJobObservation {
+function mapped(p: unknown = payload()): GitHubJobObservation {
   const outcome = mapWorkflowJobWebhook(p, ctx);
   expect(outcome.outcome).toBe("mapped");
   if (outcome.outcome !== "mapped") throw new Error("expected_fixture_mapping");
