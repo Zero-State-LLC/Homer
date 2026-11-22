@@ -72,6 +72,7 @@ source data near deletion, failed production consumer, blocked rotation,
 unknown write outcome, stale Collector, missing setup.
 
 Do not invent a single health score. Distinguish:
+
 - Not configured: setup is absent.
 - Unverified: configured but no successful probe.
 - Healthy: a named check passed within its freshness budget.
@@ -118,6 +119,7 @@ Saved views: Mine, Expiring soon, Unverified, Rotation in progress and Orphaned.
 Views contain non-sensitive filters only; server authorization still applies.
 
 Add a connection:
+
 - Choose service or personal ownership and target Project/environment.
 - Prefer provider OAuth/app connection where supported.
 - Use write-only key entry or local/external reference where appropriate.
@@ -126,6 +128,7 @@ Add a connection:
 - End on an operation receipt with explicit next action.
 
 Rotate:
+
 - Show affected consumers and whether overlap is supported.
 - Separate candidate validation from consumer cutover and old-key revocation.
 - Show per-consumer results; do not collapse partial cutover to success.
@@ -163,6 +166,7 @@ provider revocations and delegated access.
 ## 8. Trace and archive screen
 
 Show separate dimensions:
+
 - Instrumentation coverage: which sessions/harnesses are represented.
 - Content coverage: metadata-only, sanitized content, exclusions and truncation.
 - Source coverage: inventory reconciled, partial or unknown.
@@ -286,4 +290,3 @@ keystrokes, body capture or session replay. Targets are proposed, not measured.
 
 Source review and research completed November 21, 2026 PT. No live visual audit,
 usability study, production deployment or credential operation is claimed.
-
