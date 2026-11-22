@@ -1,0 +1,28 @@
+{
+  "id": "WP-2026-11-22-runner-lifecycle",
+  "source": "github:Zero-State-LLC/Homer#39",
+  "pain": "Operators need safe enrollment and runner lifecycle controls.",
+  "who": "Zero State operators and developers",
+  "done_when": [
+    "Human-admin-only lifecycle routes enforce reviewed enrollment and audited resume, drain, disconnect and revocation with atomic revision checks.",
+    "Disconnect finalization requires fresh current stopped, idle and admission-closed evidence before disabling the Homer binding.",
+    "UI disables mutations on failed or mixed-revision readback and preserves uncertain outcomes until manual readback, without automatic replay.",
+    "Controller connection and runner state remain separate; Homer revocation never claims GitHub or Cloudflare credentials were revoked.",
+    "Browser tests cover lost responses, competing writes, busy disconnect, finalization, reconnect and mobile layout; singleton audience correction remains effective."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Live credentials and Access policy changes",
+      "Native host activation"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/39"]
+}

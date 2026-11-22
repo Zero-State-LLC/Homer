@@ -1,5 +1,9 @@
 # Homer merge review handoff
 
+For the current operator stack (PRs31,32,35,38,39), use the
+[November22 handoff](2026-11-22-operator-stack.md). The audit below records the
+historical foundation stack and does not describe current PR status.
+
 Daniel authorized the HOME merge stack on 2026-11-18 PT. The 2026-11-20 PT
 request covers all Homer PRs and engineering debt. Routine repairs and stack
 reconciliation are authorized. Required independent reviews and CI still apply.

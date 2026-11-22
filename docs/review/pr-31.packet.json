@@ -1,0 +1,25 @@
+{
+  "id": "WP-2026-11-22-credential-design",
+  "source": "github:Zero-State-LLC/Homer#31",
+  "pain": "Operators need a reviewed credential lifecycle and admin design.",
+  "who": "Zero State operators and developers",
+  "done_when": [
+    "Credential and operator contracts define ownership, exact scope, staged rotation, recovery and evidence freshness without storing secret values in metadata.",
+    "The prototype remains offline and synthetic; design status does not claim implemented provider mutations or live qualification."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Live credentials and Access policy changes",
+      "Native host activation"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/31"]
+}

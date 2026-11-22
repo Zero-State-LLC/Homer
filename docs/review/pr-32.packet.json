@@ -1,0 +1,27 @@
+{
+  "id": "WP-2026-11-22-admin-forms",
+  "source": "github:Zero-State-LLC/Homer#32",
+  "pain": "Operators need safe mapping forms and scoped credential read views.",
+  "who": "Zero State operators and developers",
+  "done_when": [
+    "Repository mapping edits use revision preconditions, impact review and fresh readback after conflicts or uncertain outcomes without automatic mutation replay.",
+    "Credential reads require trusted Identity Bindings and exact owner, Project and environment grants; catalog administration grants no credential rights.",
+    "Missing sources, denied access and empty authorized inventories remain distinct; no secret values or credential writes are exposed.",
+    "Browser qualification covers keyboard/mobile use, reload, scoped detail views and concurrent mapping changes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Live credentials and Access policy changes",
+      "Native host activation"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/32"]
+}

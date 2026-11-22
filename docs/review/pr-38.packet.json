@@ -1,0 +1,28 @@
+{
+  "id": "WP-2026-11-22-runner-protocol",
+  "source": "github:Zero-State-LLC/Homer#38",
+  "pain": "Machine controllers need scoped authentication and durable safe reconciliation.",
+  "who": "Zero State operators and developers",
+  "done_when": [
+    "Only an explicitly bound workload can poll or report for its machine; exact audience strings and singleton arrays work while human, mixed, empty and repeated audiences fail.",
+    "Reports preserve original receipt and history under duplicate delivery, restart, revoked or replaced bindings and stale intent.",
+    "Controller closes admission before stopping, waits for idle, never treats unknown job state as idle and persists the report outbox before accepting newer work.",
+    "Unknown, future and stale host evidence cannot complete operations; no arbitrary shell commands, native installation or live activation is introduced.",
+    "Lost acknowledgement retries preserve report content and receipt without replaying host effects; browser coverage proves evidence expiry and scope boundaries."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production deployment",
+      "Live credentials and Access policy changes",
+      "Native host activation"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/38"]
+}
