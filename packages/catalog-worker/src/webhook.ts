@@ -102,15 +102,15 @@ async function handleWorkflowJobDelivery(
       receivedAt: collectedAt,
       observation: mapped.observation,
     });
-    if (result.outcome === "conflict") return json({ error: result.reason, revision }, 409);
-    if (result.outcome === "refused")
+    if ("receipt" in result)
       return json(
-        { error: result.reason, revision },
-        result.reason === "evidence_capacity_exhausted" ? 503 : 422,
+        { outcome: result.outcome, receipt: result.receipt, revision },
+        result.outcome === "appended" ? 201 : 200,
       );
+    if (result.outcome === "conflict") return json({ error: result.reason, revision }, 409);
     return json(
-      { outcome: result.outcome, receipt: result.receipt, revision },
-      result.outcome === "appended" ? 201 : 200,
+      { error: result.reason, revision },
+      result.reason === "evidence_capacity_exhausted" ? 503 : 422,
     );
   } catch {
     return json({ error: "job_evidence_unavailable", revision }, 503);
