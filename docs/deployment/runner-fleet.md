@@ -49,3 +49,31 @@ arbitrary commands or trust a browser-supplied observed status.
 
 Actual PC/Mac host installation, live runner observation and completed maintenance
 are outstanding. Fixture tests prove application behavior, not machine readiness.
+
+## Controller protocol preparation
+
+The controller protocol uses a separate Access audience, never the existing admin
+or read audience. It remains disabled until RUNNER_CONTROLLER_AUD is configured.
+An operator must verify the workload identity and its machine before enrolling its
+principal digest. Digest format is SHA256 of issuer, newline, and the verified
+service identity in the existing Access contract; aliases are not identity proof.
+No service token is created by these APIs.
+
+Admin endpoints are `/v1/admin/runners/binding?machineId=...` (GET/PUT, binding
+revision via If-Match) and `/v1/admin/runners/observation?machineId=...` (GET).
+Controller endpoints are `/v1/runner-controller/poll?machineId=...` (GET) and
+`/v1/runner-controller/report?machineId=...` (POST). The controller may access only
+its bound machine. Configure RUNNER_HEARTBEAT_BUDGET_SECONDS explicitly before
+interpreting freshness; absence yields Unknown.
+
+Admin observations are host-reported evidence. They do not establish GitHub job
+status independently. An identical accepted report retry returns its original
+receipt and does not refresh observed time. Disabled or replaced bindings deny
+old controllers immediately, including receipt retries. New stale-intent reports
+are refused. A rejected outbox requires explicit operator reconciliation; never
+discard it just to clear the interface or replay the old host action.
+
+The portable reconciliation core has no shell, service installation or provider
+credentials. Its trusted host adapter must prove admission closure before stopping
+an idle runner. Until a native adapter is qualified, this remains a repository
+component, not a remotely managed PC/Mac service.

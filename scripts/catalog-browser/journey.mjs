@@ -1,5 +1,7 @@
 // Explicit local-only browser qualification. Requires Playwright and a Chromium executable.
 import assert from "node:assert/strict";
+import { createController } from "../../packages/runner-controller/dist/index.js";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
@@ -58,6 +60,8 @@ writeFileSync(
       ACCESS_READ_AUD: "synthetic-read",
       ACCESS_ADMIN_AUD: "synthetic-admin",
       CATALOG_NAME: "browser",
+      RUNNER_CONTROLLER_AUD: "synthetic-controller",
+      RUNNER_HEARTBEAT_BUDGET_SECONDS: "120",
     },
     services: [{ binding: "CREDENTIAL_DIRECTORY", service: "homer-directory-fixture" }],
     durable_objects: {
@@ -703,6 +707,170 @@ try {
       path: join(process.env.ADMIN_SCREENSHOT_DIR, "runners-mobile.png"),
       fullPage: true,
     });
+  // Machine-scoped controller calls exercise only the local fixture fleet.
+  const serviceName = "fixture-controller.access";
+  const principalDigest = createHash("sha256")
+    .update("https://synthetic.cloudflareaccess.com\nservice:" + serviceName)
+    .digest("hex");
+  const bindingResponse = await fleet.request.put(
+    base + "/v1/admin/runners/binding?machineId=fixture-pc",
+    {
+      headers: { "If-Match": '"0"' },
+      data: {
+        revision: 1,
+        principalDigest,
+        evidenceRef: "synthetic-reviewed-binding",
+        enabled: true,
+      },
+    },
+  );
+  assert.equal(bindingResponse.status(), 200);
+  const controllerToken = await new SignJWT({
+    type: "app",
+    sub: "",
+    common_name: serviceName,
+    iss: "https://synthetic.cloudflareaccess.com",
+    aud: "synthetic-controller",
+  })
+    .setProtectedHeader({ alg: "RS256", kid: "local-browser" })
+    .setIssuedAt()
+    .setExpirationTime("5m")
+    .sign(privateKey);
+  const host = await browser.newContext({
+    extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": controllerToken },
+  });
+  const command = await (
+    await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")
+  ).json();
+  assert.equal(command.machineId, "fixture-pc");
+  assert.equal(command.revision, 5);
+  assert.equal(command.desiredState, "enabled");
+  assert.equal(
+    (await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-mac")).status(),
+    403,
+  );
+  assert.equal(
+    (await fleet.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")).status(),
+    401,
+  );
+  const report = {
+    reportId: crypto.randomUUID(),
+    operationId: command.operationId,
+    revision: command.revision,
+    observedAt: new Date().toISOString(),
+    listener: "running",
+    job: "idle",
+    acceptingJobs: true,
+  };
+  const reported = await host.request.post(
+    base + "/v1/runner-controller/report?machineId=fixture-pc",
+    { data: report },
+  );
+  assert.equal(reported.status(), 200);
+  const receipt = await reported.json();
+  assert.deepEqual(
+    await (
+      await host.request.post(base + "/v1/runner-controller/report?machineId=fixture-pc", {
+        data: report,
+      })
+    ).json(),
+    receipt,
+  );
+  await fleet.reload();
+  await fleet.waitForFunction(() =>
+    document
+      .getElementById("fleet")
+      .textContent.includes("Host-reported evidence: fresh · Operation: complete"),
+  );
+  assert.match(await fleet.locator("#fleet").innerText(), /Received at:/);
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await fleet.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "runner-host-evidence.png"),
+      fullPage: true,
+    });
+  // Expiry must update an already open tab, without a reload or newer report.
+  await fleet.clock.install();
+  await fleet.reload();
+  await fleet.waitForFunction(() =>
+    document.getElementById("fleet").textContent.includes("fresh · Operation: complete"),
+  );
+  await fleet.clock.fastForward(121000);
+  assert.match(await fleet.locator("#fleet").innerText(), /stale · Operation: unknown/);
+  let state = { accepted: null, outbox: null },
+    firstReceipt,
+    retryReceipt,
+    sends = 0,
+    observations = 0;
+  const journal = {
+    load: async () => structuredClone(state),
+    save: async (value) => {
+      state = structuredClone(value);
+    },
+  };
+  const unexpected = async () => {
+    throw new Error("unexpected host effect");
+  };
+  const options = {
+    machineId: "fixture-pc",
+    journal,
+    adapter: {
+      observe: async () => {
+        observations++;
+        return { listener: "running", job: "idle", acceptingJobs: true };
+      },
+      start: unexpected,
+      stop: unexpected,
+      closeAdmission: unexpected,
+      openAdmission: unexpected,
+    },
+    transport: {
+      poll: async () =>
+        (await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")).json(),
+      report: async (value) => {
+        const response = await host.request.post(
+          base + "/v1/runner-controller/report?machineId=fixture-pc",
+          { data: value },
+        );
+        assert.equal(response.status(), 200);
+        const receipt = await response.json();
+        if (++sends === 1) {
+          firstReceipt = receipt;
+          throw new Error("synthetic lost acknowledgement");
+        }
+        retryReceipt = receipt;
+        return receipt;
+      },
+    },
+  };
+  assert.deepEqual(await createController(options).reconcile(), {
+    ok: false,
+    code: "transport_failed",
+  });
+  assert.ok(state.outbox);
+  assert.equal((await createController(options).reconcile()).ok, true);
+  assert.deepEqual(retryReceipt, firstReceipt);
+  assert.equal(state.outbox, null);
+  assert.equal(observations, 1);
+  console.log(
+    "PASS: open-page evidence expiry and real core/server lost-acknowledgement receipt compatibility",
+  );
+  const revoke = await fleet.request.put(base + "/v1/admin/runners/binding?machineId=fixture-pc", {
+    headers: { "If-Match": '"1"' },
+    data: { revision: 2, principalDigest, evidenceRef: "synthetic-revocation", enabled: false },
+  });
+  assert.equal(revoke.status(), 200);
+  assert.equal(
+    (
+      await host.request.post(base + "/v1/runner-controller/report?machineId=fixture-pc", {
+        data: report,
+      })
+    ).status(),
+    403,
+  );
+  await host.close();
+  console.log(
+    "PASS: exact workload scope, durable duplicate host receipt, operator host-evidence view and immediate revocation",
+  );
   await fleetContext.close();
   console.log(
     "PASS: real ledger calendar evidence, Pacific day filters and URLs; PC/Mac durable fleet review/readback, pending maintenance, denied reader access and mobile reflow",
