@@ -83,13 +83,274 @@ export function parseRunnerConfig(value: unknown): RunnerConfig {
   });
   return { version: 1, revision: v.revision as number, machines };
 }
+export interface ControllerBinding {
+  revision: number;
+  principalDigest: string;
+  evidenceRef: string;
+  enabled: boolean;
+}
+export function parseControllerBinding(value: unknown): ControllerBinding {
+  const v = object(value, ["revision", "principalDigest", "evidenceRef", "enabled"]);
+  if (
+    !Number.isSafeInteger(v.revision) ||
+    (v.revision as number) < 1 ||
+    typeof v.principalDigest !== "string" ||
+    !/^[a-f0-9]{64}$/.test(v.principalDigest) ||
+    typeof v.evidenceRef !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9:/.#_-]{0,255}$/.test(v.evidenceRef) ||
+    typeof v.enabled !== "boolean"
+  )
+    throw new Error("invalid_config");
+  return v as unknown as ControllerBinding;
+}
+export interface ControllerReport {
+  reportId: string;
+  operationId: string;
+  revision: number;
+  observedAt: string;
+  listener: "running" | "stopped" | "unknown";
+  job: "busy" | "idle" | "unknown";
+  acceptingJobs: boolean | null;
+}
+function parseControllerReport(value: unknown): ControllerReport {
+  const v = object(value, [
+    "reportId",
+    "operationId",
+    "revision",
+    "observedAt",
+    "listener",
+    "job",
+    "acceptingJobs",
+  ]);
+  if (
+    typeof v.reportId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v.reportId) ||
+    typeof v.operationId !== "string" ||
+    !/^[a-z0-9][a-z0-9-]{0,63}:[1-9][0-9]*$/.test(v.operationId) ||
+    !Number.isSafeInteger(v.revision) ||
+    (v.revision as number) < 1 ||
+    typeof v.observedAt !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(v.observedAt) ||
+    !Number.isFinite(Date.parse(v.observedAt)) ||
+    new Date(v.observedAt).toISOString() !== v.observedAt ||
+    !["running", "stopped", "unknown"].includes(v.listener as string) ||
+    !["busy", "idle", "unknown"].includes(v.job as string) ||
+    !(v.acceptingJobs === null || typeof v.acceptingJobs === "boolean")
+  )
+    throw new Error("invalid_config");
+  // Fixed field order is the wire receipt digest contract.
+  return {
+    reportId: v.reportId,
+    operationId: v.operationId,
+    revision: v.revision,
+    observedAt: v.observedAt,
+    listener: v.listener,
+    job: v.job,
+    acceptingJobs: v.acceptingJobs,
+  } as ControllerReport;
+}
+interface ControllerReceipt {
+  reportId: string;
+  operationId: string;
+  receivedAt: string;
+  digest: string;
+}
+type ReportRow = {
+  report: string;
+  receipt: string;
+  principal_digest: string;
+  binding_revision: number;
+};
 export class RunnerFleetObject extends DurableObject<unknown> {
   constructor(ctx: DurableObjectState, env: unknown) {
     super(ctx, env);
     ctx.storage.sql
       .exec(`CREATE TABLE IF NOT EXISTS runner_history (revision INTEGER PRIMARY KEY, previous_revision INTEGER NOT NULL, config TEXT NOT NULL, operator_digest TEXT NOT NULL, requested_at TEXT NOT NULL) STRICT;
+ CREATE TABLE IF NOT EXISTS controller_reports (sequence INTEGER PRIMARY KEY, machine_id TEXT NOT NULL, report_id TEXT NOT NULL UNIQUE, report TEXT NOT NULL, receipt TEXT NOT NULL, principal_digest TEXT NOT NULL, binding_revision INTEGER NOT NULL) STRICT;
+ CREATE INDEX IF NOT EXISTS controller_reports_machine_sequence ON controller_reports(machine_id, sequence);
+ CREATE TRIGGER IF NOT EXISTS report_no_update BEFORE UPDATE ON controller_reports BEGIN SELECT RAISE(ABORT,'Report history is immutable'); END;
+ CREATE TRIGGER IF NOT EXISTS report_no_delete BEFORE DELETE ON controller_reports BEGIN SELECT RAISE(ABORT,'Report history is immutable'); END;
+ CREATE TABLE IF NOT EXISTS controller_bindings (machine_id TEXT NOT NULL, revision INTEGER NOT NULL, binding TEXT NOT NULL, operator_digest TEXT NOT NULL, requested_at TEXT NOT NULL, PRIMARY KEY(machine_id,revision)) STRICT;
+ CREATE TRIGGER IF NOT EXISTS binding_no_update BEFORE UPDATE ON controller_bindings BEGIN SELECT RAISE(ABORT,'Binding history is immutable'); END;
+ CREATE TRIGGER IF NOT EXISTS binding_no_delete BEFORE DELETE ON controller_bindings BEGIN SELECT RAISE(ABORT,'Binding history is immutable'); END;
  CREATE TRIGGER IF NOT EXISTS runner_no_update BEFORE UPDATE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;
  CREATE TRIGGER IF NOT EXISTS runner_no_delete BEFORE DELETE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;`);
+  }
+  controllerBinding(machineId: string) {
+    const rows = this.ctx.storage.sql
+      .exec<{ binding: string; operator_digest: string; requested_at: string }>(
+        "SELECT binding,operator_digest,requested_at FROM controller_bindings WHERE machine_id=? ORDER BY revision DESC LIMIT 21",
+        machineId,
+      )
+      .toArray();
+    const historyTruncated = rows.length > 20;
+    const history = rows
+      .slice(0, 20)
+      .reverse()
+      .map((r) => ({
+        ...parseControllerBinding(JSON.parse(r.binding)),
+        operatorDigest: r.operator_digest,
+        requestedAt: r.requested_at,
+      }));
+    return {
+      machineId,
+      revision: history.at(-1)?.revision ?? 0,
+      binding: history.at(-1) ?? null,
+      history,
+      historyTruncated,
+    };
+  }
+  enrollController(machineId: string, expected: number, input: unknown, operatorDigest: string) {
+    const binding = parseControllerBinding(input);
+    if (
+      !Number.isSafeInteger(expected) ||
+      expected < 0 ||
+      binding.revision !== expected + 1 ||
+      !/^[a-f0-9]{64}$/.test(operatorDigest)
+    )
+      throw new Error("invalid_config");
+    return this.ctx.storage.transactionSync(() => {
+      if (!this.read().config.machines.some((m) => m.id === machineId)) return "unknown_machine";
+      if (this.controllerBinding(machineId).revision !== expected) return "revision_conflict";
+      this.ctx.storage.sql.exec(
+        "INSERT INTO controller_bindings VALUES (?,?,?,?,?)",
+        machineId,
+        binding.revision,
+        JSON.stringify(binding),
+        operatorDigest,
+        new Date().toISOString(),
+      );
+      return "saved";
+    });
+  }
+  controllerPoll(machineId: string, principal: string) {
+    const binding = this.controllerBinding(machineId).binding;
+    if (!binding?.enabled || binding.principalDigest !== principal) return null;
+    const config = this.read().config;
+    const machine = config.machines.find((m) => m.id === machineId);
+    return machine
+      ? {
+          machineId,
+          revision: config.revision,
+          operationId: `${machineId}:${config.revision}`,
+          desiredState: machine.desiredState,
+        }
+      : null;
+  }
+  async controllerReport(machineId: string, principal: string, input: unknown) {
+    const report = parseControllerReport(input);
+    const encoded = JSON.stringify(report);
+    const digest = Array.from(
+      new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(encoded))),
+      (n) => n.toString(16).padStart(2, "0"),
+    ).join("");
+    return this.ctx.storage.transactionSync(() => {
+      const command = this.controllerPoll(machineId, principal);
+      if (!command) return "forbidden";
+      const duplicate = this.ctx.storage.sql
+        .exec<ReportRow & { machine_id: string }>(
+          "SELECT * FROM controller_reports WHERE report_id=?",
+          report.reportId,
+        )
+        .toArray()[0];
+      if (duplicate)
+        return duplicate.machine_id === machineId &&
+          duplicate.principal_digest === principal &&
+          duplicate.binding_revision === this.controllerBinding(machineId).revision &&
+          duplicate.report === encoded
+          ? (JSON.parse(duplicate.receipt) as ControllerReceipt)
+          : "report_conflict";
+      if (report.operationId !== command.operationId || report.revision !== command.revision)
+        return "superseded_intent";
+      const receipt = {
+        reportId: report.reportId,
+        operationId: report.operationId,
+        receivedAt: new Date().toISOString(),
+        digest,
+      };
+      this.ctx.storage.sql.exec(
+        "INSERT INTO controller_reports(machine_id,report_id,report,receipt,principal_digest,binding_revision) VALUES (?,?,?,?,?,?)",
+        machineId,
+        report.reportId,
+        encoded,
+        JSON.stringify(receipt),
+        principal,
+        this.controllerBinding(machineId).revision,
+      );
+      return receipt;
+    });
+  }
+  controllerObservation(machineId: string, budgetMs: number | null) {
+    const history = this.ctx.storage.sql
+      .exec<ReportRow>(
+        "SELECT report,receipt,principal_digest,binding_revision FROM controller_reports WHERE machine_id=? ORDER BY sequence DESC LIMIT 21",
+        machineId,
+      )
+      .toArray()
+      .reverse()
+      .map((row) => ({
+        report: parseControllerReport(JSON.parse(row.report)),
+        receipt: JSON.parse(row.receipt) as {
+          reportId: string;
+          operationId: string;
+          receivedAt: string;
+          digest: string;
+        },
+        principalDigest: row.principal_digest,
+        bindingRevision: row.binding_revision,
+      }));
+    const historyTruncated = history.length > 20;
+    if (historyTruncated) history.shift();
+    const latest = history.at(-1) ?? null;
+    const now = Date.now();
+    const age = latest ? now - Date.parse(latest.report.observedAt) : null;
+    const receiptAge = latest ? now - Date.parse(latest.receipt.receivedAt) : null;
+    const freshness =
+      budgetMs === null || !latest
+        ? "unknown"
+        : age === null ||
+            receiptAge === null ||
+            age < 0 ||
+            receiptAge < 0 ||
+            age > budgetMs ||
+            receiptAge > budgetMs
+          ? "stale"
+          : "fresh";
+    const config = this.read().config;
+    const machine = config.machines.find((m) => m.id === machineId);
+    const binding = this.controllerBinding(machineId).binding;
+    let operationState = "unknown";
+    if (latest && freshness === "fresh") {
+      const r = latest.report;
+      if (
+        !binding?.enabled ||
+        binding.revision !== latest.bindingRevision ||
+        binding.principalDigest !== latest.principalDigest ||
+        r.revision !== config.revision
+      )
+        operationState = "pending";
+      else if (
+        (machine?.desiredState === "enabled" &&
+          r.listener === "running" &&
+          r.acceptingJobs === true) ||
+        (machine?.desiredState === "maintenance" &&
+          r.listener === "stopped" &&
+          r.job === "idle" &&
+          r.acceptingJobs === false)
+      )
+        operationState = "complete";
+      else operationState = r.job === "busy" || r.job === "unknown" ? "blocked" : "pending";
+    }
+    return {
+      machineId,
+      source: "host-reported",
+      freshness,
+      validForMs: freshness === "fresh" ? Math.max(0, budgetMs! - Math.max(age!, receiptAge!)) : 0,
+      operationState,
+      latest,
+      history,
+      historyTruncated,
+    };
   }
   read() {
     const row = this.ctx.storage.sql

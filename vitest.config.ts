@@ -7,6 +7,7 @@ export default defineConfig({
           name: "node",
           include: [
             "packages/shared-contracts/test/**/*.test.ts",
+            "packages/runner-controller/test/**/*.test.ts",
             "packages/event-ledger/test/canonical.test.ts",
             "packages/projections/test/**/*.test.ts",
             "packages/github-sync/test/**/*.test.ts",
