@@ -279,7 +279,11 @@ try {
   await page.route("**/v1/admin/catalog", async (route) => {
     writes++;
     const committed = await route.fetch();
-    assert.equal(committed.status(), 200);
+    assert.equal(
+      committed.status(),
+      200,
+      JSON.stringify({ request: route.request().postDataJSON(), response: await committed.text() }),
+    );
     await route.abort("connectionfailed");
   });
   await page.getByRole("button", { name: "Save reviewed changes", exact: true }).click();
@@ -897,22 +901,30 @@ try {
   const lifecycleURL = base + "/v1/admin/runners/lifecycle?machineId=fixture-pc";
   await fleet.route("**/v1/admin/runners/lifecycle?machineId=fixture-pc", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
-    await fleet.unroute("**/v1/admin/runners/lifecycle?machineId=fixture-pc");
     const committed = await route.fetch();
-    assert.equal(committed.status(), 200);
+    assert.equal(
+      committed.status(),
+      200,
+      JSON.stringify({ request: route.request().postDataJSON(), response: await committed.text() }),
+    );
     await route.abort("failed");
   });
   await perform("Resume");
+  await fleet.unroute("**/v1/admin/runners/lifecycle?machineId=fixture-pc");
   let operations = await (await fleet.request.get(lifecycleURL)).json();
   assert.equal(operations.history.filter((x) => x.action === "resume").length, 1);
   await fleet.route("**/v1/admin/runners/lifecycle?machineId=fixture-pc", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
-    await fleet.unroute("**/v1/admin/runners/lifecycle?machineId=fixture-pc");
     const competing = await route.fetch();
-    assert.equal(competing.status(), 200);
+    assert.equal(
+      competing.status(),
+      200,
+      JSON.stringify({ request: route.request().postDataJSON(), response: await competing.text() }),
+    );
     await route.continue();
   });
   await perform("Drain");
+  await fleet.unroute("**/v1/admin/runners/lifecycle?machineId=fixture-pc");
   operations = await (await fleet.request.get(lifecycleURL)).json();
   assert.equal(operations.history.filter((x) => x.action === "drain").length, 1);
   const draining = await (
@@ -985,7 +997,6 @@ try {
   await fleet.getByRole("button", { name: "Read back configuration", exact: true }).click();
   await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
   await fleet.route(lifecyclePattern, async (route) => {
-    await fleet.unroute(lifecyclePattern);
     const before = await (await fleet.request.get(base + "/v1/admin/runners/config")).json();
     const updated = {
       ...before.config,
@@ -1011,6 +1022,7 @@ try {
     await pc.getByRole("button", { name: "Enroll/Reconnect", exact: true }).isEnabled(),
     false,
   );
+  await fleet.unroute(lifecyclePattern);
   await fleet.getByRole("button", { name: "Read back configuration", exact: true }).click();
   await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
   assert.match(await pc.innerText(), /Zero-State-LLC\/concurrent-scope/);
