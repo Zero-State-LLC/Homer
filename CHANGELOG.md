@@ -14,6 +14,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Pure GitHub workflow-job evidence mapper and read-only run enrichment contract, with source identity and rerun attribution tests. Live collection remains disabled.
+
 - Strict read-only GitHub Job Attempt timing Projection, source evidence validation, comparable sample grouping and synthetic tests. No CI routing or host operations.
 
 - Draft runner performance and scheduling intent plus proposed ADR 005, defining measured CI bottlenecks, trust-first eligibility and read-only routing advice. No live runner or workflow changes.
