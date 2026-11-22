@@ -8,6 +8,7 @@ export default defineConfig({
           include: [
             "packages/shared-contracts/test/**/*.test.ts",
             "packages/trace-archive/test/archive.test.ts",
+            "packages/trace-archive/test/langfuse.test.ts",
             "packages/event-ledger/test/canonical.test.ts",
             "packages/projections/test/**/*.test.ts",
             "packages/github-sync/test/**/*.test.ts",

@@ -9,9 +9,12 @@
 - Entity-expiry classification that reports unknown when expiry is unavailable.
 - Workers R2 adapter and local Workers runtime integration tests.
 - Approved private staging landing and archive buckets created and verified.
+- Pinned native Langfuse EVENTS/JSONL adapter, empty-export handling and row scope checks.
+- Scheduled Worker composition, bounded discovery and durable D1 scan journal.
+- See [export adapter](langfuse-export.md) for format limits and remaining release gates.
 
 This package is a library, not an enabled Collector. It has no public endpoint,
-Cron schedule, credential, deletion operation, or production binding.
+enabled Cron schedule, credential, deletion operation, or production binding.
 The test policy is deliberately synthetic and is never exported as a sanitizer.
 
 ## Required before live capture
@@ -19,13 +22,14 @@ The test policy is deliberately synthetic and is never exported as a sanitizer.
 1. Read the actual Langfuse account's export entitlement and source retention.
    No Langfuse connection has been verified. No access or expiry claim can be
    inferred from the proposed 30-day setting.
-2. Implement and fixture-test the native export adapter against the actual
-   upstream schema. The internal normalized batch is not a Langfuse manifest.
+2. Verify the pinned native export adapter against a real manifest from the
+   actual deployment. Only uncompressed enriched JSONL is currently supported.
 3. Supply a reviewed schema/privacy inspector, developer-side redaction and
    explicit workspace capture scope. A callback is an enforcement point, not
    evidence that a production privacy policy exists.
-4. Add durable scheduling/retries, independent inventory reconciliation and
-   expiry alerts. Byte integrity must never set source coverage to complete.
+4. Bind and deploy the scheduled Collector after the runtime policy is reviewed.
+   Add independent inventory reconciliation and expiry alerts. Byte integrity
+   must never set source coverage to complete.
 5. Add authenticated restore routes and project authorization. Library callers
    must authorize scope; knowing a digest does not grant permission.
 6. Introduce the versioned Activity Event contract and Event Ledger append path.

@@ -104,8 +104,7 @@ export function parseBatch(json: string, policy: ArchivePolicy): ArchiveBatch {
   )
     throw new Error("scope_or_policy_mismatch");
   if (timestamp(r.windowStart) > timestamp(r.windowEnd)) throw new Error("invalid_window");
-  if (!Array.isArray(r.files) || r.files.length < 1 || r.files.length > MAX_FILES)
-    throw new Error("invalid_files");
+  if (!Array.isArray(r.files) || r.files.length > MAX_FILES) throw new Error("invalid_files");
   const keys = new Set<string>();
   let total = 0;
   const files = r.files
@@ -119,7 +118,7 @@ export function parseBatch(json: string, policy: ArchivePolicy): ArchiveBatch {
         !digestPattern.test(f.sha256) ||
         typeof f.bytes !== "number" ||
         !Number.isSafeInteger(f.bytes) ||
-        f.bytes < 1 ||
+        f.bytes < 0 ||
         f.bytes > MAX_FILE_BYTES ||
         typeof f.rows !== "number" ||
         !Number.isSafeInteger(f.rows) ||
