@@ -37,3 +37,28 @@ atomically. There is no HTTP restore route. Archives are limited to 768 KiB and
 See the [Cloudflare runbook](../../docs/deployment/cloudflare-catalog.md) and
 [specification](../../specs/catalog-worker/spec.md). Local tests and a bundle dry
 run do not constitute a Cloudflare production deployment or restore drill.
+
+## Admin Overview and Repository admission
+
+`GET /v1/admin/overview` displays the actual catalog revision, Project references
+and enabled admission state. Admission does not prove collection health.
+`GET /v1/admin/repositories` provides field editing and an added/changed/removed
+review. Both pages and their scripts/styles require the existing admin audience.
+The prior `/v1/admin/catalog/editor` route remains available and links to the new
+surface. Catalog admin does not imply credential administration.
+
+Conflict and uncertain save outcomes keep the draft in page memory and disable
+mutation until an explicit current-snapshot read and reconciliation. Readback
+shows original, current and proposed values. A new review is required after
+adopting the current revision. No automatic PUT retry or draft browser storage
+is used. Navigating away can discard the draft after the browser's unsaved-change
+warning. There is no new durable operation identity for catalog writes; the
+existing durable catalog revision and history are the reconciliation evidence.
+
+Run the separate real-browser qualification with `npm run smoke:admin` on a host
+with Playwright and Chromium. If Playwright is provided outside this workspace,
+set `PLAYWRIGHT_MODULE` to its absolute module path; `CHROMIUM_PATH` selects the
+browser executable (default `/usr/bin/chromium`). The runner starts a loopback-only
+Wrangler Worker, generates ephemeral signing keys and a trusted test resolver in
+a temporary directory, and deletes its local state afterward. No production
+configuration or authentication bypass is added to the application.

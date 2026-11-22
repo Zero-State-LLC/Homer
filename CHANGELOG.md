@@ -17,6 +17,16 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - A "Say how risky the change is" section in `CONTRIBUTING.md`: blast radius, rollback cost, error detection, and screenshots for operator-screen changes.
 - Accepted CI feedback intent and spec (`specs/ci-feedback/spec.md`), ADRs 008 to 010, and a measured CI baseline receipt.
 
+- Read-only scoped Credentials and My setup use a trusted versioned Credential Directory,
+  exact owner/Project/environment grants and evidence-backed Identity Bindings. Missing
+  source, denied access and authorized empty inventory are distinct; no secret values
+  or credential mutations are exposed. Production directory binding remains unset.
+
+- Authenticated admin Overview shows observed Repository admission and unknown collection health.
+  Field-based mapping review lists added, changed and removed mappings, retains drafts
+  after conflicts or uncertain saves, and requires readback before another mutation.
+  Validation identifies invalid fields and duplicate rows with linked error summaries.
+
 - Pocock skills: `/to-tickets` writes Tasks to Linear team ZER, `/triage` is on with labels mapped in `docs/agents/triage-labels.md`, and `/implement-spec` may run implementers in parallel.
 
 - Trail code map wiring for Claude Code (`trail init --team --agents claude`, Trail 0.30.5): shared `.claude/settings.json` SessionStart hook, `.trail/hook.cjs` shim and a `## Code map` rule in `AGENTS.md`. Telemetry disabled.

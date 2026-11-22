@@ -1,7 +1,7 @@
 # Homer admin delivery contract
 
-Status: proposed Task breakdown and testing boundaries, pending Daniel's review.
-Prepared November 21, 2026 PT. No implementation, Task publication or release is claimed.
+Status: Task breakdown and testing boundaries accepted by Daniel on November 21, 2026 PT.
+Tasks published to Linear; implementation and release evidence remain separate.
 
 ## Scope and authority
 
@@ -27,7 +27,7 @@ Task publication and parallel implementers for Homer; it does not waive merge ga
 The external engineering workflow was inspected at abeeaf95660ba9e8b7c753eb38f441ca707a8823.
 No skill files are copied into Homer.
 
-## Testing boundaries to confirm
+## Confirmed testing boundaries
 
 Prefer the highest existing public interface. Avoid tests of private helper shape
 and assertions that merely reproduce the implementation.
@@ -48,12 +48,22 @@ Use bounded synthetic secret canaries to inspect observable responses, error out
 telemetry exports and browser persistence. Report unobservable channels as gaps.
 Do not claim that a zero-match canary scan proves absence from every external log.
 
-## Proposed vertical Tasks
+## Approved vertical Tasks
 
 Each Task delivers a usable path through data, authorization, HTTP, UI and tests.
-These are proposed numbers, not issued Linear identifiers. Publish to team ZER,
-Project Homer, with native blocked-by relations after review. Do not invent dates
-or assignees. Apply ready-for-agent only to sufficiently specified work.
+Tasks are published to team ZER, Project Homer, with native blocked-by relations.
+No dates or assignees are inferred. Only sufficiently specified work receives
+ready-for-agent; external-input Tasks use needs-info.
+
+| Slice | Linear Task |
+| --- | --- |
+| 1 | [ZER-25](https://linear.app/zer0state/issue/ZER-25) |
+| 2 | [ZER-26](https://linear.app/zer0state/issue/ZER-26) |
+| 3 | [ZER-27](https://linear.app/zer0state/issue/ZER-27) |
+| 4 | [ZER-28](https://linear.app/zer0state/issue/ZER-28) |
+| 5 | [ZER-29](https://linear.app/zer0state/issue/ZER-29) |
+| 6 | [ZER-30](https://linear.app/zer0state/issue/ZER-30) |
+| 7 | [ZER-31](https://linear.app/zer0state/issue/ZER-31) |
 
 ### 1. Inspect and safely edit Repository admission
 

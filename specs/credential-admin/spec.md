@@ -152,6 +152,43 @@ provider revocations and orphan bindings.
 
 ## API and state contracts
 
+### Read-only directory boundary for ZER-26
+
+The first inventory implementation consumes a trusted, separately bound directory
+service. It does not enroll operators or grant catalog administrators new rights.
+Directory enrollment and maintenance remain outside the catalog editor.
+
+- The service returns a versioned snapshot with revision, observation time,
+  evidence-backed principal-to-Actor Identity Bindings, exact metadata-read grants
+  and metadata-only Credentials. The consumer validates the entire contract.
+- Grants match ownership class, owner Actor, Project and environment exactly.
+  No wildcard, inherited catalog-admin grant or display-name inference is allowed.
+  Shared service visibility never implies visibility of personal integrations.
+- Missing directory binding is not-configured; failed or invalid directory reads
+  are unavailable. Missing Identity Binding or grant is denied. An authorized
+  empty inventory is distinct from all three conditions.
+- Scope applies before filtering, search, counts and detail lookup. Inaccessible
+  and nonexistent details return the same result. Requests for explicit ungranted
+  scopes are denied without revealing whether the resource exists.
+- The ordinary Access read audience may authenticate these read-only routes, but
+  each route still requires directory authorization. Existing catalog writes keep
+  the existing separate admin-audience requirement.
+- My setup derives its Actor from the authenticated Identity Binding. It reports
+  grant scope, not inferred Linear assignment. Instrumentation, connection checks
+  and Work Session evidence remain unknown unless separately observed.
+- Directory metadata and HTTP output contain no secret values, fragments, hashes,
+  backend locators or local paths. Local-only entries cannot resolve local values.
+- Production supplies no default directory, Identity Bindings or grants. The local
+  browser harness uses a separate fixture directory service and synthetic identities.
+  Its successful runs do not prove live enrollment or provider connectivity.
+
+The executable v1 contract and routes are documented in [directory-contract.md](directory-contract.md).
+
+The directory is a versioned service boundary, not a static hardcoded inventory.
+Its trusted maintenance path will require separate scoped enrollment work before
+real credentials are listed. This boundary enables read-only repository work while
+the live operator roster and provider choices remain unresolved.
+
 Proposed routes: metadata list/detail, candidate submission, validation,
 activation, revocation and operation-status readback under a dedicated
 credential-admin service. There is no GET-value operation.

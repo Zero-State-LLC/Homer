@@ -1,10 +1,12 @@
+import { adminHeaders } from "./admin-headers.js";
+
 /** Static assets only. Inventory is loaded through the authenticated runtime API. */
 const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Repository mappings | Homer</title>
 <link rel="stylesheet" href="/v1/admin/catalog/editor.css">
 <script src="/v1/admin/catalog/editor.js" defer></script></head>
-<body><main><header><p>Homer administration</p><h1>Repository mappings</h1>
+<body><main><header><p>Homer administration</p><nav aria-label="Administration"><a href="/v1/admin/overview">Overview</a> · <a href="/v1/admin/repositories">Field-based Repository mappings</a></nav><h1>Repository mappings</h1>
 <p>Changes apply to future collection immediately. Historical Activity Events stay unchanged.</p></header>
 <p id="status" role="status" aria-live="polite">Loading current mappings…</p>
 <button id="load" type="button">Reload current mappings</button>
@@ -156,14 +158,6 @@ export function editorResponse(path: string): Response {
         ? [css, "text/css"]
         : [html, "text/html"];
   return new Response(body, {
-    headers: {
-      "Content-Type": `${type}; charset=utf-8`,
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "DENY",
-      "Referrer-Policy": "no-referrer",
-      "Content-Security-Policy":
-        "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
-    },
+    headers: adminHeaders(type),
   });
 }
