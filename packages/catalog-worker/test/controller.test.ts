@@ -10,6 +10,8 @@ let admin: string;
 let host: string;
 let human: string;
 let mixed: string;
+let singleton: string;
+let deniedAudiences: string[];
 let principalDigest: string;
 let replacementHost: string;
 let replacementDigest: string;
@@ -38,6 +40,10 @@ beforeAll(async () => {
       .sign(keys.privateKey);
   admin = await token("admin", false);
   host = await token("controller");
+  singleton = await token(["controller"]);
+  deniedAudiences = await Promise.all(
+    [[], ["admin"], ["controller", "read"], ["controller", "controller"]].map((aud) => token(aud)),
+  );
   replacementHost = await token("controller", true, "replacement.access");
   replacementDigest = (
     await verifyAccessIdentity(await token("admin", true, "replacement.access"), config, true, key)
@@ -119,6 +125,27 @@ it("enrolls with separate CAS and scopes exact workload authentication to one ma
   for (const jwt of [admin, human, mixed]) expect((await call(e, pollPath, jwt)).status).toBe(401);
   expect((await call(e, pollPath.replace("pc-one", "mac-two"), host)).status).toBe(403);
   expect((await call({ ...e, RUNNER_CONTROLLER_AUD: "" }, pollPath, host)).status).toBe(503);
+});
+it("accepts only the exact controller audience in string or singleton-array form", async () => {
+  const e = await setup();
+  await call(e, bindingPath, admin, "PUT", binding(), 0);
+  const original = await (await call(e, pollPath, host)).json();
+  const response = await call(e, pollPath, singleton);
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual(original);
+  expect((await call(e, pollPath.replace("pc-one", "mac-two"), singleton)).status).toBe(403);
+  const input = report();
+  const accepted = await call(e, reportPath, singleton, "POST", input);
+  expect(accepted.status).toBe(200);
+  const receipt = await accepted.json();
+  expect(await (await call(e, reportPath, host, "POST", input)).json()).toEqual(receipt);
+  for (const jwt of [admin, human, mixed, ...deniedAudiences]) {
+    expect((await call(e, pollPath, jwt)).status).toBe(401);
+    expect((await call(e, reportPath, jwt, "POST", input)).status).toBe(401);
+  }
+  expect(await (await call(e, observationPath)).json()).toMatchObject({
+    history: [{ receipt }],
+  });
 });
 const report = () => ({
   reportId: crypto.randomUUID(),
