@@ -1,3 +1,6 @@
+import { calendarPaths, calendarResponse } from "./calendar.js";
+import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
+export { RunnerFleetObject } from "./runner-store.js";
 import type { CatalogBindings } from "./bindings.js";
 import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
@@ -10,7 +13,8 @@ import { adminPaths, adminAsset, overviewResponse } from "./admin.js";
 import { directoryPaths, directoryPage } from "./directory-ui.js";
 export { MappingCatalogObject };
 import { credentialResponse, type DirectoryBindings } from "./credential-directory.js";
-export interface Env extends CatalogBindings, AccessConfig, WebhookEnv, DirectoryBindings {}
+export interface Env
+  extends CatalogBindings, AccessConfig, WebhookEnv, DirectoryBindings, RunnerBindings {}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
 export async function handleRequest(
   request: Request,
@@ -18,6 +22,8 @@ export async function handleRequest(
   key?: JWTVerifyGetKey,
 ): Promise<Response> {
   const url = new URL(request.url);
+  if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
+  const calendarRoute = calendarPaths.has(url.pathname);
   if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
   const editorRoute = editorPaths.has(url.pathname);
@@ -36,7 +42,8 @@ export async function handleRequest(
     !snapshotRoute &&
     !adminRoute &&
     !credentialRoute &&
-    !directoryUIRoute
+    !directoryUIRoute &&
+    !calendarRoute
   )
     return json({ error: "not_found" }, 404);
   if (
@@ -46,7 +53,8 @@ export async function handleRequest(
       snapshotRoute ||
       adminRoute ||
       credentialRoute ||
-      directoryUIRoute) &&
+      directoryUIRoute ||
+      calendarRoute) &&
       request.method !== "GET") ||
     (url.pathname === "/v1/admin/catalog" && request.method !== "PUT")
   )
@@ -74,6 +82,7 @@ export async function handleRequest(
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
+  if (calendarRoute) return calendarResponse(url, env);
   if (directoryUIRoute) return directoryPage(url.pathname);
   if (credentialRoute) return credentialResponse(url, env, principal, principalKind);
   if (editorRoute) return editorResponse(url.pathname);
