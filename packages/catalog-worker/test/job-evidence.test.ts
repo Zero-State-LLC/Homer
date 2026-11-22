@@ -3,7 +3,6 @@ import { abortAllDurableObjects, runInDurableObject } from "cloudflare:test";
 import { expect, it } from "vitest";
 import { handleRequest, type Env } from "../src/index.js";
 
-
 const secret = "synthetic-workflow-job-secret";
 const repo = { id: 123, full_name: "Zero-State-LLC/Homer" };
 const d1 = "72d3162e-cc78-11e3-81ab-4c9367dc0958";
@@ -46,9 +45,11 @@ function testEnv(enabled = "true"): Env {
 async function configure(e: Env) {
   return e.MAPPING_CATALOG.get(e.MAPPING_CATALOG.idFromName(e.CATALOG_NAME)).replace(
     0,
-    { version: 1, revision: 1, repositories: [
-      { repositoryId: repo.id, repository: repo.full_name, enabled: true },
-    ] },
+    {
+      version: 1,
+      revision: 1,
+      repositories: [{ repositoryId: repo.id, repository: repo.full_name, enabled: true }],
+    },
     "a".repeat(64),
   );
 }
@@ -61,7 +62,9 @@ async function sign(body: string) {
     ["sign"],
   );
   const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
-  return "sha256=" + Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+  return (
+    "sha256=" + Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("")
+  );
 }
 async function request(
   value: unknown = payload(),
@@ -95,9 +98,19 @@ it("defaults to disabled and never creates a job receipt", async () => {
 it("authenticates original bytes before parsing, including when disabled", async () => {
   const e = testEnv("");
   await configure(e);
-  const tampered = await request(payload(), d1, { "X-Hub-Signature-256": "sha256=" + "0".repeat(64) });
+  const tampered = await request(payload(), d1, {
+    "X-Hub-Signature-256": "sha256=" + "0".repeat(64),
+  });
   expect((await handleRequest(tampered, e)).status).toBe(401);
-  expect((await handleRequest(await request(), { ...e, GITHUB_JOB_INGEST_ENABLED: "true", JOB_EVIDENCE: undefined })).status).toBe(503);
+  expect(
+    (
+      await handleRequest(await request(), {
+        ...e,
+        GITHUB_JOB_INGEST_ENABLED: "true",
+        JOB_EVIDENCE: undefined,
+      })
+    ).status,
+  ).toBe(503);
   expect((await store(e).readJob(repo.id, 202, 303)).receipts).toEqual([]);
 });
 it("requires an admitted repository and an exact delivery ID", async () => {
@@ -111,7 +124,10 @@ it("requires an admitted repository and an exact delivery ID", async () => {
   expect((await handleRequest(badId, e)).status).toBe(400);
   const badRepo = { ...payload(), repository: { ...repo, id: 999 } };
   const denied = await handleRequest(await request(badRepo), e);
-  expect(await denied.json()).toMatchObject({ outcome: "ignored", reason: "repository_not_enabled" });
+  expect(await denied.json()).toMatchObject({
+    outcome: "ignored",
+    reason: "repository_not_enabled",
+  });
   expect((await store(e).readJob(repo.id, 202, 303)).receipts).toEqual([]);
 });
 it("persists one original receipt across concurrent identical signed delivery and restart", async () => {
@@ -196,14 +212,24 @@ it("preserves sanitized job evidence and forbids an HTTP read endpoint", async (
 it("the durable store rejects invalid direct admissions and immutable row edits", async () => {
   const e = testEnv();
   const obj = store(e);
-  expect(await obj.admit({ deliveryId: "invalid", payloadSha256: "", receivedAt: "", observation: {} } as never)).toEqual({
-    outcome: "refused", reason: "invalid_job_evidence",
+  expect(
+    await obj.admit({
+      deliveryId: "invalid",
+      payloadSha256: "",
+      receivedAt: "",
+      observation: {},
+    } as never),
+  ).toEqual({
+    outcome: "refused",
+    reason: "invalid_job_evidence",
   });
   await configure(e);
   expect((await handleRequest(await request(), e)).status).toBe(201);
   await runInDurableObject(obj, (_object, state) => {
     expect(() => state.storage.sql.exec("DELETE FROM workflow_job_evidence")).toThrow();
-    expect(() => state.storage.sql.exec("UPDATE workflow_job_evidence SET action = 'queued'")).toThrow();
+    expect(() =>
+      state.storage.sql.exec("UPDATE workflow_job_evidence SET action = 'queued'"),
+    ).toThrow();
   });
   expect((await obj.readJob(repo.id, 202, 303)).receipts).toHaveLength(1);
 });
