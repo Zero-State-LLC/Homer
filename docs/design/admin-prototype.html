@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Homer admin design prototype</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: #f5f6f8;
+      color: #17263b;
+      font:
+        16px/1.5 system-ui,
+        sans-serif;
+    }
+    button,
+    select {
+      font: inherit;
+      min-height: 44px;
+      border: 1px solid #aab6c6;
+      border-radius: 8px;
+      padding: 8px 14px;
+      background: white;
+      color: inherit;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #e7edf3;
+    }
+    button:focus-visible,
+    select:focus-visible,
+    a:focus-visible {
+      outline: 3px solid #065acb;
+      outline-offset: 3px;
+    }
+    .notice {
+      background: #fbe9b9;
+      padding: 10px 24px;
+      font-weight: 600;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: calc(100vh - 48px);
+    }
+    aside {
+      background: #14253c;
+      color: white;
+      padding: 24px 16px;
+    }
+    aside h1 {
+      margin: 0 12px 24px;
+      font-size: 26px;
+    }
+    nav {
+      display: grid;
+      gap: 8px;
+    }
+    nav button {
+      text-align: left;
+      background: transparent;
+      color: white;
+      border-color: transparent;
+    }
+    nav button:hover,
+    nav button[aria-current="page"] {
+      background: #30465e;
+    }
+    main {
+      padding: 28px;
+      max-width: 1300px;
+      width: 100%;
+      margin: auto;
+    }
+    .scope {
+      display: flex;
+      gap: 14px;
+      align-items: end;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #d9e0e8;
+      padding-bottom: 20px;
+    }
+    label {
+      display: grid;
+      gap: 4px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .identity {
+      margin-left: auto;
+      font-size: 14px;
+    }
+    .eyebrow {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #536681;
+    }
+    h2 {
+      font-size: 30px;
+      line-height: 1.2;
+      margin: 12px 0;
+    }
+    h3 {
+      margin-top: 0;
+    }
+    .muted {
+      color: #526379;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .card,
+    .panel {
+      background: white;
+      border: 1px solid #d5dee8;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card strong {
+      display: block;
+      font-size: 24px;
+    }
+    .row {
+      border-top: 1px solid #e1e6ec;
+      padding: 18px 0;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+    }
+    .row:first-of-type {
+      border-top: 0;
+    }
+    .row .body {
+      flex: 1;
+    }
+    .row p {
+      margin: 4px 0;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 16px;
+      background: #e9eef5;
+    }
+    .warning {
+      background: #fff0cd;
+      color: #6b4700;
+    }
+    .good {
+      background: #d9f3e9;
+      color: #165b43;
+    }
+    .primary {
+      background: #175d55;
+      color: white;
+      border-color: #175d55;
+    }
+    .primary:hover {
+      background: #12473f;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+    th,
+    td {
+      padding: 14px 8px;
+      border-bottom: 1px solid #dce3eb;
+    }
+    caption {
+      text-align: left;
+      margin-bottom: 12px;
+    }
+    .tablewrap {
+      overflow: auto;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    [hidden] {
+      display: none !important;
+    }
+    #feedback {
+      min-height: 28px;
+      margin: 16px 0;
+      font-weight: 600;
+    }
+    footer {
+      font-size: 13px;
+      color: #526379;
+      margin-top: 24px;
+    }
+    li {
+      margin: 12px 0;
+    }
+    @media (max-width: 800px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      aside {
+        padding: 14px;
+      }
+      aside h1 {
+        margin: 0 0 10px;
+      }
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      main {
+        padding: 18px;
+      }
+      .cards {
+        grid-template-columns: 1fr;
+      }
+      .row {
+        align-items: start;
+        flex-direction: column;
+      }
+      .identity {
+        margin-left: 0;
+      }
+    }
+  </style>
+  <div class="notice">Design prototype · Synthetic data · No live actions or secret entry</div>
+  <div class="layout">
+    <aside>
+      <h1>Homer</h1>
+      <nav aria-label="Admin navigation">
+        <button data-view="overview" aria-current="page">Overview</button>
+        <button data-view="credentials">Credentials</button>
+        <button data-view="traces">Traces and archives</button>
+        <button data-view="setup">My setup</button>
+        <button data-view="operations">Operations</button>
+      </nav>
+    </aside>
+    <main>
+      <div class="scope">
+        <label
+          >Project<select disabled>
+            <option>Demo project</option>
+          </select></label
+        ><label
+          >Environment<select disabled>
+            <option>Staging · demo only</option>
+          </select></label
+        >
+        <div class="identity">
+          Preview identity: operator<br /><span class="muted"
+            >Navigation previews do not change permissions</span
+          >
+        </div>
+      </div>
+      <p id="feedback" role="status" aria-live="polite"></p>
+      <section id="overview">
+        <div class="eyebrow">Operator workspace</div>
+        <h2>What needs attention</h2>
+        <p class="muted">Impact, evidence and the next safe action in one place.</p>
+        <div class="cards">
+          <div class="card">
+            <span>Needs attention</span><strong>2 conditions</strong
+            ><span class="muted">Fictional examples</span>
+          </div>
+          <div class="card">
+            <span>In progress</span><strong>1 operation</strong
+            ><span class="muted">Candidate awaiting validation</span>
+          </div>
+          <div class="card">
+            <span>Archive coverage</span><strong>Unknown</strong
+            ><span class="muted">No source inventory evidence</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Attention queue</h3>
+          <div class="row">
+            <div class="body">
+              <span class="tag warning">Unknown coverage</span>
+              <p><strong>Source export coverage cannot be verified</strong></p>
+              <p class="muted">Demo project · Staging · Owner: demo operator</p>
+              <p>Verified archive bytes do not prove every source trace was exported.</p>
+            </div>
+            <button data-view="traces">Inspect archive evidence</button>
+          </div>
+          <div class="row">
+            <div class="body">
+              <span class="tag warning">Awaiting validation</span>
+              <p><strong>Exporter credential rotation is incomplete</strong></p>
+              <p class="muted">2 configured consumers · old version still active</p>
+              <p>Validate the candidate before changing consumers.</p>
+            </div>
+            <button data-view="credentials">Review rotation</button>
+          </div>
+        </div>
+      </section>
+      <section id="credentials" hidden>
+        <div class="eyebrow">Integration resources</div>
+        <h2>Credentials</h2>
+        <p class="muted">Purpose and impact first. Secret values are never shown.</p>
+        <div class="panel tablewrap">
+          <table>
+            <caption>
+              Demo inventory. Consumer discovery is incomplete.
+            </caption>
+            <thead>
+              <tr>
+                <th>Purpose</th>
+                <th>Owner</th>
+                <th>State</th>
+                <th>Consumers</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Trace exporter</td>
+                <td>Demo operator</td>
+                <td><span class="tag warning">Candidate pending</span></td>
+                <td>2 configured</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel" style="margin-top: 16px">
+          <h3>Rotate trace exporter</h3>
+          <p><strong>Scope:</strong> Demo project / Staging</p>
+          <p>
+            <strong>Impact:</strong> export worker and reconciliation worker. Additional consumers
+            are unknown.
+          </p>
+          <p id="rotation-state">
+            Candidate registered. Old version remains active. No candidate has been tested.
+          </p>
+          <ol>
+            <li>Validate candidate identity and granted scope.</li>
+            <li>Review consumer changes.</li>
+            <li>Switch and verify each consumer.</li>
+            <li>Revoke old version after all required checks.</li>
+          </ol>
+          <p class="muted">
+            This prototype simulates validation only. It cannot activate or revoke anything.
+          </p>
+          <div class="actions">
+            <button id="pass" class="primary">Simulate successful check</button
+            ><button id="fail">Simulate failed check</button
+            ><button data-view="operations">View operation</button>
+          </div>
+        </div>
+      </section>
+      <section id="traces" hidden>
+        <div class="eyebrow">Evidence preservation</div>
+        <h2>Traces and archives</h2>
+        <p class="muted">Separate integrity, coverage and recoverability.</p>
+        <div class="panel">
+          <div class="row">
+            <div class="body">
+              <strong>Archive integrity</strong>
+              <p>Demo batch digest and readback passed.</p>
+            </div>
+            <span class="tag good">Verified batch</span>
+          </div>
+          <div class="row">
+            <div class="body">
+              <strong>Source coverage</strong>
+              <p>Source inventory has not been reconciled.</p>
+            </div>
+            <span class="tag warning">Unknown</span>
+          </div>
+          <div class="row">
+            <div class="body">
+              <strong>Recovery</strong>
+              <p>No restore exercise evidence exists in this fixture.</p>
+            </div>
+            <span class="tag">Unverified</span>
+          </div>
+          <div class="row">
+            <div class="body">
+              <strong>Time until source deletion</strong>
+              <p>Actual source retention has not been read. No countdown can be calculated.</p>
+            </div>
+            <span class="tag">Unknown</span>
+          </div>
+          <p>
+            <strong>Next action:</strong> connect the source account and inspect its actual
+            retention and export coverage.
+          </p>
+        </div>
+      </section>
+      <section id="setup" hidden>
+        <div class="eyebrow">Developer workspace</div>
+        <h2>My setup</h2>
+        <p class="muted">Your connections and capture evidence. No activity rankings.</p>
+        <div class="panel">
+          <div class="row">
+            <div class="body">
+              <strong>Identity and project access</strong>
+              <p>Demo identity bound to the demo project.</p>
+            </div>
+            <span class="tag good">Fixture complete</span>
+          </div>
+          <div class="row">
+            <div class="body">
+              <strong>Connect personal integration</strong>
+              <p>Use your own scoped connection. Never borrow a teammate's personal key.</p>
+            </div>
+            <span class="tag">Not configured</span>
+          </div>
+          <div class="row">
+            <div class="body">
+              <strong>Instrument local agent</strong>
+              <p>Requires an integration connection before an authenticated capture check.</p>
+            </div>
+            <span class="tag">Blocked by connection</span>
+          </div>
+          <div class="row">
+            <div class="body">
+              <strong>First real-session evidence</strong>
+              <p>A setup declaration is not evidence that traces arrived.</p>
+            </div>
+            <span class="tag">Not observed</span>
+          </div>
+        </div>
+      </section>
+      <section id="operations" hidden>
+        <div class="eyebrow">Resumable work</div>
+        <h2>Operations</h2>
+        <div class="panel">
+          <h3>Demo rotation · demo-op-001</h3>
+          <p id="operation-state">Awaiting candidate validation. No consumers changed.</p>
+          <p><strong>Original credential:</strong> active in this fixture.</p>
+          <p>
+            <strong>Retry rule:</strong> reconcile an uncertain provider outcome before submitting
+            another change.
+          </p>
+          <p class="muted">
+            Production operations will persist server-side. This prototype resets on reload and
+            stores nothing.
+          </p>
+          <button data-view="credentials">Return to rotation</button>
+        </div>
+      </section>
+      <footer>
+        Illustrative interaction model, not a deployed admin feature. All names, counts and states
+        on this page are fixtures. No network requests, browser storage or credentials are used.
+      </footer>
+    </main>
+  </div>
+  <script>
+    const views = ["overview", "credentials", "traces", "setup", "operations"];
+    document.querySelectorAll("[data-view]").forEach((button) =>
+      button.addEventListener("click", () => {
+        const target = button.dataset.view;
+        views.forEach((id) => (document.getElementById(id).hidden = id !== target));
+        document.querySelectorAll("nav button").forEach((item) => {
+          if (item.dataset.view === target) item.setAttribute("aria-current", "page");
+          else item.removeAttribute("aria-current");
+        });
+        document.getElementById("feedback").textContent = "";
+        const heading = document.querySelector("#" + target + " h2");
+        heading.setAttribute("tabindex", "-1");
+        heading.focus();
+      }),
+    );
+    function simulate(passed) {
+      const message = passed
+        ? "Demo check passed. Candidate validated; consumer cutover still requires review. Old version remains active."
+        : "Demo check failed: candidate scope is insufficient. No consumers changed. Old version remains active.";
+      document.getElementById("rotation-state").textContent = message;
+      document.getElementById("operation-state").textContent = message;
+      document.getElementById("feedback").textContent = message;
+    }
+    document.getElementById("pass").addEventListener("click", () => simulate(true));
+    document.getElementById("fail").addEventListener("click", () => simulate(false));
+  </script>
+</html>
