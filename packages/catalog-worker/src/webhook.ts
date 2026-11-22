@@ -1,5 +1,9 @@
 import type { CatalogBindings } from "./bindings.js";
-import { mapMergedPullRequest, mapWorkflowJobWebhook, parseMappingSnapshot } from "@zs-home/github-sync";
+import {
+  mapMergedPullRequest,
+  mapWorkflowJobWebhook,
+  parseMappingSnapshot,
+} from "@zs-home/github-sync";
 import { openEventLedger } from "@zs-home/event-ledger";
 import type { EventLedgerObject } from "@zs-home/event-ledger/worker";
 import { json, readBytes } from "./http.js";
@@ -53,7 +57,10 @@ async function handleWorkflowJobDelivery(
     return json({ outcome: "ignored", reason: "job_ingest_disabled" });
   if (!env.JOB_EVIDENCE) return json({ error: "job_evidence_not_configured" }, 503);
   const deliveryId = request.headers.get("X-GitHub-Delivery");
-  if (!deliveryId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(deliveryId))
+  if (
+    !deliveryId ||
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(deliveryId)
+  )
     return json({ error: "invalid_delivery_id" }, 400);
   const repository = record(payload.repository);
   if (
@@ -82,13 +89,11 @@ async function handleWorkflowJobDelivery(
     deliveryId,
   });
   if (mapped.outcome === "ignored") return json({ ...mapped, revision }, 200);
-  if (mapped.outcome === "refused")
-    return json({ error: mapped.reason, revision }, 422);
+  if (mapped.outcome === "refused") return json({ error: mapped.reason, revision }, 422);
   try {
     const digest = await crypto.subtle.digest("SHA-256", bytes);
-    const payloadSha256 = Array.from(
-      new Uint8Array(digest),
-      (value) => value.toString(16).padStart(2, "0"),
+    const payloadSha256 = Array.from(new Uint8Array(digest), (value) =>
+      value.toString(16).padStart(2, "0"),
     ).join("");
     const store = env.JOB_EVIDENCE.get(env.JOB_EVIDENCE.idFromName(env.CATALOG_NAME));
     const result = await store.admit({
@@ -97,8 +102,7 @@ async function handleWorkflowJobDelivery(
       receivedAt: collectedAt,
       observation: mapped.observation,
     });
-    if (result.outcome === "conflict")
-      return json({ error: result.reason, revision }, 409);
+    if (result.outcome === "conflict") return json({ error: result.reason, revision }, 409);
     if (result.outcome === "refused")
       return json(
         { error: result.reason, revision },
