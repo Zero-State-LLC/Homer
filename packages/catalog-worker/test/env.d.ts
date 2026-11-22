@@ -5,7 +5,9 @@ declare global {
     interface Env {
       RUNNER_FLEET: DurableObjectNamespace<import("../src/runner-store.js").RunnerFleetObject>;
       EVENT_LEDGER: DurableObjectNamespace<EventLedgerObject>;
-      JOB_EVIDENCE: DurableObjectNamespace<import("../src/job-evidence-store.js").WorkflowJobEvidenceObject>;
+      JOB_EVIDENCE: DurableObjectNamespace<
+        import("../src/job-evidence-store.js").WorkflowJobEvidenceObject
+      >;
       MAPPING_CATALOG: DurableObjectNamespace<MappingCatalogObject>;
     }
   }
