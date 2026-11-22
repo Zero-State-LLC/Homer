@@ -66,7 +66,7 @@ Do not claim Langfuse or R2 integration is active from this ADR alone.
 4. UI suggestions and appended operator corrections after evaluation passes.
 
 Primary source reviewed November 22, 2026 PT:
-https://developers.cloudflare.com/workers-ai/models/clef/
+<https://developers.cloudflare.com/workers-ai/models/clef/>
 The documented model is @cf/cloudflare/clef, invoked through env.AI.run with model,
 state and typed questions. Returns answers and usage. Question types include noul,
 choice and score. Check the current provider contract before implementation.

@@ -99,7 +99,7 @@ not erase already collected job evidence. No resource telemetry is required to s
 
 Reviewed November 22, 2026 PT:
 
-- https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_job
-- https://docs.github.com/en/rest/actions/workflow-jobs#get-a-job-for-a-workflow-run
-- https://docs.github.com/en/rest/actions/workflow-runs#get-a-workflow-run
-- https://docs.github.com/en/actions/reference/workflows-and-actions/contexts
+- <https://docs.github.com/en/webhooks/webhook-events-and-payloads#workflow_job>
+- <https://docs.github.com/en/rest/actions/workflow-jobs#get-a-job-for-a-workflow-run>
+- <https://docs.github.com/en/rest/actions/workflow-runs#get-a-workflow-run>
+- <https://docs.github.com/en/actions/reference/workflows-and-actions/contexts>
