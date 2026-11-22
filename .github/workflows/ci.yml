@@ -39,8 +39,6 @@ jobs:
   admin-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      ADMIN_SCREENSHOT_DIR: ${{ runner.temp }}/homer-admin-screenshots
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,6 +52,8 @@ jobs:
       - name: Install pinned Playwright Chromium
         run: npx --no-install playwright install --with-deps chromium
       - name: Verify admin journeys against local Worker
+        env:
+          ADMIN_SCREENSHOT_DIR: ${{ runner.temp }}/homer-admin-screenshots
         run: npm run smoke:admin
       - name: Retain synthetic admin screenshots
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
