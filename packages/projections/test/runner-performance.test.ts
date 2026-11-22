@@ -53,13 +53,19 @@ function sample(overrides: Partial<RunnerJobSample> = {}): RunnerJobSample {
   };
 }
 function batch(count: number): RunnerJobSample[] {
-  return Array.from({ length: count }, (_, i) => sample({
-    workflowRunId: 1000 + i,
-    jobId: 2000 + i,
-    evidenceUrl: "https://github.com/Zero-State-LLC/Homer/actions/runs/" + (1000 + i),
-    provenance: { ...sample().provenance, sourceObjectId: String(2000 + i), deliveryId: String(i) },
-    completedAt: "2026-11-22T14:00:" + String(20 + (i % 30)).padStart(2, "0") + "Z",
-  }));
+  return Array.from({ length: count }, (_, i) =>
+    sample({
+      workflowRunId: 1000 + i,
+      jobId: 2000 + i,
+      evidenceUrl: "https://github.com/Zero-State-LLC/Homer/actions/runs/" + (1000 + i),
+      provenance: {
+        ...sample().provenance,
+        sourceObjectId: String(2000 + i),
+        deliveryId: String(i),
+      },
+      completedAt: "2026-11-22T14:00:" + String(20 + (i % 30)).padStart(2, "0") + "Z",
+    }),
+  );
 }
 it("derives creation-to-start proxy, execution and end-to-end separately", () => {
   expect(deriveRunnerJobTiming(sample())).toEqual({
@@ -92,7 +98,8 @@ it("validates strict source evidence and refuses unsafe identity and URL values"
     { ...sample(), extra: "unsupported" },
     { ...sample(), environment: { ...env, unexpected: 1 } },
     { ...sample(), provenance: { ...sample().provenance, sourceSystem: "untrusted" } },
-  ]) expect(() => parseRunnerJobSample(wrong)).toThrow("invalid_runner_measurement");
+  ])
+    expect(() => parseRunnerJobSample(wrong)).toThrow("invalid_runner_measurement");
 });
 it("tracks distinct reruns but deduplicates identical observations", () => {
   const a = sample();
@@ -111,7 +118,10 @@ it("refuses to pick a winner from conflicting evidence for one attempt", () => {
 it("reports p50 only after 20 comparable samples and p95 only after 100", () => {
   for (const count of [0, 19, 20, 99, 100]) {
     const report = projectRunnerTimings(batch(count), options);
-    if (count === 0) { expect(report).toEqual([]); continue; }
+    if (count === 0) {
+      expect(report).toEqual([]);
+      continue;
+    }
     expect(report[0]!.successfulTimings).toBe(count);
     expect(report[0]!.p50ExecutionMs === null).toBe(count < 20);
     expect(report[0]!.p95ExecutionMs === null).toBe(count < 100);
@@ -130,22 +140,36 @@ it("keeps failures, cancellations and queued jobs out of successful timing perce
     sample({ jobId: 1, workflowRunId: 1 }),
     sample({ jobId: 2, workflowRunId: 2, conclusion: "failure" }),
     sample({ jobId: 3, workflowRunId: 3, conclusion: "cancelled" }),
-    sample({ jobId: 4, workflowRunId: 4, status: "queued", conclusion: null,
-      startedAt: null, completedAt: null }),
+    sample({
+      jobId: 4,
+      workflowRunId: 4,
+      status: "queued",
+      conclusion: null,
+      startedAt: null,
+      completedAt: null,
+    }),
     sample({ jobId: 5, workflowRunId: 5, startedAt: null }),
   ];
   const out = projectRunnerTimings(xs, { ...options, minP50: 1, minP95: 1 })[0]!;
   expect(out).toMatchObject({
-    distinctAttempts: 5, successfulTimings: 1,
-    failedAttempts: 1, cancelledAttempts: 1, pendingAttempts: 1, missingTiming: 1,
+    distinctAttempts: 5,
+    successfulTimings: 1,
+    failedAttempts: 1,
+    cancelledAttempts: 1,
+    pendingAttempts: 1,
+    missingTiming: 1,
     p50ExecutionMs: 20000,
   });
 });
 it("abstains when freshness is stale or missing instead of displaying percentiles", () => {
   const xs = batch(100);
   const stale = projectRunnerTimings(xs, { ...options, maxAgeSeconds: 1 })[0]!;
-  expect(stale).toMatchObject({ status: "stale", freshness: "stale",
-    p50ExecutionMs: null, p95ExecutionMs: null });
+  expect(stale).toMatchObject({
+    status: "stale",
+    freshness: "stale",
+    p50ExecutionMs: null,
+    p95ExecutionMs: null,
+  });
   const unknown = projectRunnerTimings(xs, { ...options, lastSuccessAt: null })[0]!;
   expect(unknown.freshness).toBe("unknown");
   expect(unknown.p50ExecutionMs).toBeNull();
@@ -167,10 +191,12 @@ it("does not compare unknown OS, toolchain, cache or runner IDs", () => {
 });
 it("separates cache modes and revisions and never modifies caller-owned evidence", () => {
   const a = sample({ workflowRunId: 1, jobId: 1 });
-  const b = sample({ workflowRunId: 2, jobId: 2,
-    environment: { ...env, cacheMode: "cold" } });
-  const c = sample({ workflowRunId: 3, jobId: 3,
-    environment: { ...env, toolchainRevision: "node-26" } });
+  const b = sample({ workflowRunId: 2, jobId: 2, environment: { ...env, cacheMode: "cold" } });
+  const c = sample({
+    workflowRunId: 3,
+    jobId: 3,
+    environment: { ...env, toolchainRevision: "node-26" },
+  });
   const input = [a, b, c];
   const before = structuredClone(input);
   const result = projectRunnerTimings(input, { ...options, minP50: 1, minP95: 1 });
