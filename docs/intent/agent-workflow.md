@@ -13,6 +13,10 @@ no spec: it lands as two small pull requests, the Pocock config first and
 the Trail-code setup second. Each follows the repository's review and
 merge process.
 
+Built: the Pocock config in #25 and the Trail-code setup in #26, both
+merged on 2026-11-21. The Trail-code receipt is
+[`docs/receipts/trail-code-2026-11-21.md`](../receipts/trail-code-2026-11-21.md).
+
 ## Problem / why now
 
 Danny asked on 2026-11-21 for Homer to adopt Matt Pocock's engineering
@@ -62,8 +66,9 @@ Trail-code index:
   `learnings/`), and its `.gitignore` and `.ignore` updates. Personal
   files stay out of git: `.claude/settings.local.json`,
   `.trail/statusline.cjs`, and the skill in `~/.claude/skills/`. The
-  `graft/` map stays gitignored. `trail init --dry-run` lists the files
-  before anything is written.
+  code map lives in `.trail/cache/`, which `.trail/.gitignore` keeps out
+  of git. `trail init --dry-run` lists the files before anything is
+  written.
 - `trail status` on a fresh clone reports a built map. The exact CLI
   version, the `trail init` flags, and the `trail status` output land as
   a receipt in `docs/receipts/`.
@@ -127,7 +132,7 @@ Product-true locks (do not reopen in implement):
 Non-goals:
 
 - Copying Pocock's or agent-context's skills into Homer.
-- Building the code map in CI. `graft/` is a local cache.
+- Building the code map in CI. `.trail/cache/` is a local cache.
 - Rewriting existing intents, specs, or receipts into Pocock's formats.
 - Changing branch protection, CI checks, or the Context Pin.
 
@@ -158,11 +163,12 @@ Danny's review. Each one is a one-word change in `docs/agents/`:
 - Contributors turn off Trail's anonymous usage ping for Homer
   (`trail telemetry disable`).
 
-Still open:
+Resolved by the Trail-code receipt on 2026-11-21:
 
-- Who runs `trail init`, and on which machine? It needs Node 22.3 or
-  newer and the CLI. The cloud session that drafted this file cannot
-  install npm packages.
+- Danny ran `trail init` on his machine with Trail 0.30.5 and Node
+  24.22.1, after he approved the dry-run file list.
+
+Still open: Danny's review of the defaults above.
 
 ## Claims
 
@@ -171,19 +177,22 @@ Still open:
 | Pocock's setup skill writes an `## Agent skills` block and `docs/agents/*.md`, edits `CLAUDE.md` before `AGENTS.md`, and offers to rename `CONTEXT.md` to `GLOSSARY.md` | `[verified: mattpocock/skills@abeeaf9, skills/engineering/setup-matt-pocock-skills/SKILL.md]` |
 | Pocock's `/to-spec` publishes its spec to the issue tracker with the `ready-for-agent` label | `[verified: mattpocock/skills@abeeaf9, skills/engineering/to-spec/SKILL.md]` |
 | For Claude Code, `trail init` shares a SessionStart hook in `.claude/settings.json` and `.trail/hook.cjs`, keeps `.claude/settings.local.json` and `.trail/statusline.cjs` personal, writes its skill to `~/.claude/skills/`, and writes no `.mcp.json`. The README still describes an older layout with `.claude/skills/trail/SKILL.md` and `.mcp.json` in the repo | `[verified: trailhq/trail-code@d8a59c1, src/claude/init.ts claudeTargetsFor]` |
-| `trail init` gitignores `graft/` | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
+| In a repository wired for Trail, the code map lives in `.trail/cache/`, which `.trail/.gitignore` ignores; `graft/` is the location for repositories not on Trail | `[verified: trailhq/trail-code@d8a59c1, src/context/map-dir.ts]` |
 | Without `--no-global`, `trail init` writes user-level hooks and MCP config, including `~/.claude/settings.json` and `~/.claude.json` | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
 | `trail init` seeds learnings from the contributor's past Claude Code sessions and from merged pull request reviews | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
 | The code map is built locally with tree-sitter, with no model and no network | `[assumed: vendor README at d8a59c1; not independently tested]` |
 | Trail sends an anonymous usage ping and a daily npm version check unless disabled | `[verified: trailhq/trail-code@d8a59c1, README.md]` |
 | The README names the package `@trailhq/trail-code` and the command `trail`, but `package.json` at the same commit still names `@nanonets/graft` with a `graft` binary | `[verified: trailhq/trail-code@d8a59c1, README.md and package.json]` |
-| The agent-context `AGENTS.md` template has a "Graft and docs" rule | `[verified: Zero-State-LLC/agent-context@7d4c26c, templates/AGENTS.md.template]` |
+| The agent-context `AGENTS.md` template has a "Graft and docs" rule. It checks for `graft/`, which a repository on Trail does not have | `[verified: Zero-State-LLC/agent-context@7d4c26c, templates/AGENTS.md.template]` |
 | Noema already uses graft | `[verified: Zero-State-LLC/agent-context@7d4c26c, HANDOFF.md]` |
 | The cloud session that drafted this file cannot install npm packages | `[verified: session network policy on 2026-11-21]` |
 
 ## Next
 
-Land the Pocock config (`AGENTS.md`, `CLAUDE.md`, `docs/agents/`,
-`CONTRIBUTING.md`, `docs/map.md`) in one pull request. Then a contributor
-runs `trail init` and lands the Trail-code setup, the `AGENTS.md` code
-map rule, and its receipt in a second.
+Both pull requests have landed. What remains:
+
+- Danny reviews the defaults under Open questions. Each one is a
+  one-word change in `docs/agents/`.
+- The agent-context `AGENTS.md` template should check for
+  `.trail/cache/` as well as `graft/`. That change belongs in
+  agent-context, not here.
