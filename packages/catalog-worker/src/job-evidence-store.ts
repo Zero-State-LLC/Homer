@@ -31,8 +31,7 @@ const MAX_JOB_HISTORY = 200;
 
 function validInstant(value: unknown): value is string {
   if (typeof value !== "string") return false;
-  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(value))
-    return false;
+  if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(value)) return false;
   const ms = Date.parse(value);
   return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 19) === value.slice(0, 19);
 }
@@ -164,15 +163,26 @@ export class WorkflowJobEvidenceObject extends DurableObject<unknown> {
     const rows = this.ctx.storage.sql
       .exec<EvidenceRow>(
         "SELECT receipt, observation, payload_sha256 FROM workflow_job_evidence WHERE repository_id = ? AND workflow_run_id = ? AND job_id = ? ORDER BY sequence ASC LIMIT ?",
-        repositoryId, workflowRunId, jobId, MAX_JOB_HISTORY + 1,
+        repositoryId,
+        workflowRunId,
+        jobId,
+        MAX_JOB_HISTORY + 1,
       )
       .toArray();
     const historyTruncated = rows.length > MAX_JOB_HISTORY;
     const selectedRows = rows.slice(0, MAX_JOB_HISTORY);
     const receipts = selectedRows.map((row) => JSON.parse(row.receipt) as JobEvidenceReceipt);
     if (historyTruncated)
-      return { state: "unknown", observation: null, receipts, conflicts: ["history_limit"], historyTruncated };
-    const observations = selectedRows.map((row) => JSON.parse(row.observation) as GitHubJobObservation);
+      return {
+        state: "unknown",
+        observation: null,
+        receipts,
+        conflicts: ["history_limit"],
+        historyTruncated,
+      };
+    const observations = selectedRows.map(
+      (row) => JSON.parse(row.observation) as GitHubJobObservation,
+    );
     let maxRank = 0;
     let selected: GitHubJobObservation | null = null;
     const conflicts = new Set<string>();
@@ -184,12 +194,14 @@ export class WorkflowJobEvidenceObject extends DurableObject<unknown> {
       } else if (next === maxRank && selected) {
         // Repeated state deliveries may provide distinct observation timestamps.
         // A contradictory terminal claim is not trustworthy.
-        if (next === 3 && (
-          observation.conclusion !== selected.conclusion ||
-          observation.runnerId !== selected.runnerId ||
-          observation.headSha !== selected.headSha ||
-          observation.completedAt !== selected.completedAt
-        )) conflicts.add("conflicting_terminal_evidence");
+        if (
+          next === 3 &&
+          (observation.conclusion !== selected.conclusion ||
+            observation.runnerId !== selected.runnerId ||
+            observation.headSha !== selected.headSha ||
+            observation.completedAt !== selected.completedAt)
+        )
+          conflicts.add("conflicting_terminal_evidence");
       }
     }
     if (conflicts.size) selected = null;
