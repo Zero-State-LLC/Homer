@@ -39,6 +39,8 @@ jobs:
   admin-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      ADMIN_SCREENSHOT_DIR: ${{ runner.temp }}/homer-admin-screenshots
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -53,6 +55,13 @@ jobs:
         run: npx --no-install playwright install --with-deps chromium
       - name: Verify admin journeys against local Worker
         run: npm run smoke:admin
+      - name: Retain synthetic admin screenshots
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: admin-fixture-screenshots
+          path: ${{ runner.temp }}/homer-admin-screenshots
+          if-no-files-found: error
+          retention-days: 7
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10

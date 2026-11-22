@@ -3,20 +3,21 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { generateKeyPair, exportJWK, SignJWT } from "jose";
+import { directoryFixture } from "./directory-fixture.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE ?? "playwright");
 const temp = mkdtempSync(join(tmpdir(), "homer-admin-browser-"));
 const { privateKey, publicKey } = await generateKeyPair("RS256");
 const jwk = { ...(await exportJWK(publicKey)), kid: "local-browser" };
-const jwt = (aud) =>
+const jwt = (aud, sub = "synthetic-browser") =>
   new SignJWT({
     type: "app",
-    sub: "synthetic-browser",
+    sub,
     iss: "https://synthetic.cloudflareaccess.com",
     aud,
   })
@@ -30,7 +31,12 @@ writeFileSync(
 export {MappingCatalogObject} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
 import {createLocalJWKSet} from ${JSON.stringify(require.resolve("jose"))};
 const key=createLocalJWKSet({keys:[${JSON.stringify(jwk)}]});
-export default {fetch(request, env){return handleRequest(request, env, key)}};`,
+export default {fetch(request, env){
+ const mode=request.headers.get('X-Synthetic-Directory');
+ const original=env.CREDENTIAL_DIRECTORY;
+ const configured={...env,CREDENTIAL_DIRECTORY:mode==='missing'?undefined:{fetch: req=>original.fetch(new Request(req,{headers:{'X-Synthetic-Directory':mode||'ready'}}))}};
+ return handleRequest(request, configured, key)
+}};`,
 );
 writeFileSync(
   join(temp, "wrangler.json"),
@@ -46,10 +52,29 @@ writeFileSync(
       ACCESS_ADMIN_AUD: "synthetic-admin",
       CATALOG_NAME: "browser",
     },
+    services: [{ binding: "CREDENTIAL_DIRECTORY", service: "homer-directory-fixture" }],
     durable_objects: {
       bindings: [{ name: "MAPPING_CATALOG", class_name: "MappingCatalogObject" }],
     },
     migrations: [{ tag: "v1", new_sqlite_classes: ["MappingCatalogObject"] }],
+  }),
+);
+writeFileSync(
+  join(temp, "directory.ts"),
+  `const snapshot=${JSON.stringify(directoryFixture)};
+export default {fetch(request){
+ const mode=request.headers.get('X-Synthetic-Directory');
+ if(mode==='unavailable')return new Response('Fixture unavailable',{status:503});
+ return Response.json(mode==='empty'?{...snapshot,credentials:[]}:snapshot);
+}};`,
+);
+writeFileSync(
+  join(temp, "directory.json"),
+  JSON.stringify({
+    name: "homer-directory-fixture",
+    main: "directory.ts",
+    compatibility_date: "2026-11-18",
+    workers_dev: false,
   }),
 );
 const socket = createServer();
@@ -65,6 +90,8 @@ const child = spawn(
     "--local",
     "--config",
     join(temp, "wrangler.json"),
+    "--config",
+    join(temp, "directory.json"),
     "--ip",
     "127.0.0.1",
     "--port",
@@ -290,6 +317,98 @@ try {
   assert.equal((await deniedPage.goto(base + "/v1/admin/repositories")).status(), 401);
   await denied.close();
   console.log("PASS: mobile reflow, keyboard entry and forbidden browser route");
+  const reader = await browser.newContext({
+    extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": await jwt("synthetic-read") },
+  });
+  const directoryPage = await reader.newPage();
+  const directoryErrors = [];
+  directoryPage.on("pageerror", (error) => directoryErrors.push(error.message));
+  await directoryPage.goto(base + "/v1/workspace/credentials");
+  await directoryPage
+    .getByRole("button", { name: "Inspect Developer diagnostic", exact: true })
+    .waitFor();
+  assert.doesNotMatch(
+    await directoryPage.locator("body").innerText(),
+    /Another developer private integration/,
+  );
+  assert.equal((await reader.request.get(base + "/v1/workspace/directory.css")).status(), 200);
+  if (process.env.ADMIN_SCREENSHOT_DIR) {
+    mkdirSync(process.env.ADMIN_SCREENSHOT_DIR, { recursive: true });
+    await directoryPage.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "credentials-desktop.png"),
+      fullPage: true,
+    });
+  }
+  await directoryPage.getByLabel("Search authorized metadata").fill("private");
+  await directoryPage.getByRole("button", { name: "Search", exact: true }).click();
+  await directoryPage.waitForFunction(
+    () => document.getElementById("status").textContent === "No matching authorized metadata.",
+  );
+  await directoryPage.getByLabel("Search authorized metadata").fill("diagnostic");
+  await directoryPage.getByRole("button", { name: "Search", exact: true }).click();
+  const inspect = directoryPage.getByRole("button", {
+    name: "Inspect Developer diagnostic",
+    exact: true,
+  });
+  await inspect.focus();
+  await directoryPage.keyboard.press("Enter");
+  await directoryPage
+    .getByText("Synthetic diagnostic consumer (fixture_consumer)", { exact: true })
+    .waitFor();
+  assert.match(
+    await directoryPage.locator("#detail-body").innerText(),
+    /Consumer discovery scope: Unknown/,
+  );
+  assert.equal(
+    await directoryPage
+      .locator("#detail-title")
+      .evaluate((node) => node === document.activeElement),
+    true,
+  );
+  await directoryPage.getByRole("button", { name: "Close detail", exact: true }).click();
+  assert.equal(await inspect.evaluate((node) => node === document.activeElement), true);
+  await directoryPage.getByRole("link", { name: "My setup", exact: true }).click();
+  await directoryPage
+    .getByRole("heading", { name: "Local instrumentation", exact: true })
+    .waitFor();
+  assert.match(
+    await directoryPage.locator("#setup").innerText(),
+    /not evidence of Linear assignment/,
+  );
+  assert.match(await directoryPage.locator("#setup").innerText(), /Unverified/);
+  await directoryPage.setViewportSize({ width: 320, height: 700 });
+  assert(await directoryPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await directoryPage.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "my-setup-mobile.png"),
+      fullPage: true,
+    });
+  assert.deepEqual(directoryErrors, []);
+  await reader.close();
+  for (const [mode, subject, expected] of [
+    ["missing", "synthetic-browser", "Directory connection missing"],
+    ["unavailable", "synthetic-browser", "Directory source unavailable"],
+    ["ready", "unbound-browser", "Access denied"],
+    ["empty", "synthetic-browser", "No Credentials in authorized inventory"],
+  ]) {
+    const fixtureContext = await browser.newContext({
+      extraHTTPHeaders: {
+        "Cf-Access-Jwt-Assertion": await jwt("synthetic-read", subject),
+        "X-Synthetic-Directory": mode,
+      },
+    });
+    const fixturePage = await fixtureContext.newPage();
+    await fixturePage.goto(base + "/v1/workspace/credentials");
+    await fixturePage.waitForFunction(
+      (expected) => document.getElementById("status").textContent.includes(expected),
+      expected,
+    );
+    assert.equal(await fixturePage.locator("#inventory article").count(), 0);
+    await fixtureContext.close();
+  }
+  console.log(
+    "PASS: scoped credential search, detail consumers, keyboard focus, developer setup, mobile reflow and distinct missing/denied/unavailable/empty states through fixture directory service",
+  );
 } finally {
   await browser?.close();
   child.kill("SIGTERM");

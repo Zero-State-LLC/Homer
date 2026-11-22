@@ -6,6 +6,11 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Read-only scoped Credentials and My setup use a trusted versioned Credential Directory,
+  exact owner/Project/environment grants and evidence-backed Identity Bindings. Missing
+  source, denied access and authorized empty inventory are distinct; no secret values
+  or credential mutations are exposed. Production directory binding remains unset.
+
 - Authenticated admin Overview shows observed Repository admission and unknown collection health.
   Field-based mapping review lists added, changed and removed mappings, retains drafts
   after conflicts or uncertain saves, and requires readback before another mutation.

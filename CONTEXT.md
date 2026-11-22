@@ -148,3 +148,13 @@ The Projection that shows each Project's Milestones, Planned versus Actual Dates
 **Scope**:
 What an MCP or API caller may do: `read`, `claim` (Work Session and Handoff writes for oneself) or `admin`. Read never implies claim; claim never implies admin.
 _Avoid_: role, permission level
+
+**Credential**:
+A metadata reference to an integration credential with an explicit owner Actor,
+ownership class, Project and environment. Homer inventory never returns its value,
+backend locator or local path. Local-only Credentials keep their values local.
+
+**Credential Directory**:
+A trusted, versioned read service supplying reviewed Identity Bindings, exact
+metadata-read grants and Credential metadata. It is separate from the writable
+Repository catalog; catalog administration grants no directory access.

@@ -46,7 +46,7 @@ The first local build attempt resolved root AJV instead of the workspace's neste
 AJV dependency because dependencies were symlinked. Restoring the corresponding
 nested dependency link fixed the local environment; no dependency source changed.
 
-## Browser qualification remains blocked
+## Local browser qualification attempt
 
 `npm run smoke:admin` is a committed browser journey against a real local Wrangler
 Worker. It covers field entry, added/changed/removed review, save/readback,
@@ -62,7 +62,7 @@ same way. Browser red/green, interaction success, mobile and keyboard results
 are therefore **not demonstrated**. No VM substitute was used for the new form.
 The existing legacy editor VM regression suite is not evidence for this new UI.
 
-Run `npm run smoke:admin` in a browser-capable host before calling Task 1 complete.
+Run `npm run smoke:admin` in a browser-capable host for browser qualification.
 Use `PLAYWRIGHT_MODULE` for a host-provided Playwright module and `CHROMIUM_PATH`
 for its Chromium executable. The runner leaves no local synthetic catalog behind.
 
@@ -75,7 +75,27 @@ entry. Environment is explicitly catalog-wide, without an invented selector.
 No actual collection, credential, archive or production health is claimed.
 
 Real Access deployment policy, operator usability sessions, complete assistive
-technology checks, browser execution, independent Standards/Spec review,
-software-factory Verdict/reproduce and merge approval remain outstanding.
-No live credential operation, Access change, production deployment or remote
-publication was performed. ZER-25 remains In Progress until its evidence gates pass.
+technology checks, software-factory Verdict/reproduce and merge approval remain
+outstanding. No live credential operation, Access change or production deployment
+was performed. Task completion in Linear still requires merge.
+
+## CI qualification and review follow-up
+
+The local Chromium limitation was resolved by running the same real-Worker journey
+on GitHub Actions. At head `eb24771c1617e60ad9d970c3ce44459426cdacfd`, all seven
+checks passed: build/test check, dependency audit, admin-browser, context-pin,
+Markdown lint, links and secret scan.
+
+[Browser evidence](https://github.com/Zero-State-LLC/Homer/actions/runs/44995460207/job/137125419926)
+proves the committed mapping journey completed, including save/readback, conflict,
+lost response after commit, linked validation errors, keyboard navigation,
+320-pixel reflow and denied access. This is synthetic local-Worker evidence on a
+CI runner, not live Access or staging qualification.
+
+Separate Standards and Spec reviews identified linked-error feedback and shared
+header ownership. Repairs add stable accessible field names and error links and
+preserve the existing security headers. The extended browser journey passes.
+These author-side reviews do not supply a software-factory Verdict.
+
+[Draft PR #32](https://github.com/Zero-State-LLC/Homer/pull/32) contains this slice,
+stacked on design PR #31. The next ready implementation slice is ZER-26.

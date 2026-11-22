@@ -17,12 +17,12 @@ export function validateAccessConfig(config: AccessConfig): void {
   )
     throw new Error("access_not_configured");
 }
-export async function verifyAccess(
+export async function verifyAccessIdentity(
   token: string,
   config: AccessConfig,
   admin: boolean,
   key?: JWTVerifyGetKey,
-): Promise<string> {
+): Promise<{ principal: string; kind: "human" | "workload" }> {
   validateAccessConfig(config);
   let resolver = key ?? resolvers.get(config.ACCESS_ISSUER);
   if (!resolver) {
@@ -50,5 +50,17 @@ export async function verifyAccess(
     "SHA-256",
     new TextEncoder().encode(`${config.ACCESS_ISSUER}\n${identity}`),
   );
-  return Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join("");
+  return {
+    principal: Array.from(new Uint8Array(digest), (n) => n.toString(16).padStart(2, "0")).join(""),
+    kind: identity.startsWith("user:") ? "human" : "workload",
+  };
+}
+
+export async function verifyAccess(
+  token: string,
+  config: AccessConfig,
+  admin: boolean,
+  key?: JWTVerifyGetKey,
+): Promise<string> {
+  return (await verifyAccessIdentity(token, config, admin, key)).principal;
 }

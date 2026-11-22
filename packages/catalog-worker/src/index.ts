@@ -1,14 +1,16 @@
 import type { CatalogBindings } from "./bindings.js";
 import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
-import { verifyAccess, validateAccessConfig, type AccessConfig } from "./access.js";
+import { verifyAccessIdentity, validateAccessConfig, type AccessConfig } from "./access.js";
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
 import { json, readBytes } from "./http.js";
 import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
 import { editorPaths, editorResponse } from "./editor.js";
 import { adminPaths, adminAsset, overviewResponse } from "./admin.js";
+import { directoryPaths, directoryPage } from "./directory-ui.js";
 export { MappingCatalogObject };
-export interface Env extends CatalogBindings, AccessConfig, WebhookEnv {}
+import { credentialResponse, type DirectoryBindings } from "./credential-directory.js";
+export interface Env extends CatalogBindings, AccessConfig, WebhookEnv, DirectoryBindings {}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
 export async function handleRequest(
   request: Request,
@@ -20,6 +22,11 @@ export async function handleRequest(
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
   const editorRoute = editorPaths.has(url.pathname);
   const adminRoute = adminPaths.has(url.pathname);
+  const credentialRoute =
+    url.pathname === "/v1/credentials" ||
+    url.pathname.startsWith("/v1/credentials/") ||
+    url.pathname === "/v1/my-setup";
+  const directoryUIRoute = directoryPaths.has(url.pathname);
   const snapshotRoute = url.pathname === "/v1/admin/catalog/snapshot";
   if (
     url.pathname !== "/v1/catalog" &&
@@ -27,7 +34,9 @@ export async function handleRequest(
     !archiveRoute &&
     !editorRoute &&
     !snapshotRoute &&
-    !adminRoute
+    !adminRoute &&
+    !credentialRoute &&
+    !directoryUIRoute
   )
     return json({ error: "not_found" }, 404);
   if (
@@ -35,7 +44,9 @@ export async function handleRequest(
       archiveRoute ||
       editorRoute ||
       snapshotRoute ||
-      adminRoute) &&
+      adminRoute ||
+      credentialRoute ||
+      directoryUIRoute) &&
       request.method !== "GET") ||
     (url.pathname === "/v1/admin/catalog" && request.method !== "PUT")
   )
@@ -50,11 +61,21 @@ export async function handleRequest(
   const token = request.headers.get("Cf-Access-Jwt-Assertion");
   if (!token || token.length > 16384) return json({ error: "unauthorized" }, 401);
   let principal: string;
+  let principalKind: "human" | "workload";
   try {
-    principal = await verifyAccess(token, env, url.pathname.startsWith("/v1/admin/"), key);
+    const identity = await verifyAccessIdentity(
+      token,
+      env,
+      url.pathname.startsWith("/v1/admin/"),
+      key,
+    );
+    principal = identity.principal;
+    principalKind = identity.kind;
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
+  if (directoryUIRoute) return directoryPage(url.pathname);
+  if (credentialRoute) return credentialResponse(url, env, principal, principalKind);
   if (editorRoute) return editorResponse(url.pathname);
   if (adminRoute) {
     const asset = adminAsset(url.pathname);

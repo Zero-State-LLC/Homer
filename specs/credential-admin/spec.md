@@ -182,6 +182,8 @@ Directory enrollment and maintenance remain outside the catalog editor.
   browser harness uses a separate fixture directory service and synthetic identities.
   Its successful runs do not prove live enrollment or provider connectivity.
 
+The executable v1 contract and routes are documented in [directory-contract.md](directory-contract.md).
+
 The directory is a versioned service boundary, not a static hardcoded inventory.
 Its trusted maintenance path will require separate scoped enrollment work before
 real credentials are listed. This boundary enables read-only repository work while
