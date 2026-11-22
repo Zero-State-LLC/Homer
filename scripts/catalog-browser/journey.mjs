@@ -30,8 +30,8 @@ writeFileSync(
   `import {handleRequest} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
 export {MappingCatalogObject,RunnerFleetObject} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
 import {createLocalJWKSet} from ${JSON.stringify(require.resolve("jose"))};
-export {EventLedgerObject} from '/workspace/scratch/054471a804c3/Homer-calendar-runners/packages/event-ledger/src/ledger-object.ts';
-import {event} from '/workspace/scratch/054471a804c3/Homer-calendar-runners/packages/event-ledger/test/fixture.ts';
+export {EventLedgerObject} from ${JSON.stringify(resolve("packages/event-ledger/src/ledger-object.ts"))};
+import {event} from ${JSON.stringify(resolve("packages/event-ledger/test/fixture.ts"))};
 const key=createLocalJWKSet({keys:[${JSON.stringify(jwk)}]});
 export default {async fetch(request, env){
  if(new URL(request.url).pathname==='/__fixture/calendar-seed'){
@@ -525,7 +525,10 @@ try {
   assert.match(await work.locator("main").innerText(), /actor:fixture/);
   assert.match(await work.locator("main").innerText(), /Unattributed/);
   await work.getByLabel("Day", { exact: true }).fill("2026-11-20");
-  await work.getByRole("button", { name: "Apply filters", exact: true }).click();
+  const applyFilters = work.getByRole("button", { name: "Apply filters", exact: true });
+  await applyFilters.focus();
+  assert.equal(await applyFilters.evaluate((node) => node === document.activeElement), true);
+  await work.keyboard.press("Enter");
   await work.waitForURL(/day=2026-11-20/);
   assert.equal(await work.locator("article").count(), 1);
   assert.match(await work.locator("article").innerText(), /Synthetic reviewed implementation/);
@@ -559,9 +562,8 @@ try {
   await fleet.getByLabel("Alias", { exact: true }).fill("Fixture PC");
   await fleet.getByLabel("Repository scope", { exact: true }).fill("Zero-State-LLC/fixture");
   await fleet.getByLabel("Operating system", { exact: true }).selectOption("windows");
-  await fleet.getByLabel("Desired mode", { exact: true }).selectOption("maintenance");
   await fleet.getByRole("button", { name: "Review request", exact: true }).click();
-  assert.match(await fleet.locator("#review-text").innerText(), /maintenance/);
+  assert.match(await fleet.locator("#review-text").innerText(), /Desired mode: enabled/);
   await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
   await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).waitFor();
   await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
@@ -581,7 +583,112 @@ try {
   assert.equal(fleetData.config.machines.length, 2);
   assert.equal(fleetData.observedState, "unknown");
   assert.equal(fleetData.requestStatus, "pending");
+  // Edit a persisted machine, explicitly review enabled -> maintenance, then read back.
+  await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).click();
+  assert.equal(await fleet.getByLabel("Machine ID", { exact: true }).inputValue(), "fixture-pc");
+  assert.equal(await fleet.getByLabel("Desired mode", { exact: true }).inputValue(), "enabled");
+  await fleet.getByLabel("Desired mode", { exact: true }).selectOption("maintenance");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /Desired mode: maintenance/);
+  assert.equal(
+    (await (await fleet.request.get(base + "/v1/admin/runners/config")).json()).config.revision,
+    2,
+  );
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.waitForFunction(() =>
+    document.getElementById("status").textContent.includes("Readback confirmed"),
+  );
+  const maintained = (await (await fleet.request.get(base + "/v1/admin/runners/config")).json())
+    .config;
+  assert.equal(maintained.revision, 3);
+  assert.deepEqual(
+    maintained.machines,
+    fleetData.config.machines.map((m) =>
+      m.id === "fixture-pc" ? { ...m, desiredState: "maintenance" } : m,
+    ),
+  );
   assert.match(await fleet.locator("#fleet").innerText(), /Desired: maintenance/);
+
+  // Another operator changes fields while this operator holds a stale reviewed draft.
+  await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).click();
+  await fleet.getByLabel("Alias", { exact: true }).fill("Stale PC draft");
+  await fleet.getByLabel("Desired mode", { exact: true }).selectOption("enabled");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  const latest = {
+    ...maintained,
+    revision: 4,
+    machines: maintained.machines.map((m) =>
+      m.id === "fixture-pc"
+        ? {
+            ...m,
+            alias: "Current PC",
+            repository: "Zero-State-LLC/current",
+            labels: ["current-only"],
+          }
+        : m,
+    ),
+  };
+  assert.equal(
+    (
+      await fleet.request.put(base + "/v1/admin/runners/config", {
+        headers: { "If-Match": '"3"' },
+        data: latest,
+      })
+    ).status(),
+    200,
+  );
+  const runnerWrites = [];
+  fleet.on("response", (response) => {
+    if (
+      response.url() === base + "/v1/admin/runners/config" &&
+      response.request().method() === "PUT"
+    )
+      runnerWrites.push(response.status());
+  });
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.waitForFunction(() =>
+    document.getElementById("status").textContent.includes("Unsaved draft discarded"),
+  );
+  assert.deepEqual(runnerWrites, [409]);
+  assert.match(await fleet.locator("#status").innerText(), /No request was retried/);
+  assert.equal(await fleet.locator("#review").isHidden(), true);
+  assert.equal(await fleet.getByLabel("Alias", { exact: true }).inputValue(), "Current PC");
+  assert.equal(
+    await fleet.getByLabel("Repository scope", { exact: true }).inputValue(),
+    "Zero-State-LLC/current",
+  );
+  assert.equal(
+    await fleet.getByLabel("Labels (comma separated)", { exact: true }).inputValue(),
+    "current-only",
+  );
+  assert.equal(await fleet.getByLabel("Desired mode", { exact: true }).inputValue(), "maintenance");
+  assert.deepEqual(
+    (await (await fleet.request.get(base + "/v1/admin/runners/config")).json()).config,
+    latest,
+  );
+  // A fresh manual intent must retain the other operator's latest configuration.
+  await fleet.getByLabel("Desired mode", { exact: true }).selectOption("enabled");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /Current PC/);
+  assert.match(await fleet.locator("#review-text").innerText(), /current-only/);
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.waitForFunction(() =>
+    document.getElementById("status").textContent.includes("Readback confirmed"),
+  );
+  assert.deepEqual(runnerWrites, [409, 200]);
+  assert.deepEqual(
+    (await (await fleet.request.get(base + "/v1/admin/runners/config")).json()).config,
+    {
+      ...latest,
+      revision: 5,
+      machines: latest.machines.map((m) =>
+        m.id === "fixture-pc" ? { ...m, desiredState: "enabled" } : m,
+      ),
+    },
+  );
+  console.log(
+    "PASS: persisted runner edit and maintenance review; conflict readback discards stale draft, preserves concurrent configuration and never automatically retries",
+  );
   if (process.env.ADMIN_SCREENSHOT_DIR)
     await fleet.screenshot({
       path: join(process.env.ADMIN_SCREENSHOT_DIR, "runners-desktop.png"),

@@ -44,10 +44,10 @@ precede drain; offline and stale are not idle. Never install an SSH control plan
 
 ## Research
 
-- https://docs.github.com/en/actions/reference/runners/self-hosted-runners
-- https://docs.github.com/en/actions/reference/security/secure-use
-- https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/remove-runners
-- https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access
+- <https://docs.github.com/en/actions/reference/runners/self-hosted-runners>
+- <https://docs.github.com/en/actions/reference/security/secure-use>
+- <https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/remove-runners>
+- <https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access>
 
 GitHub documents no general pause API: stopping the runner application leaves it
 offline; removing registration is a distinct action. This is why maintenance
