@@ -64,6 +64,7 @@ function validAdmission(value: unknown): value is JobEvidenceAdmission {
   );
 }
 interface EvidenceRow {
+  [key: string]: string;
   receipt: string;
   observation: string;
   payload_sha256: string;
