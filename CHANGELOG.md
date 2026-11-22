@@ -25,6 +25,10 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - A "Say how risky the change is" section in `CONTRIBUTING.md`: blast radius, rollback cost, error detection, and screenshots for operator-screen changes.
 - Accepted CI feedback intent and spec (`specs/ci-feedback/spec.md`), ADRs 008 to 010, and a measured CI baseline receipt.
 
+- Strict read-only GitHub Job Attempt timing Projection, source evidence validation, comparable sample grouping and synthetic tests. No CI routing or host operations.
+
+- Draft runner performance and scheduling intent plus proposed ADR 005, defining measured CI bottlenecks, trust-first eligibility and read-only routing advice. No live runner or workflow changes.
+
 - Read-only scoped Credentials and My setup use a trusted versioned Credential Directory,
   exact owner/Project/environment grants and evidence-backed Identity Bindings. Missing
   source, denied access and authorized empty inventory are distinct; no secret values

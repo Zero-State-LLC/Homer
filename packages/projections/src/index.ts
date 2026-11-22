@@ -260,3 +260,20 @@ export function projectProjectTimeline(
     warnings: [...new Set(warnings)],
   };
 }
+
+export {
+  deriveRunnerJobTiming,
+  parseRunnerJobSample,
+  projectRunnerTimings,
+} from "./runner-performance.js";
+export type {
+  RunnerBenchmarkEnvironment,
+  RunnerJobSample,
+  RunnerJobStatus,
+  RunnerJobConclusion,
+  RunnerMeasurementProvenance,
+  RunnerJobTiming,
+  RunnerTimingOptions,
+  RunnerTimingSummary,
+  RunnerCacheMode,
+} from "./runner-performance.js";
