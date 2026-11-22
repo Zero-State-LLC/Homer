@@ -1,8 +1,8 @@
 import { env } from "cloudflare:workers";
-import { abortAllDurableObjects } from "cloudflare:test";
+import { abortAllDurableObjects, runInDurableObject } from "cloudflare:test";
 import { expect, it } from "vitest";
 import { handleRequest, type Env } from "../src/index.js";
-import { WorkflowJobEvidenceObject } from "../src/job-evidence-store.js";
+
 
 const secret = "synthetic-workflow-job-secret";
 const repo = { id: 123, full_name: "Zero-State-LLC/Homer" };
@@ -199,5 +199,11 @@ it("the durable store rejects invalid direct admissions and immutable row edits"
   expect(await obj.admit({ deliveryId: "invalid", payloadSha256: "", receivedAt: "", observation: {} } as never)).toEqual({
     outcome: "refused", reason: "invalid_job_evidence",
   });
-  expect(() => WorkflowJobEvidenceObject).not.toThrow();
+  await configure(e);
+  expect((await handleRequest(await request(), e)).status).toBe(201);
+  await runInDurableObject(obj, (_object, state) => {
+    expect(() => state.storage.sql.exec("DELETE FROM workflow_job_evidence")).toThrow();
+    expect(() => state.storage.sql.exec("UPDATE workflow_job_evidence SET action = 'queued'")).toThrow();
+  });
+  expect((await obj.readJob(repo.id, 202, 303)).receipts).toHaveLength(1);
 });
