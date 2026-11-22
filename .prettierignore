@@ -8,3 +8,6 @@ specs/integration-contracts/upstream
 
 # Wrangler-generated binding declarations.
 packages/catalog-worker/src/bindings.d.ts
+
+# Trail-code-generated hook shim.
+.trail/hook.cjs

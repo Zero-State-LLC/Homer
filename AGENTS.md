@@ -80,6 +80,10 @@ Tasks in Linear team ZER, specs in `specs/`, defects as GitHub issues. See `docs
 
 Single-context: `CONTEXT.md`, decisions in `docs/receipts/` and agent-context. See `docs/agents/domain.md`.
 
+## Code map
+
+If `graft/` exists, run `trail ask "<task>" --source` before grepping. Otherwise start at `docs/map.md`. Do not copy a code map into this file.
+
 ## Size
 
 Keep this file short (about 80 lines; hard ceiling 12 KB).
