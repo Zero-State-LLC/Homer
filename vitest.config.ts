@@ -7,6 +7,7 @@ export default defineConfig({
           name: "node",
           include: [
             "packages/shared-contracts/test/**/*.test.ts",
+            "packages/trace-archive/test/archive.test.ts",
             "packages/event-ledger/test/canonical.test.ts",
             "packages/projections/test/**/*.test.ts",
             "packages/github-sync/test/**/*.test.ts",
@@ -17,6 +18,7 @@ export default defineConfig({
       },
       "packages/event-ledger/vitest.config.ts",
       "packages/catalog-worker/vitest.config.ts",
+      "packages/trace-archive/vitest.config.ts",
     ],
   },
 });

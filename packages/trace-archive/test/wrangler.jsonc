@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "homer-trace-archive-test",
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "r2_buckets": [
+    { "binding": "TRACE_TEST_LANDING", "bucket_name": "trace-test-landing" },
+    { "binding": "TRACE_TEST_ARCHIVE", "bucket_name": "trace-test-archive" },
+  ],
+}
