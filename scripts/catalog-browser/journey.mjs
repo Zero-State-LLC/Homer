@@ -524,6 +524,8 @@ try {
   assert.equal(await work.locator("article").count(), 2);
   assert.match(await work.locator("main").innerText(), /actor:fixture/);
   assert.match(await work.locator("main").innerText(), /Unattributed/);
+  await work.getByLabel("Bucket", { exact: true }).selectOption("day");
+  await work.getByLabel("Actor kind", { exact: true }).selectOption("human");
   await work.getByLabel("Day", { exact: true }).fill("2026-11-20");
   const applyFilters = work.getByRole("button", { name: "Apply filters", exact: true });
   await applyFilters.focus();
