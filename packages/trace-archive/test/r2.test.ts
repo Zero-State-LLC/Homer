@@ -153,3 +153,81 @@ it("promotes and restores a synthetic batch on the Workers R2 runtime", async ()
   await buckets.TRACE_TEST_LANDING.delete(key);
   expect((await restoreArchive(first.batchDigest, policy, archive)).files).toEqual([bytes]);
 });
+it.each([false, true])(
+  "scheduled failures remain visible and recover without replacing receipts (mixed=%s)",
+  async (mixed) => {
+    const projectId = `failure-${crypto.randomUUID()}`;
+    const prefix = `failure/${projectId}/`;
+    const failedKey = `${prefix}manifests/2026-11-21T01-00-00.json`;
+    const validKey = `${prefix}manifests/2026-11-21T02-00-00.json`;
+    const manifest = (end: string) =>
+      JSON.stringify({
+        version: 1,
+        projectId,
+        exportSource: "EVENTS",
+        createdAt: end,
+        maxTimestamp: end,
+        window: { minTimestamp: "2026-11-21T00:00:00.000Z", maxTimestamp: end },
+        tables: [],
+        files: [],
+      });
+    await buckets.TRACE_TEST_LANDING.put(failedKey, "synthetic-private-error-canary");
+    if (mixed) await buckets.TRACE_TEST_LANDING.put(validKey, manifest("2026-11-21T02:00:00.000Z"));
+    const scope = await sha256(
+      new TextEncoder().encode(
+        JSON.stringify(["staging", projectId, "failure/", projectId, "synthetic-v1"]),
+      ),
+    );
+    const worker = traceArchiveWorker(() =>
+      Promise.resolve({
+        projectId,
+        prefix: "failure/",
+        policy: {
+          environment: "staging",
+          sourceProject: projectId,
+          landingPrefix: prefix,
+          version: "synthetic-v1",
+          inspect: () => Promise.reject(new Error("empty_batch_must_not_inspect")),
+        },
+      }),
+    );
+    const bindings = {
+      TRACE_LANDING: buckets.TRACE_TEST_LANDING,
+      TRACE_ARCHIVE: buckets.TRACE_TEST_ARCHIVE,
+      TRACE_INDEX: buckets.TRACE_INDEX,
+      TRACE_ARCHIVE_ENABLED: "true",
+    };
+    const attempts = async () =>
+      (
+        await buckets.TRACE_INDEX.prepare(
+          "SELECT outcome, receipt FROM trace_attempt WHERE scope = ?",
+        )
+          .bind(scope)
+          .all<{ outcome: string; receipt: string | null }>()
+      ).results;
+    for (let run = 0; run < 2; run++) {
+      await expect(worker.scheduled({} as ScheduledController, bindings)).rejects.toThrow(
+        /^trace_archive_schedule_failed$/,
+      );
+    }
+    const failed = await attempts();
+    expect(failed.filter((r) => r.outcome === "failed")).toEqual([
+      { outcome: "failed", receipt: null },
+      { outcome: "failed", receipt: null },
+    ]);
+    expect(JSON.stringify(failed)).not.toContain("synthetic-private-error-canary");
+    const verified = failed.filter((r) => r.outcome === "verified");
+    expect(verified).toHaveLength(mixed ? 2 : 0);
+    if (mixed) expect(verified[0]!.receipt).toBe(verified[1]!.receipt);
+    expect(await d1Journal(buckets.TRACE_INDEX, scope).read()).toEqual({
+      revision: 2,
+      cursor: null,
+    });
+    await buckets.TRACE_TEST_LANDING.put(failedKey, manifest("2026-11-21T01:00:00.000Z"));
+    await expect(worker.scheduled({} as ScheduledController, bindings)).resolves.toBeUndefined();
+    const recovered = await attempts();
+    expect(recovered.filter((r) => r.outcome === "failed")).toHaveLength(2);
+    expect(recovered.filter((r) => r.outcome === "verified")).toHaveLength(mixed ? 4 : 1);
+    if (mixed) expect(recovered.filter((r) => r.receipt === verified[0]!.receipt)).toHaveLength(3);
+  },
+);

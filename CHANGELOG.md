@@ -4,6 +4,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ## Unreleased
 
+- Surface failed trace batches as sanitized scheduled failures while preserving durable attempts and original archive receipts (#43).
+
 ### Added
 
 - Pocock skills: `/to-tickets` writes Tasks to Linear team ZER, `/triage` is on with labels mapped in `docs/agents/triage-labels.md`, and `/implement-spec` may run implementers in parallel.

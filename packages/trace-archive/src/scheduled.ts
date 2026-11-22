@@ -34,7 +34,7 @@ export function traceArchiveWorker(loadSource: (env: TraceArchiveEnv) => Promise
             ]),
           ),
         );
-        await collectTracePage(
+        const result = await collectTracePage(
           source,
           r2Store(env.TRACE_LANDING),
           r2Store(env.TRACE_ARCHIVE),
@@ -55,6 +55,9 @@ export function traceArchiveWorker(loadSource: (env: TraceArchiveEnv) => Promise
           d1Journal(env.TRACE_INDEX, scope),
           new Date().toISOString(),
         );
+        // Durable attempts and discovery progress survive, but a partial failure
+        // must not appear as a healthy scheduled invocation.
+        if (result.failed > 0) throw new Error("trace_archive_batch_failed");
       } catch {
         // Do not leak native SDK, JSON parser or inspector errors into Worker logs.
         throw new Error("trace_archive_schedule_failed");

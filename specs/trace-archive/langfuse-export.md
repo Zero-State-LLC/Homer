@@ -57,6 +57,13 @@ checkpointing. Lost cursor races cause replay, not an overwrite. At the end of a
 listing, reset the cursor to start another full sweep so old failures and later
 rewritten manifests are revisited. No source data is deleted by the Collector.
 
+After durable attempts and cursor handling finish, any failed batch causes the
+scheduled invocation to reject with only `trace_archive_schedule_failed`. A mixed
+page retains verified receipts and failed attempts; a later sweep revisits failures
+and reuses prior receipts. This exposes failure to scheduled-job monitoring without
+logging source content. It does not configure an alert destination or prove source
+coverage. A lost cursor race alone is replay, not a batch verification failure.
+
 The journal stores scope hashes, key hashes, times, outcomes and archive receipts.
 It never stores raw errors or trace text. A scan cursor is discovery state, not
 proof of complete coverage. Scope includes source identity, environment and policy
