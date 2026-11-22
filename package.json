@@ -19,6 +19,7 @@
     "check": "npm run build && npm run format:check && npm run lint && npm run typecheck && npm test && npm run smoke:workers",
     "pretypecheck": "npm run build",
     "pretest": "npm run build",
+    "smoke:admin": "node scripts/catalog-browser/journey.mjs",
     "smoke:workers": "node scripts/ledger-smoke.mjs"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@ const html = `<!doctype html>
 <title>Repository mappings | Homer</title>
 <link rel="stylesheet" href="/v1/admin/catalog/editor.css">
 <script src="/v1/admin/catalog/editor.js" defer></script></head>
-<body><main><header><p>Homer administration</p><h1>Repository mappings</h1>
+<body><main><header><p>Homer administration</p><nav aria-label="Administration"><a href="/v1/admin/overview">Overview</a> · <a href="/v1/admin/repositories">Field-based Repository mappings</a></nav><h1>Repository mappings</h1>
 <p>Changes apply to future collection immediately. Historical Activity Events stay unchanged.</p></header>
 <p id="status" role="status" aria-live="polite">Loading current mappings…</p>
 <button id="load" type="button">Reload current mappings</button>
