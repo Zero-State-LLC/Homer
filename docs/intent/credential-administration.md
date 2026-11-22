@@ -19,6 +19,9 @@ also needs scoped credential management.
 - Developers manage their own approved integration credentials.
 - Saved values remain in a managed secret backend and are never revealed by Homer.
 - Rotation includes consumer validation and provider revocation evidence.
+- Operators get an attention queue with impact, evidence freshness and next action.
+- Developers get scoped setup, integration health and trace capture evidence.
+- Interrupted operations remain inspectable and reconcile before retry.
 
 ## Affected users / systems
 
@@ -50,4 +53,6 @@ centrally held developer integrations, overlap policy and recovery owner.
 ## Next
 
 Review this intent and the accompanying [draft specification](../../specs/credential-admin/spec.md).
+The [experience design](../../specs/credential-admin/operator-experience.md) adds
+research, implementation priorities and an offline interactive prototype.
 Accept the intent before implementation. The draft adds no running credential surface.

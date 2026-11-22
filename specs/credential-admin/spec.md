@@ -16,6 +16,11 @@ consume references from this system after authorization and acceptance.
 
 ## Domain and storage
 
+The [operator and developer experience](operator-experience.md) defines the shared
+admin navigation, resource views, recovery flows and usability acceptance plan.
+The [offline prototype](../../docs/design/admin-prototype.html) illustrates these
+flows with synthetic fixtures and no live operations.
+
 A Credential has an opaque ID, provider, purpose, ownership class, owner Actor
 binding, Project, environment, permitted consumers, backend reference, revision,
 provider expiry when known, rotation policy, and last verified health.
