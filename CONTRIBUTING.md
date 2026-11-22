@@ -14,8 +14,8 @@ Zero State SDLC (from agent-context, `templates/sdlc/README.md` at the Context P
 Pocock's engineering skills fit this order; they do not replace it. Install them per machine (`claude plugin install mattpocock-skills@claude-plugins-official`), never into the repo. [`docs/agents/`](docs/agents/) says where each one writes.
 
 - Stages 1–2: `/grill-with-docs` sharpens an intent and `CONTEXT.md`; `/to-spec` drafts the spec in `specs/`.
-- Stage 3: FORGE owns plan and tasks. `/to-tickets` only proposes Tasks until a human says yes.
-- Stage 4: `/tdd` and `/implement`.
+- Stage 3: FORGE owns the plan. `/to-tickets` writes Tasks to Linear team ZER, and `/triage` labels them.
+- Stage 4: `/tdd`, `/implement`, or `/implement-spec`, which runs implementers in parallel on one integration branch.
 - Stage 5: `/code-review` and `/pr` prepare the pull request. They are not a Verdict.
 
 ## Pull requests

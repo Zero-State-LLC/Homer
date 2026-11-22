@@ -14,7 +14,8 @@ Accepted in [`docs/intent/agent-workflow.md`](../intent/agent-workflow.md).
 | Spec | `specs/<area>/spec.md`, with a `## Workflows` section, landed by pull request | Humans accept it |
 | Intent | `docs/intent/<stream>.md`, landed by pull request | Humans accept it |
 | Defect | GitHub issue with label `defect` | GitHub |
-| Plan and task breakdown | FORGE | FORGE |
+| Plan | FORGE | FORGE |
+| Triage label | Linear team ZER, mapped in [`triage-labels.md`](triage-labels.md) | Linear |
 
 ## When a skill says "publish to the issue tracker"
 
@@ -22,10 +23,11 @@ Accepted in [`docs/intent/agent-workflow.md`](../intent/agent-workflow.md).
   branch and open a pull request. Link the Linear Task (`ZER-N`) in the
   pull request when one exists. Do not publish the spec as a Linear
   issue or a GitHub issue, and do not apply a triage label.
-- **A set of tickets** (for example `/to-tickets`): FORGE owns plan and
-  tasks. Show the proposed Tasks and their blocking edges as text first.
-  Create them in Linear team ZER only after a human says yes to that
-  breakdown, and record each block as a Linear "blocked by" relation.
+- **A set of tickets** (for example `/to-tickets`): create one Task per
+  ticket in Linear team ZER, blockers first, with each block as a native
+  Linear "blocked by" relation and the `ready-for-agent` label. Danny
+  ruled on 2026-11-21 that running `/to-tickets` is the yes; FORGE still
+  owns the plan.
 - **A defect** (the `AGENTS.md` Escalation): open a GitHub issue with
   label `defect`, for example
   `gh issue create --label defect --title "..." --body "..."`.
@@ -39,15 +41,30 @@ fall back to GitHub Issues for a Task.
 Use the Linear branch name when a Task exists (`zer0state/zer-N-...`), as
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md) says.
 
+## When a skill says "close the ticket"
+
+Close a Task only after its pull request merges. For `wontfix`, `/triage` may cancel the Task in Linear with
+a comment that says why.
+
+## Triage
+
+`/triage` works on Linear Tasks in team ZER, with the labels in
+[`triage-labels.md`](triage-labels.md). It does not triage GitHub
+`defect` issues. A rejected enhancement is written to `.out-of-scope/`,
+as the skill does by default, in a pull request.
+
+## Parallel implementation
+
+`/implement-spec` may run implementer subagents in parallel without
+asking (Danny, 2026-11-21). This departs from "No agent fleets" in
+agent-context `DECISIONS.md`, for Homer only. Subagents may merge into the
+spec's integration branch. That branch reaches `main` only through a pull
+request under the merge gate below.
+
 ## Not configured in Homer
 
-- **Triage** (`/triage`): not adopted. Do not create triage labels in
-  GitHub or Linear.
 - **Wayfinding** (`/wayfinder`): not configured. Ask Danny before using
   it.
-- **Parallel implementation** (`/implement-spec`): not used without
-  Danny's yes, under the agent-context rule against agent fleets. Use
-  `/implement` instead.
 - **Pull requests as a request surface**: no.
 
 ## Review and merge

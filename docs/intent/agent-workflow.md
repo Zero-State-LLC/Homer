@@ -42,7 +42,8 @@ Observable done (a stranger can check this without reading the chat):
 Pocock workflow:
 
 - `AGENTS.md` has an `## Agent skills` block that points at
-  `docs/agents/issue-tracker.md` and `docs/agents/domain.md`.
+  `docs/agents/issue-tracker.md`, `docs/agents/triage-labels.md`, and
+  `docs/agents/domain.md`.
 - `docs/agents/issue-tracker.md` maps each Pocock verb onto Homer's order
   of work. A spec lands in `specs/<area>/spec.md` with `## Workflows`. A
   Task lands in Linear team ZER. A defect lands as a GitHub issue with
@@ -110,9 +111,14 @@ Product-true locks (do not reopen in implement):
 - Linear stays the Authority for Tasks. Use `CONTEXT.md` terms: a Pocock
   "ticket" is a Task, and an "issue" means a Task unless it is a GitHub
   defect.
-- FORGE still owns plan and tasks, as the agent-context SDLC says.
-  Pocock's skills do not replace FORGE, spec-kit specify, or the
-  software-factory judge.
+- FORGE still owns the plan. Danny ruled on 2026-11-21 that Pocock's
+  `/to-tickets` writes Tasks to Linear directly, which departs from the
+  agent-context SDLC giving FORGE the tasks too. Pocock's skills do not
+  replace FORGE, spec-kit specify, or the software-factory judge.
+- Danny ruled on 2026-11-21 that `/implement-spec` may run implementer
+  subagents in parallel without asking, which departs from "No agent
+  fleets" in agent-context `DECISIONS.md`. Its integration branch reaches
+  `main` only through a normal pull request under the merge gate below.
 - The merge gate is unchanged: CI green, an independent software-factory
   Verdict for the head SHA, a passing reproduce check, and Danny's yes.
   Pocock's `/code-review` and `/pr` are author-side aids, not a Verdict.
@@ -126,8 +132,8 @@ Product-true locks (do not reopen in implement):
 - Team-wide decisions stay in agent-context `DECISIONS.md`. Trail
   learnings and any Homer decision records are Homer-only and never
   copy a team decision.
-- Do not create a GitHub or Linear label for Pocock's `/triage` while
-  triage is not adopted.
+- Pocock's `/triage` labels live in Linear team ZER only. Do not add them
+  to GitHub, where the only Homer label is `defect`.
 
 Non-goals:
 
@@ -146,20 +152,21 @@ Resolved by Danny on 2026-11-21:
 - Trail-code wiring: `--agents claude` only.
 - Spec: none for this stream. Two small pull requests.
 
-Defaulted by Claude Code on 2026-11-21 as the safer choice, pending
-Danny's review. Each one is a one-word change in `docs/agents/`:
+Resolved by Danny on 2026-11-21, reviewing Claude Code's defaults:
+
+- `/to-tickets` writes Tasks to Linear team ZER directly, with native
+  "blocked by" relations and the `ready-for-agent` label.
+- `/triage` is on. Its five labels live in Linear team ZER and are
+  mapped in `docs/agents/triage-labels.md`.
+- `/implement-spec` is allowed without asking.
+- No ADR folder. Homer decisions go in `docs/receipts/`; team decisions
+  go in agent-context `DECISIONS.md`.
+
+Defaults Danny did not change:
 
 - `/to-spec` writes `specs/<area>/spec.md` in a pull request, not to the
   tracker.
-- FORGE owns plan and tasks, so `/to-tickets` proposes a breakdown and a
-  human says yes before any Linear Task is created. `/wayfinder` is not
-  configured.
-- `/implement-spec`, which runs implementer subagents in parallel, is not
-  used without Danny's yes, under the agent-context rule against agent
-  fleets. `/implement` is fine.
-- No ADR folder. Homer decisions go in `docs/receipts/`; team decisions
-  go in agent-context `DECISIONS.md`.
-- Triage is not adopted, so no triage labels are created.
+- `/wayfinder` is not configured.
 - Contributors turn off Trail's anonymous usage ping for Homer
   (`trail telemetry disable`).
 
@@ -168,7 +175,7 @@ Resolved by the Trail-code receipt on 2026-11-21:
 - Danny ran `trail init` on his machine with Trail 0.30.5 and Node
   24.22.1, after he approved the dry-run file list.
 
-Still open: Danny's review of the defaults above.
+Still open: none.
 
 ## Claims
 
@@ -189,10 +196,12 @@ Still open: Danny's review of the defaults above.
 
 ## Next
 
-Both pull requests have landed. What remains:
+Both pull requests have landed. The five triage labels were created in
+Linear team ZER on 2026-11-21. Linear Task ZER-24 tracks what remains:
 
-- Danny reviews the defaults under Open questions. Each one is a
-  one-word change in `docs/agents/`.
 - The agent-context `AGENTS.md` template should check for
   `.trail/cache/` as well as `graft/`. That change belongs in
   agent-context, not here.
+- The two departures above (Tasks from `/to-tickets`, parallel
+  `/implement-spec`) are Homer-only rulings. If they should hold for
+  other repositories, they belong in agent-context `DECISIONS.md`.
