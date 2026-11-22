@@ -111,15 +111,28 @@ it("maps all three job transitions without fabricating completion or job assignm
 });
 it("refuses repository substitutions, incorrect context and hostile job URLs", () => {
   const input = payload();
-  expect(mapWorkflowJobWebhook({ ...input, repository: { id: 999, full_name: repository.full_name } }, ctx)).toMatchObject({
-    outcome: "refused", reason: "repository_mismatch",
+  expect(
+    mapWorkflowJobWebhook(
+      { ...input, repository: { id: 999, full_name: repository.full_name } },
+      ctx,
+    ),
+  ).toMatchObject({
+    outcome: "refused",
+    reason: "repository_mismatch",
   });
   expect(mapWorkflowJobWebhook(input, { ...ctx, deliveryId: "bad\nnewline" })).toMatchObject({
-    outcome: "refused", reason: "invalid_context",
+    outcome: "refused",
+    reason: "invalid_context",
   });
-  expect(mapWorkflowJobWebhook({
-    ...input, workflow_job: { ...input.workflow_job, html_url: "https://github.com.evil.test/job" },
-  }, ctx)).toMatchObject({ outcome: "refused", reason: "job_url_mismatch" });
+  expect(
+    mapWorkflowJobWebhook(
+      {
+        ...input,
+        workflow_job: { ...input.workflow_job, html_url: "https://github.com.evil.test/job" },
+      },
+      ctx,
+    ),
+  ).toMatchObject({ outcome: "refused", reason: "job_url_mismatch" });
 });
 it("rejects malformed timestamps, invalid IDs, unsafe text, and contradictory state", () => {
   const input = payload();
@@ -134,11 +147,18 @@ it("rejects malformed timestamps, invalid IDs, unsafe text, and contradictory st
     { run_attempt: -1 },
   ];
   for (const changes of badJobs)
-    expect(mapWorkflowJobWebhook({
-      ...input, workflow_job: { ...input.workflow_job, ...changes },
-    }, ctx).outcome).toBe("refused");
+    expect(
+      mapWorkflowJobWebhook(
+        {
+          ...input,
+          workflow_job: { ...input.workflow_job, ...changes },
+        },
+        ctx,
+      ).outcome,
+    ).toBe("refused");
   expect(mapWorkflowJobWebhook({ ...input, action: "waiting" }, ctx)).toEqual({
-    outcome: "ignored", reason: "unsupported_action",
+    outcome: "ignored",
+    reason: "unsupported_action",
   });
 });
 it("does not mistake a workflow trigger for the person who performed work", () => {
@@ -159,53 +179,75 @@ it("does not mistake a workflow trigger for the person who performed work", () =
   expect(input).toEqual(run());
 });
 it("supports a missing actor without inventing one", () => {
-  const outcome = enrichWorkflowJob(mapped(), { ...run(), actor: null, triggering_actor: null }, job());
+  const outcome = enrichWorkflowJob(
+    mapped(),
+    { ...run(), actor: null, triggering_actor: null },
+    job(),
+  );
   expect(outcome).toMatchObject({
     outcome: "enriched",
     observation: { originalActor: null, triggeringActor: null },
   });
 });
 it("never attributes from a display name when a provider ID is missing", () => {
-  const result = enrichWorkflowJob(mapped(), {
-    ...run(), actor: { login: "some-display-name" },
-  }, job());
+  const result = enrichWorkflowJob(
+    mapped(),
+    {
+      ...run(),
+      actor: { login: "some-display-name" },
+    },
+    job(),
+  );
   expect(result).toEqual({ outcome: "refused", reason: "invalid_enrichment_actor" });
 });
 it("refuses a mismatched repo/run/job/attempt before creating enrichment", () => {
   const before = mapped();
   const wrong = [
-    [ { ...run(), repository: { ...repository, id: 777 } }, job() ],
-    [ { ...run(), id: 777 }, job() ],
-    [ run(), { ...job(), id: 777 } ],
-    [ run(), { ...job(), run_id: 777 } ],
-    [ { ...run(), run_attempt: 0 }, job() ],
+    [{ ...run(), repository: { ...repository, id: 777 } }, job()],
+    [{ ...run(), id: 777 }, job()],
+    [run(), { ...job(), id: 777 }],
+    [run(), { ...job(), run_id: 777 }],
+    [{ ...run(), run_attempt: 0 }, job()],
   ] as const;
   for (const [r, j] of wrong)
     expect(enrichWorkflowJob(before, r, j)).toMatchObject({
-      outcome: "refused", reason: "enrichment_identity_mismatch",
+      outcome: "refused",
+      reason: "enrichment_identity_mismatch",
     });
   expect(enrichWorkflowJob(before, run(), { ...job(), run_attempt: 1 })).toEqual({
-    outcome: "refused", reason: "enrichment_attempt_mismatch",
+    outcome: "refused",
+    reason: "enrichment_attempt_mismatch",
   });
 });
 it("rejects explicit webhook attempt disagreement with the run", () => {
   const p = payload();
   const evidence = mapped({
-    ...p, workflow_job: { ...p.workflow_job, run_attempt: 1 },
+    ...p,
+    workflow_job: { ...p.workflow_job, run_attempt: 1 },
   });
   expect(enrichWorkflowJob(evidence, run(), job())).toEqual({
-    outcome: "refused", reason: "enrichment_attempt_mismatch",
+    outcome: "refused",
+    reason: "enrichment_attempt_mismatch",
   });
 });
 it("refuses conflicting GitHub runner identity, head SHA and invalid run actors", () => {
   expect(enrichWorkflowJob(mapped(), run(), { ...job(), runner_id: 2 })).toEqual({
-    outcome: "refused", reason: "enrichment_runner_mismatch",
+    outcome: "refused",
+    reason: "enrichment_runner_mismatch",
   });
   expect(enrichWorkflowJob(mapped(), { ...run(), head_sha: "b".repeat(40) }, job())).toEqual({
-    outcome: "refused", reason: "enrichment_sha_mismatch",
+    outcome: "refused",
+    reason: "enrichment_sha_mismatch",
   });
-  expect(enrichWorkflowJob(mapped(), { ...run(), triggering_actor: { id: 20, login: "bad\nname" } }, job())).toEqual({
-    outcome: "refused", reason: "invalid_enrichment_actor",
+  expect(
+    enrichWorkflowJob(
+      mapped(),
+      { ...run(), triggering_actor: { id: 20, login: "bad\nname" } },
+      job(),
+    ),
+  ).toEqual({
+    outcome: "refused",
+    reason: "invalid_enrichment_actor",
   });
 });
 it("does not replace webhook source timestamps with an API read", () => {
@@ -219,9 +261,11 @@ it("does not replace webhook source timestamps with an API read", () => {
 });
 it("refuses invalid API timestamps and unrecognized API states", () => {
   expect(enrichWorkflowJob(mapped(), run(), { ...job(), completed_at: "invalid" })).toEqual({
-    outcome: "refused", reason: "invalid_enrichment_timestamps",
+    outcome: "refused",
+    reason: "invalid_enrichment_timestamps",
   });
   expect(enrichWorkflowJob(mapped(), run(), { ...job(), status: "working" })).toEqual({
-    outcome: "refused", reason: "invalid_enrichment_status",
+    outcome: "refused",
+    reason: "invalid_enrichment_status",
   });
 });
