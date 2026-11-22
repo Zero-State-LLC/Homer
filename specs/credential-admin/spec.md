@@ -185,6 +185,9 @@ they never obtain archive-bucket or account-administration rights.
 
 ## Acceptance tests and rollout
 
+The [delivery contract](delivery-contract.md) proposes end-to-end Tasks, their
+blocking edges and the public testing boundaries for confirmation before TDD.
+
 - Existing catalog-admin access alone cannot submit or rotate credentials.
 - Cross-owner, Project and environment access is denied server-side.
 - Submitted canaries never appear in inventory, responses, logs, traces or archives.
