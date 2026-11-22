@@ -47,8 +47,15 @@ export async function verifyAccessIdentity(
     algorithms: ["RS256"],
     requiredClaims: ["sub", "exp", "iat"],
   });
-  if (controller && (payload.aud !== config.RUNNER_CONTROLLER_AUD || payload.sub !== ""))
-    throw new Error("invalid_controller_identity");
+  if (controller) {
+    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (
+      audiences.length !== 1 ||
+      audiences[0] !== config.RUNNER_CONTROLLER_AUD ||
+      payload.sub !== ""
+    )
+      throw new Error("invalid_controller_identity");
+  }
   if (typeof payload.iat !== "number" || payload.iat > Math.floor(Date.now() / 1000))
     throw new Error("invalid_issued_at");
   if (payload.type !== "app") throw new Error("invalid_token_type");

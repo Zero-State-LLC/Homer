@@ -17,6 +17,8 @@ No arbitrary command, shell, SSH, registration token or reboot API.
 
 - Separate optional RUNNER_CONTROLLER_AUD; it must differ from read/admin audience.
   Only workload identities with an explicit reviewed machine binding may poll/report.
+  Accept the exact workload audience as a string or a singleton array. Empty,
+  mixed and repeated audience arrays are refused. Human subjects are refused.
   Admin audience is not a controller capability. Missing config denies access.
 - Admin enrolls a machine-to-principal digest and nonsecret evidence reference using
   a revision precondition. Never infer bindings from machine alias or source login.
