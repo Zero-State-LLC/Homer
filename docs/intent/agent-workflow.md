@@ -196,10 +196,9 @@ Still open: none.
 
 ## Next
 
-Both pull requests have landed. What remains:
+Both pull requests have landed. The five triage labels were created in
+Linear team ZER on 2026-11-21. Linear Task ZER-24 tracks what remains:
 
-- Someone with Linear access creates the five triage labels in team ZER
-  before anyone runs `/triage`.
 - The agent-context `AGENTS.md` template should check for
   `.trail/cache/` as well as `graft/`. That change belongs in
   agent-context, not here.
