@@ -74,7 +74,7 @@ Pocock's engineering skills (`mattpocock-skills`) are installed per machine as a
 
 ### Issue tracker
 
-Tasks in Linear team ZER, specs in `specs/`, defects as GitHub issues. See `docs/agents/issue-tracker.md`.
+Tasks in Linear team ZER, specs in `specs/`, defects as GitHub issues. See `docs/agents/issue-tracker.md`; triage labels in `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
