@@ -20,6 +20,7 @@ import {
 } from "../src/index.js";
 
 const digest = "@sha256:" + "a".repeat(64);
+const accountId = "0123456789abcdef0123456789abcdef";
 const made: string[] = [];
 
 afterEach(async () => {
@@ -46,7 +47,7 @@ function config(dirs: { root: string; secretsDir: string; workRoot: string }): D
     secretsDir: dirs.secretsDir,
     proxyImage: "node" + digest,
     harnesses: { hermes: { image: "homer/hermes" + digest, command: ["hermes", "acp"] } },
-    cloudflareAccountId: "0123456789abcdef0123456789abcdef",
+    cloudflareAccountId: accountId,
     user: { uid: 1000, gid: 1000 },
     fetch: false,
   };
@@ -59,13 +60,23 @@ interface Call {
 }
 
 /** Fake docker, git and tar. `tar` writes the exported files; the agent speaks ACP. */
-function fakeProcesses(options: { probe?: number; leftover?: string } = {}) {
+function fakeProcesses(
+  options: { probe?: number; leftover?: string; op?: Record<string, string> | "missing" } = {},
+) {
   const calls: Call[] = [];
   const agentReceived: string[] = [];
   const processes: Processes = {
     async run(command, args, runOptions: RunOptions = {}): Promise<ProcessResult> {
       calls.push({ command, args, env: runOptions.env ?? {} });
       const ok = (stdout = "") => ({ code: 0, stdout, stderr: "" });
+      if (command === "op") {
+        if (options.op === undefined || options.op === "missing") throw new Error("ENOENT");
+        if (args[0] === "--version") return ok("2.41.1\n");
+        const value = options.op[args[1] ?? ""];
+        return value === undefined
+          ? { code: 1, stdout: "", stderr: "[ERROR] item not found: secret detail" }
+          : ok(value + "\n");
+      }
       if (command === "git" && args.includes("rev-parse")) return ok("b".repeat(40) + "\n");
       if (command === "git" && args.includes("archive")) {
         await writeFile(args[args.indexOf("-o") + 1] ?? "", "tar");
@@ -150,16 +161,27 @@ describe("configuration", () => {
     expect(() => new DockerHostAdapter(good, fakeProcesses().processes)).not.toThrow();
   });
 
-  test("Cloudflare needs an account id; Anthropic uses the harness default", async () => {
+  test("Cloudflare needs an account id; Anthropic uses the harness default", () => {
+    expect(providerBaseUrl(PROVIDERS.cloudflare, accountId)).toBe(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`,
+    );
+    expect(() => providerBaseUrl(PROVIDERS.cloudflare, "x")).toThrow();
+    expect(() => providerBaseUrl(PROVIDERS.cloudflare, null)).toThrow();
+    expect(providerBaseUrl(PROVIDERS.anthropic, null)).toBeNull();
+  });
+
+  test("1Password settings must be credential names and op:// references", async () => {
     const dirs = await folders();
     const good = config(dirs);
-    expect(providerBaseUrl(PROVIDERS.cloudflare, good)).toBe(
-      "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/v1",
-    );
-    expect(() =>
-      providerBaseUrl(PROVIDERS.cloudflare, { ...good, cloudflareAccountId: "x" }),
-    ).toThrow();
-    expect(providerBaseUrl(PROVIDERS.anthropic, good)).toBeNull();
+    const bad = [
+      { ...good, onePassword: { "not a name": "op://Curator/Cloudflare/token" } },
+      { ...good, onePassword: { CLOUDFLARE_AI_TOKEN: "plain-token-value" } },
+      { ...good, cloudflareAccountId: "not-an-id" },
+    ];
+    for (const settings of bad) expect(() => new DockerHostAdapter(settings)).toThrow(TypeError);
+    expect(
+      () => new DockerHostAdapter({ ...good, cloudflareAccountId: "op://Curator/Cloudflare/id" }),
+    ).not.toThrow();
   });
 });
 
@@ -217,7 +239,12 @@ describe("the Docker host adapter", () => {
     expect(args).toContain("CURATOR_MODEL=@cf/example/model");
     expect(args).toContain("CLOUDFLARE_AI_TOKEN");
     expect(args.join(" ")).not.toContain("cf-test-value");
-    expect(agent?.env).toEqual({ CLOUDFLARE_AI_TOKEN: "cf-test-value" });
+    expect(agent?.env).toEqual({
+      CURATOR_BASE_URL: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`,
+      CLOUDFLARE_AI_TOKEN: "cf-test-value",
+    });
+    expect(args).toContain("CURATOR_BASE_URL");
+    expect(args.join(" ")).not.toContain(accountId);
     expect(args.slice(-3)).toEqual(["homer/hermes" + digest, "hermes", "acp"]);
 
     const prompt = fake.agentReceived.find((line) => line.includes("session/prompt")) ?? "";
@@ -235,6 +262,98 @@ describe("the Docker host adapter", () => {
 
     await adapter.cleanup(workspace);
     expect(await readdir(dirs.workRoot)).toEqual([]);
+  });
+
+  test("credentials and the account id can come from 1Password, and both are guarded", async () => {
+    const dirs = await folders();
+    const references = {
+      token: "op://Homer Curator/Cloudflare/workers ai token",
+      account: "op://Homer Curator/Cloudflare/account id",
+    };
+    const fake = fakeProcesses({
+      op: { [references.token]: "op-token-value", [references.account]: accountId },
+    });
+    const adapter = new DockerHostAdapter(
+      {
+        hostId: "curator-1",
+        runnerClone: join(dirs.root, "clone"),
+        workRoot: dirs.workRoot,
+        proxyImage: "node" + digest,
+        harnesses: { hermes: { image: "homer/hermes" + digest, command: ["hermes", "acp"] } },
+        onePassword: { CLOUDFLARE_AI_TOKEN: references.token },
+        cloudflareAccountId: references.account,
+        user: { uid: 1000, gid: 1000 },
+        fetch: false,
+      },
+      fake.processes,
+    );
+    expect((await adapter.describe()).credentials).toEqual(["CLOUDFLARE_AI_TOKEN"]);
+    const previous = process.env.OP_SERVICE_ACCOUNT_TOKEN;
+    process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_test";
+    const workspace = await adapter.exportTree();
+    try {
+      await adapter.runSession({
+        workspace,
+        inputs: { hostPath: dirs.inputs, flags: [] },
+        profile,
+        provider: PROVIDERS.cloudflare,
+        instructions: "x",
+        maxDurationMs: 60_000,
+        decide: () => ({ outcome: { outcome: "cancelled" } }),
+      });
+    } finally {
+      if (previous === undefined) delete process.env.OP_SERVICE_ACCOUNT_TOKEN;
+      else process.env.OP_SERVICE_ACCOUNT_TOKEN = previous;
+    }
+    const reads = fake.calls.filter((c) => c.command === "op" && c.args[0] === "read");
+    expect(reads.map((c) => c.args)).toEqual([
+      ["read", references.account],
+      ["read", references.token],
+    ]);
+    expect(reads.every((c) => c.env.OP_SERVICE_ACCOUNT_TOKEN === "ops_test")).toBe(true);
+    const docker = fake.calls.filter((c) => c.command === "docker");
+    expect(docker.every((c) => c.env.OP_SERVICE_ACCOUNT_TOKEN === undefined)).toBe(true);
+    const agent = docker.find((c) => c.args[0] === "run" && c.args.includes("-i"));
+    expect(agent?.env.CLOUDFLARE_AI_TOKEN).toBe("op-token-value");
+
+    const [runDir] = await readdir(dirs.workRoot);
+    await writeFile(join(dirs.workRoot, runDir ?? "", "work", "CONTEXT.md"), `id ${accountId}\n`);
+    expect(await adapter.listChanges(workspace)).toMatchObject([{ containsSecret: true }]);
+    await adapter.cleanup(workspace);
+  });
+
+  test("a failed 1Password read stops the session without its message", async () => {
+    const dirs = await folders();
+    const fake = fakeProcesses({ op: {} });
+    const adapter = new DockerHostAdapter(
+      { ...config(dirs), onePassword: { CLOUDFLARE_AI_TOKEN: "op://Homer Curator/Cloudflare/x" } },
+      fake.processes,
+    );
+    const workspace = await adapter.exportTree();
+    const session = adapter.runSession({
+      workspace,
+      inputs: { hostPath: dirs.inputs, flags: [] },
+      profile,
+      provider: PROVIDERS.cloudflare,
+      instructions: "x",
+      maxDurationMs: 60_000,
+      decide: () => ({ outcome: { outcome: "cancelled" } }),
+    });
+    await expect(session).rejects.toThrow("1Password read failed");
+    await session.catch((error: unknown) => {
+      expect(String(error)).not.toContain("secret detail");
+    });
+    expect(fake.calls.some((c) => c.command === "docker" && c.args.includes("-i"))).toBe(false);
+    await adapter.cleanup(workspace);
+  });
+
+  test("1Password names are not offered when the CLI is missing", async () => {
+    const dirs = await folders();
+    const adapter = new DockerHostAdapter(
+      { ...config(dirs), onePassword: { OPENAI_API_KEY: "op://Homer Curator/OpenAI/key" } },
+      fakeProcesses({ op: "missing" }).processes,
+    );
+    expect((await adapter.describe()).credentials).toEqual(["CLOUDFLARE_AI_TOKEN"]);
   });
 
   test("open egress stops the session before the harness starts", async () => {
