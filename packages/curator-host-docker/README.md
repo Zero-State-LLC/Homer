@@ -38,11 +38,15 @@ const receipt = await runCurator({ host, inputs, validator, publisher }, request
      command line.
 
    It speaks ACP over the container's standard streams, answers permission requests
-   with the core's policy, and returns only after the container is gone.
+   with the core's policy, and returns only after the container is gone. A harness
+   that stops reading its input, or sends an oversized message or request id, ends
+   the session.
 3. `listChanges()` compares the two copies on the host, without Git, and reports
-   symlinks, modes and line counts for the core's checks.
-4. `readFile()` refuses a symlink anywhere on the path and anything that is not
-   UTF-8 text.
+   symlinks, modes and line counts for the core's checks. It marks any change that
+   holds the run's credential, plain, split or base64-encoded, so the core refuses
+   it.
+4. `readFile()` refuses a symlink anywhere on the path, anything that is not UTF-8
+   text, and anything holding the run's credential.
 5. `cleanup()` removes the containers, the network and the folders, and fails if
    any are left.
 
