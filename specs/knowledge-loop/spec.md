@@ -20,7 +20,7 @@ the host; Langfuse collection in open pull request #30, later, for traces.
 | Cadence | Nightly at 02:00 Pacific, plus Run now in the UI. |
 | Host until Galadriel | Delphi or Morpheus (DGX Spark), whichever is less loaded. Danny names it. |
 | GitHub identity | A GitHub App installed on Homer only, with contents and pull request write. It is not in the bypass list, so it cannot merge without review. |
-| Buzz identity | Its own key, separate from Homer's alert key, with membership in the flag channel only. |
+| Buzz identity | Its own key, separate from Homer's alert key. Membership starts with the flag channel; a human adds any channel whose threads flags may cite. |
 | Target repositories | Homer only. A proposed agent-context change becomes a Linear Task with the patch. |
 | Traces | None at launch. Langfuse is added once #30 is live. |
 | Team rule | Homer only for about a month, then proposed to agent-context with evidence. |
@@ -110,8 +110,14 @@ the reason is recorded, as the Galadriel intent requires.
    - open flags from Homer;
    - each flag's text from its source, with the curator's Buzz key or the GitHub
      App;
+   - the evidence each flag links to, one level deep: a Buzz thread in a channel the
+     curator's key belongs to, a Homer issue, pull request, or file through the
+     GitHub App, and later a Linear Task. Links inside fetched evidence are not
+     followed. At most 10 links per flag and 64 KB per item;
    - reviews on Homer pull requests merged since the last run.
    It writes them as files into an `inputs/` folder outside the repository copy.
+   A link it cannot reach, or one past the limits, is listed as unreachable, and
+   the run reports that flag as unclear rather than guessing.
 4. It exports Homer's files at `main` into a fresh folder with no Git metadata:
    no `.git` folder, hooks, or config. The runner keeps its own clone elsewhere,
    which the agent never sees.
@@ -241,10 +247,11 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
    qualification clearing, and switch events.
 4. **Host runner**: run claim, input gathering, metadata-free export, container
    launch, ACP client with the policy, diff checks, commit in the runner's own
-   clone with hooks disabled, push and pull request, and receipt. Tests include a
-   planted hook, a planted Git config, a symlink, and a mode change, each refused
-   or inert, and two runs on one day with distinct branches. Tested end to end on
-   the chosen DGX Spark.
+   clone with hooks disabled, push and pull request, and receipt. Tests include
+   linked evidence fetched one level deep, an unreachable link, and the per-flag
+   and per-item limits; a planted hook, a planted Git config, a symlink, and a mode
+   change, each refused or inert; and two runs on one day with distinct branches.
+   Tested end to end on the chosen DGX Spark.
 5. **Qualification dry run** and its fixtures, for the three launch options.
 6. **Curator page** in the operator UI.
 7. **Flag intake**: Buzz (with the Buzz Collector), then the GitHub label, then the
