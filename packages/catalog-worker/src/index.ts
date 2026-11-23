@@ -3,10 +3,12 @@ import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
 import { verifyAccess, validateAccessConfig, type AccessConfig } from "./access.js";
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
+import { BuzzChannelCatalogObject } from "./buzz-store.js";
+import { handleBuzzChannels, isBuzzChannelsPath } from "./buzz-channels.js";
 import { json, readBytes } from "./http.js";
 import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
 import { editorPaths, editorResponse } from "./editor.js";
-export { MappingCatalogObject };
+export { BuzzChannelCatalogObject, MappingCatalogObject };
 export interface Env extends CatalogBindings, AccessConfig, WebhookEnv {}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
 export async function handleRequest(
@@ -16,6 +18,7 @@ export async function handleRequest(
 ): Promise<Response> {
   const url = new URL(request.url);
   if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);
+  if (isBuzzChannelsPath(url.pathname)) return handleBuzzChannels(request, env, key);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
   const editorRoute = editorPaths.has(url.pathname);
   const snapshotRoute = url.pathname === "/v1/admin/catalog/snapshot";

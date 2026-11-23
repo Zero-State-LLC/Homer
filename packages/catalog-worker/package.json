@@ -13,6 +13,7 @@
     "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('src/bindings.d.ts', 'dist/bindings.d.ts')\""
   },
   "dependencies": {
+    "@zs-home/buzz-collector": "0.0.0",
     "@zs-home/github-sync": "0.0.0",
     "jose": "6.2.18",
     "@zs-home/event-ledger": "0.0.0"

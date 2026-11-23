@@ -15,3 +15,15 @@ export {
   type BuzzRefusal,
   type SchnorrVerify,
 } from "./mapping.js";
+export {
+  BuzzChannelCatalog,
+  CHANNEL_METADATA_KIND,
+  MAX_CHANNELS,
+  MAX_LABEL_CHARS,
+  channelAdmission,
+  parseBuzzChannelSnapshot,
+  type BuzzChannelEntry,
+  type BuzzChannelSnapshot,
+  type BuzzChannelStore,
+  type ChannelAdmission,
+} from "./catalog.js";

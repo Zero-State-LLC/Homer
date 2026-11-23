@@ -11,6 +11,9 @@ claims. It does not trust identity headers alone.
 | Export complete catalog history | `GET /v1/admin/catalog/archive` | Admin audience only |
 | Replace mappings | `PUT /v1/admin/catalog` | Admin audience only |
 | Collect merged PR | `POST /v1/hooks/github` | GitHub HMAC-SHA256, separate from Access |
+| Read Buzz channels | `GET /v1/admin/buzz/channels` | Admin audience only |
+| Replace Buzz channels | `PUT /v1/admin/buzz/channels` | Admin audience only |
+| List Buzz channels, read-only page | `GET /v1/admin/buzz/channels/view` | Admin audience only |
 
 Reads return an ETag containing the current revision. Writes require the same
 quoted revision in If-Match and the full next MappingSnapshot at revision +1.
@@ -33,6 +36,11 @@ Catalog archives preserve revision audit fields and include a SHA-256 digest.
 The trusted-binding restore operation accepts only an empty target and imports
 atomically. There is no HTTP restore route. Archives are limited to 768 KiB and
 1,000 revisions; larger histories fail explicitly without returning partial data.
+
+The Buzz channel allowlist lives in its own Durable Object (`BUZZ_CHANNELS`) with
+the same immutable history, ETag and If-Match rules. It starts empty, which admits
+nothing. Its listing page is read-only and has no script. See the
+[Buzz spec](../../specs/buzz/spec.md), "Channel allowlist".
 
 See the [Cloudflare runbook](../../docs/deployment/cloudflare-catalog.md) and
 [specification](../../specs/catalog-worker/spec.md). Local tests and a bundle dry

@@ -18,6 +18,7 @@ source or chat logs:
 | `ACCESS_ADMIN_AUD` | Distinct audience for the catalog administrator application |
 | `CATALOG_NAME` | Stable Durable Object name for this environment |
 | `MAPPING_CATALOG` | Durable Object namespace bound to MappingCatalogObject |
+| `BUZZ_CHANNELS` | Durable Object namespace bound to BuzzChannelCatalogObject (migration `v2`), the Buzz channel allowlist |
 | `EVENT_LEDGER` | Cross-Worker binding to the existing EventLedgerObject namespace, required for webhooks |
 | `GITHUB_WEBHOOK_SECRET` | High-entropy webhook secret installed as a Workers secret, required for webhooks |
 
