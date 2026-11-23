@@ -112,24 +112,31 @@ the reason is recorded, as the Galadriel intent requires.
      App;
    - reviews on Homer pull requests merged since the last run.
    It writes them as files into an `inputs/` folder outside the repository copy.
-4. It checks out Homer at `main` into a fresh working copy.
-5. It starts the profile's harness in a container. The container sees only the
-   working copy, writable, and the inputs, read-only. Its only credential is the
-   model key. Network egress reaches only the model provider; for `hermes-nim`, it
+4. It exports Homer's files at `main` into a fresh folder with no Git metadata:
+   no `.git` folder, hooks, or config. The runner keeps its own clone elsewhere,
+   which the agent never sees.
+5. It starts the profile's harness in a container. The container sees only that
+   folder, writable, and the inputs, read-only. Its only credential is the model
+   key. Network egress reaches only the model provider; for `hermes-nim`, it
    reaches only `localhost`.
 6. The runner's ACP client sends one prompt: the fixed curator instructions plus the
    inputs. It answers every permission request by the profile's policy, so a
    headless run never waits on approval.
-7. When the session ends or times out (30 minutes), the runner checks the diff:
+7. When the session ends or times out (30 minutes), the runner compares the folder
+   with `main` and checks the changes:
    - only these paths changed: `CONTEXT.md`, `AGENTS.md`, `docs/agents/**`, and
      `docs/map.md`;
+   - every changed path is a regular text file: no symlink, new executable, mode
+     change, or path outside the repository;
    - at most 300 changed lines;
    - `markdownlint-cli2` passes, and the pinned `check-agents-md.sh` passes on
      `AGENTS.md`.
-8. If the checks pass and something changed, the runner commits, pushes the branch
-   `curator/<YYYY-MM-DD>`, and opens one pull request with the GitHub App. The pull
-   request body lists each flag addressed, the sources cited, and the profile
-   revision.
+8. If the checks pass and something changed, the runner copies only the accepted
+   file contents into its own clean clone at `main`. It commits there with Git
+   hooks disabled and no configuration taken from the agent's folder, pushes the
+   branch `curator/<YYYY-MM-DD>-<run-id>`, and opens one pull request with the
+   GitHub App. The pull request body lists each flag addressed, the sources cited,
+   and the profile revision. Nothing the agent wrote is ever executed on the host.
 9. The runner reports the outcome, and Homer appends `curator.run_completed`.
 
 The agent never holds a GitHub token or a Buzz key, and never pushes. A failed check
@@ -147,9 +154,9 @@ opens no pull request; the receipt names the reason code.
 
 ### Permission policy `curator-default`
 
-- Read: any file in the working copy and the inputs.
-- Write: files in the working copy only.
-- Run: none, except `git diff` and `git status`.
+- Read: any file in the exported folder and the inputs.
+- Write: files in the exported folder only.
+- Run: none. The folder has no Git metadata, and the runner computes the diff.
 - Network: the model provider only.
 - Anything else is refused.
 
@@ -193,9 +200,12 @@ The "Land the fix" section changes as follows:
 
 - **Instructions hidden in inputs.** Inputs are untrusted. The agent holds no
   credential except the model key, cannot reach the network beyond the model, can
-  write only in its working copy, and the runner rejects changes outside the
+  write only in its exported folder, and the runner rejects changes outside the
   allowed paths. Every change still needs a human review.
 - **A harness that ignores permission answers.** The container limits it anyway.
+  Its folder holds no Git metadata, so it cannot plant a hook or config that the
+  runner would execute; the runner commits only accepted file contents, in its own
+  clone, with hooks disabled.
 - **A runaway or looping session.** The 30-minute limit, the 300-line cap, and one
   run at a time.
 - **A stolen GitHub App key.** The App can open pull requests on Homer only. It
@@ -229,9 +239,12 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
    list, with no key material.
 3. **Curator Profile store and harness catalog**, with compare-and-swap,
    qualification clearing, and switch events.
-4. **Host runner**: run claim, input gathering, container launch, ACP client with
-   the policy, diff checks, push and pull request, and receipt. Tested end to end
-   on the chosen DGX Spark.
+4. **Host runner**: run claim, input gathering, metadata-free export, container
+   launch, ACP client with the policy, diff checks, commit in the runner's own
+   clone with hooks disabled, push and pull request, and receipt. Tests include a
+   planted hook, a planted Git config, a symlink, and a mode change, each refused
+   or inert, and two runs on one day with distinct branches. Tested end to end on
+   the chosen DGX Spark.
 5. **Qualification dry run** and its fixtures, for the three launch options.
 6. **Curator page** in the operator UI.
 7. **Flag intake**: Buzz (with the Buzz Collector), then the GitHub label, then the
