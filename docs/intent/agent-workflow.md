@@ -196,12 +196,9 @@ Still open: none.
 
 ## Next
 
-Both pull requests have landed. The five triage labels were created in
-Linear team ZER on 2026-11-21. Linear Task ZER-24 tracks what remains:
-
-- The agent-context `AGENTS.md` template should check for
-  `.trail/cache/` as well as `graft/`. That change belongs in
-  agent-context, not here.
-- The two departures above (Tasks from `/to-tickets`, parallel
-  `/implement-spec`) are Homer-only rulings. If they should hold for
-  other repositories, they belong in agent-context `DECISIONS.md`.
+Done. Both pull requests have landed, and the five triage labels were
+created in Linear team ZER on 2026-11-21. Linear Task ZER-24 closed after
+agent-context #11 (`a4b7b7e`) fixed the template's code map rule and
+recorded the two departures above as a Homer-only exception in
+`DECISIONS.md`. Homer's Context Pin moved to that commit in a separate
+pull request.

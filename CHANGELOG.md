@@ -38,6 +38,10 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - agent-context Context Pin with a CI check and negative tests.
 - CI: docs lint, link check, gitleaks secret scan, Dependabot for GitHub Actions.
 
+### Changed
+
+- Context Pin moves to agent-context `a4b7b7e`, whose `AGENTS.md` template checks Trail-code's `.trail/cache/` map and records Homer's Pocock exception. Only `templates/AGENTS.md.template` changes digest.
+
 ### Fixed
 
 - The `## Code map` rule in `AGENTS.md` now checks for `.trail/cache/`, where Trail 0.30.5 keeps the map, instead of `graft/`, which a repository on Trail does not have.
