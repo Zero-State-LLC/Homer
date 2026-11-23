@@ -49,6 +49,7 @@ function change(path: string, extra: Partial<Change> = {}): Change {
     modeChanged: false,
     text: true,
     linesChanged: 4,
+    containsSecret: false,
     ...extra,
   };
 }
@@ -213,7 +214,7 @@ describe("change checks", () => {
     });
   });
 
-  test("deletions, binary files, duplicates and too many lines are refused", () => {
+  test("deletions, binary files, duplicates, credentials and too many lines are refused", () => {
     expect(
       checkChanges([
         change("AGENTS.md", { status: "deleted" }),
@@ -221,6 +222,7 @@ describe("change checks", () => {
         change("docs/agents/b.md", { linesChanged: 299 }),
         change("docs/agents/b.md"),
         change("docs/agents/c.md", { linesChanged: -1 }),
+        change("docs/agents/d.md", { containsSecret: true }),
       ]),
     ).toEqual({
       ok: false,
@@ -229,6 +231,7 @@ describe("change checks", () => {
         { path: "docs/agents/a.md", reason: "not_text" },
         { path: "docs/agents/b.md", reason: "duplicate_path" },
         { path: "docs/agents/c.md", reason: "invalid_line_count" },
+        { path: "docs/agents/d.md", reason: "contains_secret" },
         { path: "", reason: "too_many_lines" },
       ],
     });
