@@ -85,6 +85,44 @@ to other work and are not part of this handoff.
 - **Secrets:** no secret, token or account id goes in the tree, a pull request,
   Linear, Buzz or chat. That includes the Cloudflare account id.
 
+## Merge contract decisions
+
+Danny settled these on 2026-11-23, one question at a time, after the gap above was
+found.
+
+1. **Past merges.** The five code pull requests, #51 to #55, get online
+   software-factory Verdicts with a reproduce check, after the fact, against their
+   merged head SHAs. The four docs pull requests, #47 to #50, stand as Danny's
+   acceptance. A failing Verdict is fixed forward in a new pull request, never by
+   rewriting history.
+2. **Who judges, for now.** Verdicts come from software-factory's judge through
+   OpenRouter: `factory judge run --reproduce`, whose default judge is GLM-5.3 and
+   whose vendor family differs from the author's. This is the current arrangement,
+   not a permanent one.
+3. **Where it runs.** On the box: ADVERSARY or Boof runs the judge where the
+   OpenRouter key and the governance egress guard already live, and posts the
+   verdict JSON on the pull request. No agent pastes or holds the key elsewhere.
+4. **Codex review stays, before verify.** Authors request `@codex review` and fix
+   its findings before asking for a Verdict. It remains a pull request review, not a
+   Verdict.
+5. **Work Packets come from Homer Work Requests.** Homer emits a Work Request
+   (`specs/integration-contracts/work-request.v1.schema.json`), and GAP turns it
+   into the Work Packet the judge grades. Homer does not emit Work Requests yet.
+6. **Until then.** This handoff (#57, docs only) merges on Danny's acceptance, as
+   the past docs pull requests did. The code waits for Work Requests: the
+   after-the-fact Verdicts for #51 to #55, and #56.
+7. **Homer is fed by its sources.** Work Requests come from the sources the
+   repository already defines, the ones the Work Request contract's `source` field
+   names: a Linear Task (`linear:ZER-N`), a GitHub issue
+   (`github:<owner>/<repo>#N`), or a manual request (`manual:<slug>`). They are not
+   written by hand per pull request.
+8. **Docs merge on acceptance, from now on.** A pull request that changes only docs
+   (intents, specs, the glossary, receipts, other Markdown) merges on Danny's
+   explicit yes once CI is green and the Codex review is clean. A pull request that
+   touches code, configuration or CI needs the full gate: a passing online Verdict
+   with a reproduce check for the head SHA, then Danny's yes. AGENTS.md's Merge
+   section does not say this yet; it waits for Danny to change the contract.
+
 ## Gotchas
 
 - **Prettier:** CI uses the lockfile's Prettier, 3.10.1. It keeps a union that fits
