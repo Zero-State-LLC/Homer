@@ -176,7 +176,8 @@ Qualification is per profile and host. Switching the host clears it.
    - reviews on Homer pull requests merged since the last run.
    It writes them as files into an `inputs/` folder outside the repository copy.
    A link it cannot reach, or one past the limits, is listed as unreachable, and
-   the run reports that flag as unclear rather than guessing.
+   the run reports that flag as unclear rather than guessing, whatever the agent
+   reports.
 4. It exports Homer's files at `main` into a fresh folder with no Git metadata:
    no `.git` folder, hooks, or config. The runner keeps its own clone elsewhere,
    which the agent never sees.
@@ -186,22 +187,32 @@ Qualification is per profile and host. Switching the host clears it.
    reaches only the loopback endpoint.
 6. The runner's ACP client sends one prompt: the fixed curator instructions plus the
    inputs. It answers every permission request by the profile's policy, so a
-   headless run never waits on approval.
+   headless run never waits on approval. The agent ends with a flag report: one
+   result per flag, `addressed`, `unclear`, or `conflict`. The report is untrusted.
+   A flag it omits, names twice, or does not recognize, and every flag when the
+   report is missing or malformed, counts as `unclear`. A flag counts as
+   `addressed` only when the run also has accepted changes.
 7. When the session ends or times out (30 minutes), the runner compares the folder
    with `main` and checks the changes:
    - only these paths changed: `CONTEXT.md`, `AGENTS.md`, `docs/agents/**`, and
      `docs/map.md`;
-   - every changed path is a regular text file: no symlink, new executable, mode
-     change, or path outside the repository;
+   - every changed path is a regular Markdown file (`.md`) with a plain ASCII name:
+     no hidden file or folder, symlink, new executable, mode change, deletion, or
+     path outside the repository. A hidden file could carry linter configuration
+     or code;
    - at most 300 changed lines;
    - `markdownlint-cli2` passes, and the pinned `check-agents-md.sh` passes on
-     `AGENTS.md`.
+     `AGENTS.md`. Both run on the host against the accepted contents, with
+     configuration from the runner's own clone at `main`, never from the agent's
+     folder.
 8. If the checks pass and something changed, the runner copies only the accepted
    file contents into its own clean clone at `main`. It commits there with Git
    hooks disabled and no configuration taken from the agent's folder, pushes the
    branch `curator/<YYYY-MM-DD>-<run-id>`, and opens one pull request with the
    GitHub App. The pull request body lists each flag addressed, the sources cited,
-   and the profile revision. Nothing the agent wrote is ever executed on the host.
+   and the profile revision. Flags reported `unclear` or `conflict` are not cited;
+   the receipt lists them as needing a human. Nothing the agent wrote is ever
+   executed on the host.
 9. The runner reports the outcome, and Homer appends `curator.run_completed`.
 
 The agent never holds a GitHub token or a Buzz key, and never pushes. A failed check
