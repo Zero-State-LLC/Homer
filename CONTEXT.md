@@ -113,6 +113,10 @@ A condition a release must pass: CI green, a passing software-factory Verdict, a
 Homer's versioned request to software-factory to start a Work Packet at intake. Homer never advances a packet past intake.
 _Avoid_: job, task (for factory work)
 
+**Emitter**:
+The part of Homer that builds one Work Request from a Source System object: a Linear Task, a GitHub issue, or a manual request. An Emitter maps, it never invents, and it never advances a Work Packet.
+_Avoid_: generator, dispatcher, sender
+
 **Work Packet**:
 software-factory's unit of work (`factory/packet/work_packet.schema.json`). Homer reads it; software-factory owns it.
 

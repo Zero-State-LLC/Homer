@@ -77,24 +77,26 @@ Non-goals:
 - A Control Room or Linear write-back of Work Request state.
 - Deciding the long-term delivery transport for every Source System.
 
-## Open questions
+## Resolved questions (2026-11-23, Danny)
 
-- **Delivery to GAP.** Danny's decision 5 says GAP turns the Work Request into a
-  Work Packet, but the transport is undecided. Three candidates, in the order I
-  would try them:
-  1. A CLI that prints or writes the validated JSON, with an optional POST to a
-     GAP intake endpoint when one is configured. Verifiable today by a human
-     running one command and pasting the JSON into `factory judge run`.
-  2. A committed artifact under `docs/receipts/` per request, reviewed like any
-     other document. Durable and diffable, but stale by nature.
-  3. GAP polling Homer's Event Ledger for `work-request` events. Cleanest long
-     term, but it adds a Kind and a new Event Ledger contract version.
-- **Identity of the requester.** Whether `requestedBy.sourceAccount` is the
-  Linear or GitHub account that owns the Task, or the Agent that emitted the
-  request, is unresolved. The contract only requires `sourceAccount`.
-- **Idempotency.** Whether re-emitting for the same source returns the same
-  `requestId` (recommended, so a retry cannot create a second packet) or a new
-  one per attempt.
+Settled in review before acceptance; recorded here so implement does not reopen
+them.
+
+- **Delivery to GAP: a local emitter with a CLI**, POSTing only when an endpoint
+  is configured, with `toWorkPacket` as the acceptance test. Ledger delivery is
+  deferred. See [ADR 006](../../specs/adr/006-work-request-transport.md).
+- **`requestId` is deterministic**: the date in it is the source object's own
+  immutable date, never the emission date, so a retry cannot create a second
+  packet.
+- **`requestedBy.sourceAccount` names the emitting Agent** (`agent:<name>`), with
+  `actorId` filled from its Identity Binding. The human stays in `who`.
+- **A failed delivery exits non-zero and writes no receipt.** A receipt that
+  claims delivery it did not achieve would repeat the silent-success defect in
+  issue #43.
+
+Still open, and only a human can answer them: whether the schema's inability to
+express `requestId` uniqueness is fixed in the contract README now or in a later
+revision.
 
 ## Claims
 
