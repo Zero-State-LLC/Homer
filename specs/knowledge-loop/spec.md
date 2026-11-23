@@ -40,6 +40,8 @@ built once, with both specs' additions.
 - `knowledge.flagged` is admitted from `buzz`, `github`, and `linear`.
 - `curator.run_completed`: Event Key `homer:curator.run_completed:<run-id>`.
   Evidence holds the pull request link, if any, and one link per flag addressed.
+  A Buzz flag has only a `buzz://message` link, so a `homer` event may carry that
+  link as evidence; its source URL is still `https://`.
   The subject is fixed text for the outcome: `Curator run opened a pull request`,
   `Curator run found nothing to change`, or `Curator run failed: <reason code>`.
 - `curator.profile_switched`: Event Key

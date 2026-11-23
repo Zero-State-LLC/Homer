@@ -9,16 +9,22 @@ const ajv = new Ajv2020({
   code: { source: true, formats: _`require("ajv-formats/dist/formats").fullFormats` },
 });
 addFormats(ajv);
-const schema = JSON.parse(
-  readFileSync(
-    new URL("../../../specs/integration-contracts/activity-event.v1.schema.json", import.meta.url),
-    "utf8",
+const schemas = ["v1", "v2"].map((version) =>
+  JSON.parse(
+    readFileSync(
+      new URL(
+        `../../../specs/integration-contracts/activity-event.${version}.schema.json`,
+        import.meta.url,
+      ),
+      "utf8",
+    ),
   ),
 );
-const validate = ajv.compile(schema);
+for (const schema of schemas) ajv.addSchema(schema);
+const [v1, v2] = schemas;
 writeFileSync(
   new URL("../dist/activity-validator.cjs", import.meta.url),
-  standaloneCode(ajv, validate),
+  standaloneCode(ajv, { v1: v1.$id, v2: v2.$id }),
 );
 copyFileSync(
   new URL("../src/activity-validator.d.cts", import.meta.url),

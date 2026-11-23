@@ -1,10 +1,26 @@
-import validate from "./activity-validator.cjs";
+import validators from "./activity-validator.cjs";
 import { activityEventSemanticErrors } from "./activity-semantics.js";
 import type { ActivityEvent, Result } from "./types.js";
-export type { ActivityEvent, Provenance, Result } from "./types.js";
+export type {
+  ActivityEvent,
+  ActivityEventContract,
+  EventKind,
+  Provenance,
+  Result,
+  SourceSystem,
+} from "./types.js";
 
-/** Generated at build time; no filesystem reads or runtime code generation. */
+/**
+ * Generated at build time; no filesystem reads or runtime code generation. Picks the version
+ * the input's `contract` names, as the Node validator does.
+ */
 export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
+  const v2 =
+    typeof input === "object" &&
+    input !== null &&
+    !Array.isArray(input) &&
+    (input as Record<string, unknown>)["contract"] === "home.activity-event/v2";
+  const validate = v2 ? validators.v2 : validators.v1;
   const errors = validate(input)
     ? []
     : (validate.errors ?? []).map((e) => `${e.instancePath || "/"} ${e.message ?? e.keyword}`);

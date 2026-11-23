@@ -10,7 +10,7 @@ import {
 } from "../src/index.js";
 import type { Correction } from "../src/index.js";
 import { canonicalJson, digest, entryBody } from "../src/canonical.js";
-import { event } from "./fixture.js";
+import { buzzEvent, event } from "./fixture.js";
 function ledger() {
   return env.EVENT_LEDGER.get(env.EVENT_LEDGER.newUniqueId()) as unknown as DurableObjectStub &
     LedgerRpc;
@@ -60,6 +60,32 @@ describe("Durable Event Ledger", () => {
     expect((await l.appendActivityEvent({ ...event(), subject: "different" })).outcome).toBe(
       "conflict",
     );
+  });
+  it("stores version 1 and version 2 events side by side", async () => {
+    const l = ledger();
+    expect((await l.appendActivityEvent(event())).outcome).toBe("appended");
+    const first = await l.appendActivityEvent(buzzEvent());
+    expect(first.outcome).toBe("appended");
+    const retry = buzzEvent();
+    retry.provenance = { ...retry.provenance, collectedAt: "2026-11-23T16:00:00Z" };
+    expect(await l.appendActivityEvent(retry)).toEqual({ ...first, outcome: "duplicate" });
+    expect(
+      (await l.appendActivityEvent({ ...buzzEvent(), occurredAt: "2026-11-23T15:04:06Z" })).outcome,
+    ).toBe("conflict");
+    const wrongLink = event("two");
+    wrongLink.contract = "home.activity-event/v2";
+    wrongLink.provenance = { ...wrongLink.provenance, sourceUrl: buzzEvent().provenance.sourceUrl };
+    expect((await l.appendActivityEvent(wrongLink)).outcome).toBe("refused");
+    const history = await l.readHistory();
+    expect(history.map((entry) => entry.payload.contract)).toEqual([
+      "home.activity-event/v1",
+      "home.activity-event/v2",
+    ]);
+    expect(verifyHistory(history)).toEqual({ ok: true });
+    expect(replayEffectiveHistory(history).map((e) => e.eventKey)).toEqual([
+      event().eventKey,
+      buzzEvent().eventKey,
+    ]);
   });
   it("validates before Duplicate classification and retains Unattributed source accounts", async () => {
     const l = ledger();

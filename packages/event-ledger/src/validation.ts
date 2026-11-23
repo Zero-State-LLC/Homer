@@ -49,15 +49,17 @@ export function validateCorrection(input: unknown): Result<Correction> {
       const replacement = validateEvent(v.replacement);
       if (!replacement.ok) return replacement;
     }
-    // Reuse the authoritative Provenance schema through an otherwise valid event.
+    // Reuse the authoritative Provenance schema through an otherwise valid version 2 event,
+    // whose Kind and subject the Provenance's Source System admits.
     const provenance = v.provenance as Record<string, unknown> | null;
+    const synthetic = syntheticFor(provenance?.sourceSystem);
     const check = validateActivityEvent({
-      contract: "home.activity-event/v1",
-      eventKey: `${String(provenance?.sourceSystem)}:commit.pushed:correction-validation`,
-      kind: "commit.pushed",
+      contract: "home.activity-event/v2",
+      eventKey: `${String(provenance?.sourceSystem)}:${synthetic.kind}:correction-validation`,
+      kind: synthetic.kind,
       occurredAt: "2026-01-01T00:00:00Z",
       actor: { sourceAccount: "synthetic" },
-      subject: "Correction validation",
+      subject: synthetic.subject,
       provenance,
     });
     if (!check.ok) return { ok: false, errors: check.errors };
@@ -68,6 +70,13 @@ export function validateCorrection(input: unknown): Result<Correction> {
       errors: ["Correction must have valid JSON, identity, action, reason and Provenance"],
     };
   }
+}
+function syntheticFor(sourceSystem: unknown): { kind: string; subject: string } {
+  if (sourceSystem === "buzz") return { kind: "message.posted", subject: "Buzz message" };
+  if (sourceSystem === "homer") {
+    return { kind: "curator.profile_switched", subject: "Correction validation" };
+  }
+  return { kind: "commit.pushed", subject: "Correction validation" };
 }
 export function correctionTargetErrors(
   c: Correction,

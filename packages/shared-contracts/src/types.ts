@@ -3,7 +3,14 @@
  * The schema files are the authority. These names use the glossary terms.
  */
 
-export type SourceSystem = "github" | "linear" | "control-room" | "software-factory";
+/** `buzz` and `homer` exist only in Activity Event contract version 2. */
+export type SourceSystem =
+  | "github"
+  | "linear"
+  | "control-room"
+  | "software-factory"
+  | "buzz"
+  | "homer";
 
 export type ActorKind = "human" | "agent" | "system" | "unknown";
 
@@ -26,7 +33,14 @@ export type EventKind =
   | "blocker.raised"
   | "blocker.cleared"
   | "factory.stage_changed"
-  | "factory.verdict_recorded";
+  | "factory.verdict_recorded"
+  // Version 2 only.
+  | "message.posted"
+  | "knowledge.flagged"
+  | "curator.run_completed"
+  | "curator.profile_switched";
+
+export type ActivityEventContract = "home.activity-event/v1" | "home.activity-event/v2";
 
 export interface ActivityEventActor {
   sourceAccount: string;
@@ -43,8 +57,12 @@ export interface Provenance {
   collectedAt: string;
 }
 
+/**
+ * Either contract version. The schema for the version `contract` names is the authority on
+ * which Source Systems, Kinds and links that version allows.
+ */
 export interface ActivityEvent {
-  contract: "home.activity-event/v1";
+  contract: ActivityEventContract;
   eventKey: string;
   kind: EventKind;
   occurredAt: string;
@@ -82,7 +100,14 @@ export interface WorkRequest {
 }
 
 export type PacketStage =
-  "intake" | "spec" | "implement" | "verify" | "merge" | "deploy" | "learn" | "done";
+  | "intake"
+  | "spec"
+  | "implement"
+  | "verify"
+  | "merge"
+  | "deploy"
+  | "learn"
+  | "done";
 
 export interface FactoryEventStageChanged {
   contract: "home.factory-event/v1";

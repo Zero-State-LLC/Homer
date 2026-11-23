@@ -1,0 +1,18 @@
+{
+  "contract": "home.activity-event/v2",
+  "eventKey": "linear:message.posted:ZER-1",
+  "kind": "message.posted",
+  "occurredAt": "2026-11-23T15:10:00Z",
+  "actor": {
+    "sourceAccount": "github:octocat"
+  },
+  "subject": "CONTEXT.md is missing the Knowledge Flag term",
+  "provenance": {
+    "sourceSystem": "linear",
+    "sourceObjectId": "Zero-State-LLC/Homer#60",
+    "sourceUrl": "https://linear.app/zer0state/issue/ZER-1",
+    "collector": "github-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-23T15:11:00Z"
+  }
+}

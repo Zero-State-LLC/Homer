@@ -15,7 +15,8 @@ const ajv = new Ajv2020({
 // the same binding as the module namespace, whose default is that function.
 addFormats.default(ajv);
 
-const validateActivityEventSchema = compile("activity-event.v1.schema.json");
+const validateActivityEventV1Schema = compile("activity-event.v1.schema.json");
+const validateActivityEventV2Schema = compile("activity-event.v2.schema.json");
 const validateWorkRequestSchema = compile("work-request.v1.schema.json");
 const validateFactoryEventSchema = compile("factory-event.v1.schema.json");
 
@@ -48,11 +49,16 @@ function formatAjvError(error: ErrorObject): string {
   return `${where} ${message}`;
 }
 
+/**
+ * Validates against the version the input's `contract` names. Anything else, including a
+ * missing or unknown contract, is checked as version 1, so its errors stay as they were.
+ */
 export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
-  const errors = [
-    ...schemaErrors(validateActivityEventSchema, input),
-    ...activityEventSemanticErrors(input),
-  ];
+  const schema =
+    isRecord(input) && input["contract"] === "home.activity-event/v2"
+      ? validateActivityEventV2Schema
+      : validateActivityEventV1Schema;
+  const errors = [...schemaErrors(schema, input), ...activityEventSemanticErrors(input)];
   if (errors.length > 0) {
     return { ok: false, errors };
   }

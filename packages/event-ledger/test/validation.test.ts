@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
-import { validateEvent } from "../src/validation.js";
-import { event } from "./fixture.js";
+import { validateCorrection, validateEvent } from "../src/validation.js";
+import { buzzEvent, event } from "./fixture.js";
 it("refuses non-JSON values before storage, without invoking accessors", () => {
   const cycle: Record<string, unknown> = {};
   cycle.self = cycle;
@@ -37,4 +37,46 @@ it("refuses deeply nested JSON instead of escaping validation with a stack error
     ok: false,
     errors: ["Activity Event must be valid canonical JSON"],
   });
+});
+
+it("accepts contract version 2 events and still checks the Event Key's Kind", () => {
+  expect(validateEvent(buzzEvent()).ok).toBe(true);
+  expect(validateEvent({ ...event(), contract: "home.activity-event/v2" }).ok).toBe(true);
+  const flagged = { ...buzzEvent(), kind: "knowledge.flagged", subject: "Buzz knowledge flag" };
+  expect(validateEvent(flagged)).toEqual({
+    ok: false,
+    errors: ["Event Key Kind segment must equal kind"],
+  });
+});
+
+it("refuses a buzz:// link on a version 1 event and on a non-Buzz version 2 event", () => {
+  const link = buzzEvent().provenance.sourceUrl;
+  const v1 = event();
+  expect(validateEvent({ ...v1, provenance: { ...v1.provenance, sourceUrl: link } }).ok).toBe(
+    false,
+  );
+  const v2 = { ...v1, contract: "home.activity-event/v2" as const };
+  expect(validateEvent({ ...v2, provenance: { ...v2.provenance, sourceUrl: link } }).ok).toBe(
+    false,
+  );
+});
+
+it("validates Correction Provenance from every version 2 Source System", () => {
+  const base = {
+    contract: "home.correction/v1",
+    correctionId: "c-buzz",
+    targetEventKey: buzzEvent().eventKey,
+    action: "retract",
+    reason: "Reviewed synthetic evidence",
+  };
+  expect(validateCorrection({ ...base, provenance: buzzEvent().provenance }).ok).toBe(true);
+  const homer = {
+    ...event().provenance,
+    sourceSystem: "homer",
+    collector: "curator-runner",
+  };
+  expect(validateCorrection({ ...base, provenance: homer }).ok).toBe(true);
+  expect(validateCorrection({ ...base, provenance: event().provenance }).ok).toBe(true);
+  const unknown = { ...event().provenance, sourceSystem: "unknown-system" };
+  expect(validateCorrection({ ...base, provenance: unknown }).ok).toBe(false);
 });

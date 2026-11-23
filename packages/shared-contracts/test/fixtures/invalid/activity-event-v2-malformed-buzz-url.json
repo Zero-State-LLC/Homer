@@ -1,0 +1,18 @@
+{
+  "contract": "home.activity-event/v2",
+  "eventKey": "buzz:message.posted:00000000-0000-4000-8000-000000000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "kind": "message.posted",
+  "occurredAt": "2026-11-23T15:04:05Z",
+  "actor": {
+    "sourceAccount": "buzz:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "subject": "Buzz message",
+  "provenance": {
+    "sourceSystem": "buzz",
+    "sourceObjectId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sourceUrl": "buzz://message?channel=not-a-uuid&id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "collector": "buzz-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-23T15:05:00Z"
+  }
+}

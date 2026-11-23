@@ -1,5 +1,6 @@
 export type {
   ActivityEvent,
+  ActivityEventContract,
   Provenance,
   ActorKind,
   EventKind,
