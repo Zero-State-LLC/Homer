@@ -4,7 +4,23 @@ Status: draft, proposed for acceptance. No collection, posting, key, or
 deployment is enabled by this file.
 
 Intent: [`docs/intent/buzz.md`](../../docs/intent/buzz.md), accepted by Danny on
-2026-11-23. Linear Task for relay details: ZER-44.
+2026-11-23. Relay details come from Linear Task ZER-44, done on 2026-11-23.
+
+## Deployment facts
+
+Observed by Grok Bot for ZER-44 on 2026-11-23. None of these is a secret.
+
+| Fact | Value |
+| --- | --- |
+| Relay | `https://zer0state.communities.buzz.xyz` (WebSocket `wss://` on the same host) |
+| Who runs it | A hosted community under `communities.buzz.xyz`. Zero State does not operate the relay, so the relay's signing key and `buzz-admin` membership tools are not ours. [assumed: from the host name] |
+| `homer` channel | `f7e1c741-5b3a-4d6c-b67d-2078c6042d2d`: private stream, topic "Homer alerts and knowledge flags", owner Boof, member Danny |
+| `general` channel | `cf440167-7ac5-58f6-ade0-9e7ed5f37080` |
+| Relay version | `0.3.0`, from its NIP-11 info document. It matches `crates/buzz-relay/Cargo.toml` at `block/buzz@ebbc94c`. No commit is published. |
+| Federated identity (NIP-FI) | Supported, not enforced (`requires_nip_fi: false`). A NIP-98-signed `POST /query` without the identity header returned `200`. |
+| Unauthenticated query | `POST /query` returns `401` "missing Nostr auth". |
+| Network | Public internet. Cloudflare is a CDN only; there is no Cloudflare Access in front. |
+| Known public keys | Boof `1b188f5429ba9e82c577a54e8adc12b20652b26feff6c27dae041907c93f9522`; Danny `0e92c7c5f8c351f2f72e604b5a23cd319c098500be1268e30fe0282ad84ebf38` |
 
 ## Contract
 
@@ -96,10 +112,12 @@ is listed. A private channel is read only after a human adds it to the catalog.
 2. It queries the relay for kind 9 events with that channel's `h` tag, `since`
    the cursor minus a 10-minute overlap. The overlap catches events whose author
    clock lagged. The resulting Duplicates are expected.
-3. It authenticates as Homer's Buzz identity: NIP-42 on a WebSocket, or NIP-98 on
-   HTTP, whichever the deployed relay serves. If the relay enforces federated
-   identity (NIP-FI) or sits behind Cloudflare Access, the run adds that
-   credential too.
+3. It sends the query as a NIP-98-signed `POST /query` from Homer's Buzz identity.
+   The relay is on the public internet, so no Cloudflare Access token is needed,
+   and it does not enforce federated identity (NIP-FI). If it starts enforcing,
+   queries fail with `401`, the run fails closed, Buzz shows as stale, and an
+   Alert names the cause. Homer does not add a federated identity adapter
+   without a new decision.
 4. Each event goes through `mapBuzzEvent`. Mapped events append through the
    trusted Event Ledger binding. Refusals are counted with a static reason code
    and never append.
@@ -110,6 +128,8 @@ is listed. A private channel is read only after a human adds it to the catalog.
    forged future timestamp cannot push collection past real messages.
 6. Source Freshness for `buzz` is the time of the last fully successful run. Its
    budget is 15 minutes, with runs every 5 minutes. A stale source shows as stale.
+7. Each run reads the relay's NIP-11 `version` and `requires_nip_fi`. A change from
+   the last run raises an Alert, so a relay upgrade is never silent.
 
 Edits and deletions are not collected in this version. The Ledger holds no text,
 so an edit changes nothing stored. A deleted message keeps its metadata event,
@@ -118,7 +138,8 @@ which still truthfully records that a message was posted.
 ### Identity Bindings
 
 A reviewed binding maps `buzz:<pubkey>` to one Actor. An agent's key binds to an
-Agent with its Accountable Human. Homer's own key binds to the Agent `homer`, with
+Agent with its Accountable Human. The first bindings are Danny's and Boof's keys
+from Deployment facts. Homer's own key binds to the Agent `homer`, with
 Danny as the Accountable Human. With no binding, the event stays Unattributed and
 shows the raw key. A display name or a profile claim is never evidence.
 
@@ -148,10 +169,18 @@ Homer has one Buzz key, as the Agent `homer`.
    prints both keys) and passes only the private key to
    `wrangler secret put BUZZ_HOMER_PRIVATE_KEY`. It is never shown on screen,
    pasted, logged, or committed.
-2. The relay operator registers the public key as a member
-   (`buzz-admin add-member`) and adds it to the catalog's channels and to `homer`.
-3. Rotation repeats step 1, swaps the membership, and removes the old key. Removing
-   the key's membership revokes Homer's access at once.
+2. Danny's key signs a NIP-OA owner attestation for Homer's key, carried on
+   Homer's Buzz profile, so Buzz shows Danny as its owner. This matches Danny as
+   the Accountable Human. Danny's private key never leaves his own Buzz app.
+3. The key joins the community through the hosted community's member flow. The
+   relay is not ours, so `buzz-admin add-member` is not available.
+4. A channel owner adds the key to `homer` and to each catalog channel with a
+   signed add-member event (kind 9000), as ZER-44 did for Danny.
+5. Rotation repeats steps 1 to 4 for a new key, then removes the old key from
+   every channel and the community. Removing it revokes Homer's access.
+
+Packet 5 confirms the hosted community's member flow before relying on it, and
+records it in a receipt.
 
 ### Agent instructions
 
@@ -213,15 +242,17 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
    page accounting, a refused future-dated event that leaves the cursor in place,
    Source Freshness, and outage behavior, tested against a local
    relay (`just relay` in `block/buzz`).
-5. **Identity Bindings** for Buzz keys, including Homer's own.
+5. **Identity Bindings and Homer's key.** Bindings for Buzz keys, starting with
+   Danny's, Boof's, and Homer's. Homer's key is created, attested by Danny's key,
+   admitted through the hosted community's member flow, and added to its channels.
+   A receipt records the flow and public key, with no private key material.
 6. **Alerts.** Alert Key deduplication, fixed templates, the rate cap, retry, and
    proof that no source text or secret can enter a message.
 7. **Agent instructions.** `docs/agents/buzz.md`, linked from `AGENTS.md` in one
    line.
 
-Before packet 4 starts, ZER-44 must report the relay origin, the channel UUIDs,
-whether the relay enforces NIP-FI, its version, and whether it sits behind
-Cloudflare Access.
+ZER-44 reported the relay details on 2026-11-23; see Deployment facts. Packet 4
+tests against a local relay first, then reads the hosted relay with Homer's key.
 
 ## Open choices with defaults
 
