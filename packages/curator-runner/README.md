@@ -22,7 +22,7 @@ needs a new adapter and nothing else:
 | Method | Duty |
 | --- | --- |
 | `describe()` | OS, architecture, container runtime and egress limits, GPU, loopback model endpoints, installed harness versions and credential names (never values) |
-| `exportTree()` | Homer's files at `main`, in a fresh folder with no Git metadata |
+| `exportTree()` | Homer's files at `main`, in a fresh folder with no Git metadata; returns the container paths of that folder and of the inputs |
 | `runSession(spec)` | The harness over ACP, in a container that sees only the folder, the inputs and the provider; answers every permission request with `spec.decide`; returns the outcome and the agent's final reply, only after the agent has stopped |
 | `listChanges()` | Every changed path with its status, file type, mode and line count |
 | `readFile()` | The new contents of an accepted file |

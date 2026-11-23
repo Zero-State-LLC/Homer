@@ -438,15 +438,18 @@ export function readFlagReport(
   });
 }
 
+/** Container paths are the adapter's choice; the permission policy checks against them. */
 export interface WorkspaceHandle {
   readonly id: string;
   /** The folder's absolute path inside the agent's container. */
   readonly root: string;
+  /** Where the adapter mounts the inputs, read-only, inside the agent's container. */
+  readonly inputsRoot: string;
 }
 
 export interface InputsHandle {
-  /** The inputs folder's absolute path inside the agent's container. */
-  readonly root: string;
+  /** The inputs folder on the host, for the adapter to mount read-only. */
+  readonly hostPath: string;
   /** The flags the inputs cover. */
   readonly flags: readonly GatheredFlag[];
 }
@@ -669,7 +672,7 @@ async function finishRun(
   workspace: WorkspaceHandle,
   base: ReceiptBase,
 ): Promise<RunReceipt> {
-  const roots: PolicyRoots = { workspace: workspace.root, inputs: inputs.root };
+  const roots: PolicyRoots = { workspace: workspace.root, inputs: workspace.inputsRoot };
 
   let session: SessionResult;
   try {
