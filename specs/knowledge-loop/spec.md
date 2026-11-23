@@ -15,10 +15,11 @@ the host; Langfuse collection in open pull request #30, later, for traces.
 
 | Question | Decision |
 | --- | --- |
-| Launch options | Claude Code with Claude (default), Codex, and Hermes with a local NIM model. Grok Build and OpenClaw are added once each qualifies. |
+| Launch options | Claude Code with Anthropic (default); Codex with OpenAI; Hermes with a local model (NIM first); Hermes with a Cloudflare Workers AI model. Grok Build and OpenClaw are added once each qualifies. |
+| Model providers | A separate choice from the harness: Anthropic, OpenAI, a local OpenAI-compatible endpoint, and Cloudflare Workers AI. Any harness that accepts an OpenAI-compatible endpoint can use the last two. Danny asked for Cloudflare on 2026-11-23. |
 | Switching layer | The Agent Client Protocol (ACP). |
 | Cadence | Nightly at 02:00 Pacific, plus Run now in the UI. |
-| Host until Galadriel | Delphi or Morpheus (DGX Spark), whichever is less loaded. Danny names it. |
+| Host | Any enrolled machine, through a host adapter. Danny is preparing a dedicated machine first; Galadriel can take over later by a host switch. |
 | GitHub identity | A GitHub App installed on Homer only, with contents write, pull requests write, and issues read (Homer is private, and issue-backed flags must be readable). It is not in the bypass list, so it cannot merge without review. |
 | Buzz identity | Its own key, separate from Homer's alert key. Membership starts with the flag channel; a human adds any channel whose threads flags may cite. |
 | Target repositories | Homer only. A proposed agent-context change becomes a Linear Task with the patch. |
@@ -72,7 +73,9 @@ A Curator Profile is reviewed configuration, stored with a monotonic revision an
 compare-and-swap like the GitHub mapping catalog:
 
 - `harness`: an id from the harness catalog below.
-- `model`: the provider and model the harness uses.
+- `provider`: an id from the model provider catalog below, which the harness must
+  support.
+- `model`: the provider's model id, such as an `@cf/...` id on Workers AI.
 - `host`: an enrolled machine id.
 - `schedule`: a cron expression and the time zone `America/Los_Angeles`.
 - `permissionPolicy`: a policy id.
@@ -82,22 +85,76 @@ compare-and-swap like the GitHub mapping catalog:
 One profile is active. Switching changes the active pointer with compare-and-swap;
 a stale writer gets a conflict. A switch takes effect at the next run, never during
 one. Only a qualified profile can become active. Any change to the harness version,
-model, host, or policy clears its qualification.
+provider, model, host, or policy clears its qualification.
 
 ### Harness catalog
 
 Each harness is launched in ACP mode at a pinned version. Nothing updates itself.
 
-| Id | Launch | Model |
+| Id | Launch | Providers |
 | --- | --- | --- |
-| `claude-code` | Zed's Claude agent ACP adapter | Claude |
-| `codex` | Zed's Codex ACP adapter | OpenAI |
-| `hermes-nim` | `hermes acp` | A NIM model on the host, OpenAI-compatible on `localhost` |
-| `grok-build` (later) | `grok agent stdio --no-auto-update` | Grok |
+| `claude-code` | Zed's Claude agent ACP adapter | `anthropic` |
+| `codex` | Zed's Codex ACP adapter | `openai`, `local`, `cloudflare` |
+| `hermes` | `hermes acp` | `local`, `cloudflare`, `openai`, `anthropic` |
+| `grok-build` (later) | `grok agent stdio --no-auto-update` | `xai` |
 | `openclaw` (later) | `openclaw acp` | Per its config |
 
-The NIM model is chosen at qualification from the NGC catalog. If NIM is not used,
-the reason is recorded, as the Galadriel intent requires.
+### Model provider catalog
+
+| Id | Endpoint | Egress | Credential on the host |
+| --- | --- | --- | --- |
+| `anthropic` | Anthropic API | `api.anthropic.com` | `ANTHROPIC_API_KEY` |
+| `openai` | OpenAI API | `api.openai.com` | `OPENAI_API_KEY` |
+| `local` | An OpenAI-compatible server on the host's loopback address | none | none |
+| `cloudflare` | Workers AI, OpenAI-compatible: `https://api.cloudflare.com/client/v4/accounts/<account>/ai/v1` | `api.cloudflare.com` | `CLOUDFLARE_AI_TOKEN`, a token limited to Workers AI |
+| `xai` (later) | xAI API | `api.x.ai` | `XAI_API_KEY` |
+
+- The account id for `cloudflare` is configuration, not a secret.
+- A model must support tool calling to qualify, because the harness edits files
+  through tools. The dry run proves it.
+- The local model is chosen at qualification. On a host with an NVIDIA GPU, NIM is
+  evaluated first; if it is not used, the reason is recorded, as the Galadriel
+  intent requires.
+- Choosing `cloudflare` is a cloud provider choice; the NVIDIA-first rule covers
+  local serving only.
+- Homer's Workers can also call Workers AI through the `AI` binding, as ADR 004
+  proposes for classification. The curator's editing session runs on a host, so it
+  uses the REST endpoint instead.
+
+### Host adapter
+
+The runner is one host-agnostic core. Everything that depends on the machine sits
+behind a host adapter, so a new machine needs only a new adapter, never a change to
+the core, the Curator Profile, or the switching UI.
+
+A host adapter reports what its machine can do, and does five things:
+
+- `describe()`: the operating system and architecture, the container runtime and
+  whether it can limit network egress to named hosts, GPU vendor if any, the local
+  OpenAI-compatible model endpoints it serves, the harness versions installed, and
+  the names of the credentials in its secret store. Never a credential's value.
+- `exportTree()`: write Homer's files at `main` into a fresh folder with no Git
+  metadata.
+- `runSession()`: start the harness in a container that sees only that folder,
+  writable, and the inputs, read-only, plus the one credential the provider needs;
+  limit egress to the provider's hosts; drive the harness over ACP; and answer
+  permission requests through the core's policy.
+- `listChanges()`: report every changed path with its file type, mode, and line
+  counts, for the core to check.
+- `readFile()`: return an accepted file's contents for the publisher.
+- `cleanup()`: remove the folder and the container.
+
+Publishing (commit, push, pull request) is a separate, trusted publisher that never
+touches the agent's folder.
+
+A profile's needs come from its harness and provider together: a container runtime
+that can limit egress, the harness at its pinned version, a harness that supports
+the provider, and the provider's credential or, for `local`, a loopback endpoint
+serving the model. The core compares those needs with `describe()`. A profile is offered on a host, and can qualify there, only
+when every need is met. The UI shows the unmet needs for each option, so an operator
+sees why an option is unavailable on a machine.
+
+Qualification is per profile and host. Switching the host clears it.
 
 ## Journeys and workflows
 
@@ -106,6 +163,8 @@ the reason is recorded, as the Galadriel intent requires.
 1. At 02:00 Pacific, or on Run now, Homer creates a run request for the active
    profile. Only one run is in flight. A Run now during a run is refused.
 2. The host's controller claims the request through the enrollment protocol in #38.
+   The core checks the profile's needs against the host adapter's `describe()`
+   before anything starts. An unmet need ends the run with a receipt naming it.
 3. The runner, trusted code on the host, gathers inputs:
    - open flags from Homer;
    - each flag's text from its source, with the curator's Buzz key or the GitHub
@@ -122,9 +181,9 @@ the reason is recorded, as the Galadriel intent requires.
    no `.git` folder, hooks, or config. The runner keeps its own clone elsewhere,
    which the agent never sees.
 5. It starts the profile's harness in a container. The container sees only that
-   folder, writable, and the inputs, read-only. Its only credential is the model
-   key. Network egress reaches only the model provider; for `hermes-nim`, it
-   reaches only `localhost`.
+   folder, writable, and the inputs, read-only. Its only credential is the
+   provider's. Network egress reaches only the provider's hosts; for `local`, it
+   reaches only the loopback endpoint.
 6. The runner's ACP client sends one prompt: the fixed curator instructions plus the
    inputs. It answers every permission request by the profile's policy, so a
    headless run never waits on approval.
@@ -246,14 +305,17 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
    material. A test reads a private Homer issue with the App.
 3. **Curator Profile store and harness catalog**, with compare-and-swap,
    qualification clearing, and switch events.
-4. **Host runner**: run claim, input gathering, metadata-free export, container
-   launch, ACP client with the policy, diff checks, commit in the runner's own
-   clone with hooks disabled, push and pull request, and receipt. Tests include
-   linked evidence fetched one level deep, an unreachable link, and the per-flag
-   and per-item limits; a planted hook, a planted Git config, a symlink, and a mode
-   change, each refused or inert; and two runs on one day with distinct branches.
-   Tested end to end on the chosen DGX Spark.
-5. **Qualification dry run** and its fixtures, for the three launch options.
+4. **Host runner**, in two parts.
+   - The host-agnostic core: the host adapter interface, harness needs and the
+     compatibility check, the permission policy, the change checks, branch naming,
+     and the run sequence with its receipts. Tested with in-memory adapters,
+     including a planted hook, a planted Git config, a symlink, and a mode change,
+     each refused or inert; and two runs on one day with distinct branches.
+   - A host adapter for Danny's dedicated machine, once its operating system and
+     container runtime are known, with input gathering, ACP, and the publisher.
+     Tests include linked evidence fetched one level deep, an unreachable link, and
+     the per-flag and per-item limits. Tested end to end on that machine.
+5. **Qualification dry run** and its fixtures, for the four launch options.
 6. **Curator page** in the operator UI.
 7. **Flag intake**: Buzz (with the Buzz Collector), then the GitHub label, then the
    Linear label.
@@ -274,7 +336,8 @@ Each default holds unless Danny changes it when accepting this spec.
 Sources: [Harrison Chase, "How to build a knowledge factory"](https://www.langchain.com/blog/knowledge-factory);
 [ACP agents](https://agentclientprotocol.com/overview/agents);
 [Hermes Agent ACP](https://hermes-agent.nousresearch.com/docs/user-guide/features/acp);
-[NIM on DGX Spark](https://build.nvidia.com/spark/nim-llm/instructions);
+[NIM playbook](https://build.nvidia.com/spark/nim-llm/instructions);
+[Workers AI OpenAI-compatible endpoints](https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility);
 [Grok Build headless](https://docs.x.ai/build/cli/headless-scripting);
 [GitHub: deciding when to build a GitHub App](https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps/deciding-when-to-build-a-github-app);
 `block/buzz@ebbc94c` `crates/buzz-acp/TASKS.md`; agent-context `DECISIONS.md` at
