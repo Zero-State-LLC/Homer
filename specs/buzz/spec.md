@@ -20,12 +20,14 @@ Version 2 equals version 1 except:
 - `contract` is `home.activity-event/v2`.
 - `buzz` joins the Source System enum and the Event Key prefix pattern.
 - Two kinds join the enum: `message.posted` and `knowledge.flagged`.
-- `provenance.sourceUrl` may be `buzz://message?channel=<uuid>&id=<event-id>`
-  when `sourceSystem` is `buzz`. Buzz has no web page for a message, so no
-  `https://` link exists. Every other Source System still needs `https://`.
+- `provenance.sourceUrl` and each `evidence[].url` may be
+  `buzz://message?channel=<uuid>&id=<event-id>` when `sourceSystem` is `buzz`.
+  Buzz has no web page for a message, so no `https://` link exists. Every other
+  Source System still needs `https://` in both places.
 
 The Event Ledger validates an append against the version its `contract` field
-names, and accepts both. Fixtures cover a valid Buzz event, a `buzz://` link on a
+names, and accepts both. Fixtures cover a valid Buzz message, a valid thread
+reply with a `buzz://` evidence link, a `buzz://` link in either place on a
 non-Buzz event (refused), and every version 1 fixture unchanged.
 
 ### Mapping a Buzz event
@@ -40,8 +42,9 @@ reviewed label, whether the channel takes knowledge flags, and an explicit
 
 Admission, in order:
 
-1. The event has a 64-character lowercase hex `id`, `pubkey`, and `sig`, an
-   integer `created_at`, and kind 9 (a channel message).
+1. The event has a 64-character lowercase hex `id` and `pubkey`, a
+   128-character lowercase hex `sig` (64 bytes), an integer `created_at`, and
+   kind 9 (a channel message). These lengths follow NIP-01.
 2. The `id` is the hash of the serialized event, and `sig` verifies against
    `pubkey` (Schnorr signature, as Nostr defines). Either check failing is a
    refusal.
@@ -100,8 +103,11 @@ is listed. A private channel is read only after a human adds it to the catalog.
 4. Each event goes through `mapBuzzEvent`. Mapped events append through the
    trusted Event Ledger binding. Refusals are counted with a static reason code
    and never append.
-5. The cursor advances to the newest `created_at` only after every event on the
-   page is appended, Duplicate, or refused. A failed page leaves the cursor alone.
+5. The cursor advances only after every event on the page is appended,
+   Duplicate, or refused. A failed page leaves the cursor alone. The new cursor
+   is the newest `created_at` among admitted events (appended or Duplicate),
+   capped at the run's start time. A refused event never moves the cursor, so a
+   forged future timestamp cannot push collection past real messages.
 6. Source Freshness for `buzz` is the time of the last fully successful run. Its
    budget is 15 minutes, with runs every 5 minutes. A stale source shows as stale.
 
@@ -196,14 +202,16 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
 1. **Contract version 2.** New schema file, fixtures, a validator that accepts
    both versions, and Event Ledger acceptance tests. Version 1 fixtures unchanged.
 2. **Pure mapper.** `mapBuzzEvent` with tests for valid messages and flags, a bad
-   signature, a bad id, the wrong channel, the wrong kind, a future timestamp,
+   signature, a wrong-length signature, a bad id, the wrong channel, the wrong
+   kind, a future timestamp,
    oversized and malformed fields, thread replies, stable retries, and proof that
    no text, name, or attachment reaches the output.
 3. **Channel catalog.** Reviewed configuration with compare-and-swap, an empty
    catalog that admits nothing, DM refusal, and a read-only listing in the operator
    UI.
 4. **Collector transport.** Scheduled run, relay authentication, overlap cursor,
-   page accounting, Source Freshness, and outage behavior, tested against a local
+   page accounting, a refused future-dated event that leaves the cursor in place,
+   Source Freshness, and outage behavior, tested against a local
    relay (`just relay` in `block/buzz`).
 5. **Identity Bindings** for Buzz keys, including Homer's own.
 6. **Alerts.** Alert Key deduplication, fixed templates, the rate cap, retry, and
