@@ -1,8 +1,9 @@
+import { Buffer } from "node:buffer";
 import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
-import { lineDistance, listTreeChanges, readAcceptedFile } from "../src/index.js";
+import { holdsSecret, lineDistance, listTreeChanges, readAcceptedFile } from "../src/index.js";
 
 const made: string[] = [];
 
@@ -58,7 +59,13 @@ describe("tree changes", () => {
     await writeFile(join(work, "CONTEXT.md"), "# Glossary\nnew\nsame\nmore\n");
     await writeFile(join(work, "docs/agents.md"), "one\ntwo\n");
     await rm(join(work, "docs/map.md"));
-    const plain = { type: "file", executable: false, modeChanged: false, text: true };
+    const plain = {
+      type: "file",
+      executable: false,
+      modeChanged: false,
+      text: true,
+      containsSecret: false,
+    };
     expect(await listTreeChanges(base, work)).toEqual([
       { path: "CONTEXT.md", status: "modified", linesChanged: 3, ...plain },
       { path: "docs/agents.md", status: "added", linesChanged: 2, ...plain },
@@ -82,6 +89,7 @@ describe("tree changes", () => {
         modeChanged: true,
         text: true,
         linesChanged: 0,
+        containsSecret: false,
       },
       {
         path: "docs/logo.png",
@@ -91,6 +99,7 @@ describe("tree changes", () => {
         modeChanged: false,
         text: false,
         linesChanged: 0,
+        containsSecret: false,
       },
       {
         path: "link.md",
@@ -100,6 +109,7 @@ describe("tree changes", () => {
         modeChanged: false,
         text: false,
         linesChanged: 0,
+        containsSecret: false,
       },
       {
         path: "run.md",
@@ -109,6 +119,7 @@ describe("tree changes", () => {
         modeChanged: false,
         text: true,
         linesChanged: 1,
+        containsSecret: false,
       },
     ]);
   });
@@ -122,6 +133,27 @@ describe("tree changes", () => {
       ["docs/agents", "added", "symlink"],
       ["docs/agents/a.md", "deleted", "file"],
     ]);
+  });
+});
+
+describe("credentials in changes", () => {
+  const secret = "cf-Abc123-very-secret-token";
+
+  test("plain, split and base64 copies are caught", () => {
+    expect(holdsSecret("token: cf-Abc123-very-secret-token", [secret])).toBe(true);
+    expect(holdsSecret("cf-Abc123-very-\n  secret-token", [secret])).toBe(true);
+    const encoded = Buffer.from(secret).toString("base64");
+    expect(holdsSecret(`see ${encoded}`, [secret])).toBe(true);
+    expect(holdsSecret("nothing here", [secret])).toBe(false);
+    expect(holdsSecret("anything", [])).toBe(false);
+  });
+
+  test("a changed file holding the credential is marked, and cannot be read", async () => {
+    const { base, work } = await trees({ "CONTEXT.md": "# A\n" });
+    await writeFile(join(work, "CONTEXT.md"), `# A\nKey: ${secret}\n`);
+    const [change] = await listTreeChanges(base, work, [secret]);
+    expect(change).toMatchObject({ path: "CONTEXT.md", containsSecret: true });
+    await expect(readAcceptedFile(work, "CONTEXT.md", [secret])).rejects.toThrow("credential");
   });
 });
 

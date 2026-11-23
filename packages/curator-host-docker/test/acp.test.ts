@@ -200,7 +200,7 @@ describe("an ACP turn", () => {
     expect(agent.sent.map((m) => m.method)).toEqual(["initialize"]);
   });
 
-  test("a broken stream, garbage, a version mismatch or a refusal fails the session", async () => {
+  test("a broken stream, garbage, a version mismatch, a huge id or a refusal fails", async () => {
     const closing = fakeAgent((message) => {
       if (message.method === "initialize") queueMicrotask(() => closing.close());
     });
@@ -218,6 +218,15 @@ describe("an ACP turn", () => {
       reply({ jsonrpc: "2.0", id: message.id, result: { protocolVersion: 2 } });
     });
     expect((await runAcpTurn(wrongVersion.transport, options())).outcome).toBe("failed");
+
+    const longId = fakeAgent(
+      standard((prompt, reply) => {
+        reply({ jsonrpc: "2.0", id: "x".repeat(300), method: "fs/read_text_file", params: {} });
+        reply({ jsonrpc: "2.0", id: prompt.id, result: { stopReason: "end_turn" } });
+      }),
+    );
+    expect((await runAcpTurn(longId.transport, options())).outcome).toBe("failed");
+    expect(longId.sent.some((m) => m.error !== undefined)).toBe(false);
 
     const refusal = fakeAgent(
       standard((prompt, reply) => {

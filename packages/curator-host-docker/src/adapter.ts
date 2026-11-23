@@ -65,6 +65,8 @@ interface Run {
   readonly base: string;
   readonly work: string;
   readonly name: string;
+  /** Credential values given to this run's container, kept to catch them in its changes. */
+  readonly secrets: string[];
 }
 
 const DIGEST = /^[a-z0-9][a-z0-9._/:-]*@sha256:[0-9a-f]{64}$/;
@@ -244,7 +246,7 @@ export class DockerHostAdapter implements HostAdapter {
       }
       await rm(archive);
       const id = randomBytes(6).toString("hex");
-      this.runs.set(id, { dir, base, work, name: `homer-curator-${id}` });
+      this.runs.set(id, { dir, base, work, name: `homer-curator-${id}`, secrets: [] });
       return { id, root: WORKSPACE_PATH, inputsRoot: INPUTS_PATH };
     } catch (error) {
       await makeRemovable(dir);
@@ -374,7 +376,9 @@ export class DockerHostAdapter implements HostAdapter {
     if (baseUrl !== null) settings.CURATOR_BASE_URL = baseUrl;
     const secrets: Record<string, string> = {};
     if (spec.provider.credential !== null) {
-      secrets[spec.provider.credential] = await this.readSecret(spec.provider.credential);
+      const value = await this.readSecret(spec.provider.credential);
+      secrets[spec.provider.credential] = value;
+      run.secrets.push(value);
     }
 
     await this.openEgress(run, spec.provider);
@@ -428,32 +432,31 @@ export class DockerHostAdapter implements HostAdapter {
         void child.exited.then(() => listener());
       },
     };
-    try {
-      return await runAcpTurn(transport, {
-        cwd: WORKSPACE_PATH,
-        prompt: curatorPrompt(spec),
-        decide: spec.decide,
-        timeoutMs: spec.maxDurationMs,
-        clientVersion: this.config.clientVersion ?? "0.0.0",
-      });
-    } finally {
-      // The core checks the folder next, so the agent must be gone first.
-      child.endInput();
-      await this.docker(["rm", "-f", agent]).catch(() => null);
-      child.kill();
-      await child.exited;
-      const left = await this.mustDocker(["ps", "-a", "-q", "--filter", `name=^${agent}$`]);
-      if (left !== "") throw new Error("agent container still present");
-    }
+    const result = await runAcpTurn(transport, {
+      cwd: WORKSPACE_PATH,
+      prompt: curatorPrompt(spec),
+      decide: spec.decide,
+      timeoutMs: spec.maxDurationMs,
+      clientVersion: this.config.clientVersion ?? "0.0.0",
+    }).catch((): SessionResult => ({ outcome: "failed", report: null }));
+    // The core checks the folder next, so the agent must be gone first.
+    child.endInput();
+    await this.docker(["rm", "-f", agent]).catch(() => null);
+    child.kill();
+    await child.exited;
+    const left = await this.mustDocker(["ps", "-a", "-q", "--filter", `name=^${agent}$`]);
+    if (left !== "") throw new Error("agent container still present");
+    return result;
   }
 
   async listChanges(workspace: WorkspaceHandle): Promise<readonly Change[]> {
     const run = this.run(workspace);
-    return listTreeChanges(run.base, run.work);
+    return listTreeChanges(run.base, run.work, run.secrets);
   }
 
   async readFile(workspace: WorkspaceHandle, path: string): Promise<string> {
-    return readAcceptedFile(this.run(workspace).work, path);
+    const run = this.run(workspace);
+    return readAcceptedFile(run.work, path, run.secrets);
   }
 
   async cleanup(workspace: WorkspaceHandle): Promise<void> {

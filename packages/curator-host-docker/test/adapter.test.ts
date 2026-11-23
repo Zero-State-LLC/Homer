@@ -1,5 +1,3 @@
-/* Test adapters intentionally implement async I/O contracts in memory. */
-/* eslint-disable @typescript-eslint/require-await */
 import {
   CURATOR_INSTRUCTIONS,
   PROVIDERS,
@@ -226,6 +224,14 @@ describe("the Docker host adapter", () => {
     expect(prompt).toContain("buzz://message?id=e1");
     const after = docker.slice(agentIndex + 1).map((c) => c.args.slice(0, 2).join(" "));
     expect(after).toEqual(["rm -f", "ps -a"]);
+
+    // The credential the container was given is caught if the agent copies it into a file.
+    const [runDir] = await readdir(dirs.workRoot);
+    await writeFile(join(dirs.workRoot, runDir ?? "", "work", "CONTEXT.md"), "cf-test-value\n");
+    expect(await adapter.listChanges(workspace)).toMatchObject([
+      { path: "CONTEXT.md", containsSecret: true },
+    ]);
+    await expect(adapter.readFile(workspace, "CONTEXT.md")).rejects.toThrow("credential");
 
     await adapter.cleanup(workspace);
     expect(await readdir(dirs.workRoot)).toEqual([]);

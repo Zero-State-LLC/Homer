@@ -33,6 +33,11 @@ export interface Processes {
 
 /** Output kept per stream. Anything past it is dropped, so a noisy child cannot exhaust memory. */
 export const MAX_CAPTURE_CHARS = 1024 * 1024;
+/**
+ * Input queued for a child that is not reading it. Past this, the child is killed, so a harness
+ * that stops reading cannot make the host buffer replies without bound.
+ */
+export const MAX_PENDING_INPUT_BYTES = 1024 * 1024;
 
 const PASSED_THROUGH = ["PATH", "HOME", "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_CONFIG"];
 
@@ -85,7 +90,9 @@ export const nodeProcesses: Processes = {
     child.stdin.on("error", () => undefined);
     return {
       write: (chunk) => {
-        if (child.stdin.writable) child.stdin.write(chunk);
+        if (!child.stdin.writable) return;
+        child.stdin.write(chunk);
+        if (child.stdin.writableLength > MAX_PENDING_INPUT_BYTES) child.kill("SIGKILL");
       },
       endInput: () => child.stdin.end(),
       onStdout: (listener) => child.stdout.on("data", listener),

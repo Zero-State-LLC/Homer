@@ -12,6 +12,8 @@ import {
 export const ACP_PROTOCOL_VERSION = 1;
 /** Longest single message the client accepts before treating the stream as broken. */
 export const MAX_LINE_CHARS = 4 * 1024 * 1024;
+/** Longest request id the client echoes back. Longer ones end the session. */
+export const MAX_ID_CHARS = 256;
 /** How long a cancelled turn gets to wind down before the container is stopped anyway. */
 export const CANCEL_GRACE_MS = 15_000;
 
@@ -172,8 +174,10 @@ class AcpConnection {
     if (typeof method === "string") {
       if (id === undefined) {
         this.notification(method, message.params);
-      } else if (typeof id === "string" || typeof id === "number") {
+      } else if (typeof id === "number" || (typeof id === "string" && id.length <= MAX_ID_CHARS)) {
         this.agentRequest(id, method, message.params);
+      } else {
+        this.fail(new ProtocolError("invalid request id"));
       }
       return;
     }

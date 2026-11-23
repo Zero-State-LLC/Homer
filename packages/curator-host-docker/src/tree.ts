@@ -3,6 +3,7 @@
  * Runs on the host after the container has stopped. Symlinks are reported, never followed.
  */
 import type { Change } from "@zs-home/curator-runner";
+import { Buffer } from "node:buffer";
 import { constants } from "node:fs";
 import { lstat, open, readdir, readlink, realpath } from "node:fs/promises";
 import { join, sep } from "node:path";
@@ -92,6 +93,25 @@ async function sameBytes(left: string, right: string): Promise<boolean> {
   }
 }
 
+/**
+ * True when the text holds one of the secrets: as is, split by whitespace or line breaks, or
+ * base64-encoded. Best effort: an agent determined to disguise a secret can, so the token must
+ * also be narrow and revocable, and every pull request is reviewed.
+ */
+export function holdsSecret(text: string, secrets: readonly string[]): boolean {
+  if (secrets.length === 0) return false;
+  const squeezed = text.replace(/\s+/g, "");
+  return secrets.some((secret) => {
+    if (secret === "") return false;
+    const forms = [
+      secret,
+      Buffer.from(secret).toString("base64").replace(/=+$/, ""),
+      Buffer.from(secret).toString("base64url"),
+    ];
+    return forms.some((form) => text.includes(form) || squeezed.includes(form));
+  });
+}
+
 function lines(text: string): string[] {
   if (text === "") return [];
   const parts = text.split("\n");
@@ -162,6 +182,7 @@ async function compare(
   path: string,
   before: Entry | undefined,
   after: Entry | undefined,
+  secrets: readonly string[],
 ): Promise<Change | null> {
   const current = after ?? before;
   if (current === undefined) return null;
@@ -186,16 +207,24 @@ async function compare(
     modeChanged: before !== undefined && after !== undefined && before.mode !== after.mode,
     text: status === "deleted" ? oldText !== null : newText !== null,
     linesChanged: lineDistance(lines(oldText ?? ""), lines(newText ?? "")),
+    containsSecret: newText !== null && holdsSecret(newText, secrets),
   };
 }
 
-/** Every path that differs between the reference copy and the agent's folder. */
-export async function listTreeChanges(baseRoot: string, workRoot: string): Promise<Change[]> {
+/**
+ * Every path that differs between the reference copy and the agent's folder. `secrets` are the
+ * credentials the agent's container was given; a change holding one is marked.
+ */
+export async function listTreeChanges(
+  baseRoot: string,
+  workRoot: string,
+  secrets: readonly string[] = [],
+): Promise<Change[]> {
   const [base, work] = await Promise.all([walk(baseRoot), walk(workRoot)]);
   const paths = [...new Set([...base.keys(), ...work.keys()])].sort();
   const changes: Change[] = [];
   for (const path of paths) {
-    const change = await compare(baseRoot, workRoot, path, base.get(path), work.get(path));
+    const change = await compare(baseRoot, workRoot, path, base.get(path), work.get(path), secrets);
     if (change !== null) changes.push(change);
   }
   return changes;
@@ -205,7 +234,11 @@ export async function listTreeChanges(baseRoot: string, workRoot: string): Promi
  * Reads an accepted file from the agent's folder. Refuses a symlink anywhere on the path, and
  * anything that is not a regular UTF-8 text file.
  */
-export async function readAcceptedFile(workRoot: string, path: string): Promise<string> {
+export async function readAcceptedFile(
+  workRoot: string,
+  path: string,
+  secrets: readonly string[] = [],
+): Promise<string> {
   if (path.startsWith("/") || path.split("/").some((part) => part === "" || part === "..")) {
     throw new Error("unsafe path");
   }
@@ -218,5 +251,6 @@ export async function readAcceptedFile(workRoot: string, path: string): Promise<
   if (!stats.isFile()) throw new Error("not a regular file");
   const text = await readText(full, stats.size);
   if (text === null) throw new Error("not text");
+  if (holdsSecret(text, secrets)) throw new Error("holds a credential");
   return text;
 }

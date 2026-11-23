@@ -19,6 +19,7 @@ export {
   type TurnResult,
 } from "./acp.js";
 export {
+  MAX_PENDING_INPUT_BYTES,
   nodeProcesses,
   type InteractiveProcess,
   type ProcessResult,
@@ -26,4 +27,4 @@ export {
   type RunOptions,
 } from "./processes.js";
 export { PROBE_SCRIPT, PROXY_PORT, PROXY_SCRIPT } from "./proxy.js";
-export { lineDistance, listTreeChanges, readAcceptedFile } from "./tree.js";
+export { holdsSecret, lineDistance, listTreeChanges, readAcceptedFile } from "./tree.js";
