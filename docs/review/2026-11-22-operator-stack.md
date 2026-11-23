@@ -20,8 +20,12 @@ no runner-specific DECISIONS.md entry was found. Context Pin is unchanged.
 | 3 | [#35](https://github.com/Zero-State-LLC/Homer/pull/35) | `386781cdb6763ba60f8cf712df4cdfa752a15433` |
 | 4 | [#38](https://github.com/Zero-State-LLC/Homer/pull/38) | `439cad0d339b5cc49a7a7aaeffdbd498e1c7f8eb` |
 | 5 | [#39](https://github.com/Zero-State-LLC/Homer/pull/39) | `42cd11ea9519d1a7af5e7d22d93b782b8899616b` |
+| 6 | [#44](https://github.com/Zero-State-LLC/Homer/pull/44) | `86cd745816d5e19e9000e06853137f932bad33c8` |
+| 7 | [#45](https://github.com/Zero-State-LLC/Homer/pull/45) | `0f34b2f149d386195709ed4307a36af196b75f9b` |
+| 8 | [#46](https://github.com/Zero-State-LLC/Homer/pull/46) | `c600e6ab1e37b6bbfbf9d54678cf50d39411b90e` |
 
-PR29 (context update) and draft PR30 (trace archival) are separate.
+PR29 (context update) and PR30 (trace archival) are separate.
+Review packets for #44/#45/#46 are additive to the first five. All eight PRs have green exact-head GitHub CI, Docs and Secret scan as observed November 22 PT; no independent online software-factory Verdict/reproduce or required approver decision was verified. Green CI is not enough for a merge.
 Do not merge successors into predecessor branches and call that a main release.
 Land in order, retarget/reconcile each successor with main, then rerun CI,
 independent judging and reproduce on every changed head. Use expected-head
@@ -83,3 +87,9 @@ Verify staging on the deployed revision before claiming live results. Preserve
 original Event Ledger receipts and duplicate history. Trace retention deadlines,
 Langfuse access, actual machine identities/OS, and provider rotation qualification
 remain separate unresolved inputs. No synthetic test establishes live readiness.
+
+## Additional runner PRs #44, #45 and #46
+
+Daniel approved merging the stack in chat November 22, 2026 PT. This supplies the human merge yes but does not waive independent judging, reproduce, review, or ruleset gates. All exact heads in the table have passed the hosted CI/Docs/Secret scan checks. On the governed machine, run the packet command above for each PR in dependency order, setting the exact `pr` and `expected_head`. Use packets `pr-44.packet.json`, `pr-45.packet.json`, and `pr-46.packet.json`; do not mistake the packet budget for a new spending authorization. Confirm full model authorship before selecting an independent judge. No runner subscription or native machine is enabled by these PRs.
+
+The three latest PRs have been marked ready for review, and Prabu OpenClaw is requested. The reviewed head must match the current PR head before any merge. After each squash merge into main, retarget its successor from the old head branch to main; verify the resulting diff is only that successor's intended contribution, rerun its checks and fresh factory Verdict/reproduce if its head changes. Never merge into the prior feature branch and call it a main release.
