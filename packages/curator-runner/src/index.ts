@@ -258,6 +258,11 @@ export interface Change {
   /** True when the new contents are valid UTF-8 text. */
   readonly text: boolean;
   readonly linesChanged: number;
+  /**
+   * True when the new contents hold a credential the agent's container was given, in any form
+   * the adapter can detect. The agent can be talked into copying one into a file.
+   */
+  readonly containsSecret: boolean;
 }
 
 export const ALLOWED_PATHS: readonly string[] = [
@@ -281,7 +286,8 @@ export type RefusalReason =
   | "invalid_line_count"
   | "too_many_lines"
   | "lint_failed"
-  | "agents_md_check_failed";
+  | "agents_md_check_failed"
+  | "contains_secret";
 
 export interface ChangeRefusal {
   /** Empty for a refusal of the change set as a whole. */
@@ -339,6 +345,7 @@ export function checkChanges(
     if (change.executable) refuse("executable");
     if (change.modeChanged) refuse("mode_changed");
     if (!change.text) refuse("not_text");
+    if (change.containsSecret) refuse("contains_secret");
     if (!Number.isSafeInteger(change.linesChanged) || change.linesChanged < 0) {
       refuse("invalid_line_count");
     } else {

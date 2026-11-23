@@ -24,7 +24,7 @@ needs a new adapter and nothing else:
 | `describe()` | OS, architecture, container runtime and egress limits, GPU, loopback model endpoints, installed harness versions and credential names (never values) |
 | `exportTree()` | Homer's files at `main`, in a fresh folder with no Git metadata; returns the container paths of that folder and of the inputs |
 | `runSession(spec)` | The harness over ACP, in a container that sees only the folder, the inputs and the provider; answers every permission request with `spec.decide`; returns the outcome and the agent's final reply, only after the agent has stopped |
-| `listChanges()` | Every changed path with its status, file type, mode and line count |
+| `listChanges()` | Every changed path with its status, file type, mode, line count, and whether it holds a credential the container was given |
 | `readFile()` | The new contents of an accepted file |
 | `cleanup()` | Removes the folder and the container |
 
@@ -59,8 +59,8 @@ base URL can use it. The host keeps a Workers AI-only token as
   the folder or inputs, and edits inside the folder. Everything else is refused.
 - Changes must be Markdown files under `CONTEXT.md`, `AGENTS.md`, `docs/agents/`
   or `docs/map.md`, with plain ASCII names and no hidden files, no deletions, no
-  mode changes and at most 300 changed lines, and must pass both content
-  validators. One refusal rejects the whole run.
+  mode changes, no credential the container was given, and at most 300 changed
+  lines, and must pass both content validators. One refusal rejects the whole run.
 - The agent's flag report is untrusted. `readFlagReport()` counts a flag as
   addressed only when the report says so once, the run changed something and the
   flag's evidence was complete. The pull request cites only addressed flags; the
