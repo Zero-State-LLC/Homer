@@ -160,6 +160,22 @@ _Avoid_: driver, plugin
 A dry run that proves a Curator Profile works on one host, against fixture flags with pushing disabled. Only qualified options can be switched to; changing the host clears it.
 _Avoid_: certification, smoke test
 
+**Candidate**:
+A Curator Profile considered for one Work Request before any decision. A Candidate is not a claim that the host is free, qualified or safe.
+_Avoid_: option, runner
+
+**Assignment**:
+Homer's record of which Curator Profile, Harness, Model Provider, model and host will do one Work Request, or an explicit Abstention. An Assignment is Homer's own record: not a Work Session, not a Work Packet stage, and not a switch of the active Curator Profile.
+_Avoid_: dispatch, job, ticket
+
+**Abstention**:
+The router's answer when no Candidate is eligible: the work is assigned to nobody and the reason is recorded. Abstention is a valid result, never a silent fallback to a default host.
+_Avoid_: failure, fallback
+
+**Reason code**:
+The single stable value explaining why a Candidate was excluded or why the router abstained. One Candidate carries one Reason code, drawn from a reviewed registry, never free text.
+_Avoid_: error message, note
+
 ## Context
 
 **Context Pin**:
