@@ -122,6 +122,40 @@ software-factory's independent judge result for one PR head SHA. Only software-f
 **Factory Event**:
 A versioned Activity Event that software-factory emits about a Work Packet stage change or Verdict.
 
+## Knowledge loop
+
+**Knowledge Flag**:
+A report that knowledge agents rely on is missing or wrong, raised where people already work: a Buzz message tagged `knowledge-flag`, or a Homer issue or ZER Task labelled `knowledge-flag`. Homer keeps its metadata and link, never its text, as a `knowledge.flagged` Activity Event. It is resolved only when a Curator Run cites its Event Key and that run's pull request merges.
+_Avoid_: ticket, bug report (for knowledge)
+
+**Curator**:
+The Agent that fixes Homer's knowledge files (`CONTEXT.md`, `AGENTS.md`, `docs/agents/`, `docs/map.md`) from open Knowledge Flags, by opening a pull request for human review. It holds no GitHub token or Buzz key, never pushes, and never merges.
+_Avoid_: knowledge bot
+
+**Curator Run**:
+One curator session on a local runner: gather the inputs, run the Harness in an isolated container, check its changes, and open at most one pull request. Recorded as `curator.run_completed`, which cites flags by Event Key: those it addressed, and those it reported as needing a human.
+_Avoid_: job, sync
+
+**Curator Profile**:
+Reviewed configuration for Curator Runs: Harness, Model Provider, model, host, schedule and permission policy, with a monotonic revision. A switch is compare-and-swap, only to a qualified option, and takes effect at the next run.
+_Avoid_: settings (unqualified)
+
+**Harness**:
+The coding-agent program a Curator Run drives over the Agent Client Protocol (ACP): Claude Code, Codex or Hermes, and later Grok Build and OpenClaw.
+_Avoid_: model, provider
+
+**Model Provider**:
+Where a Harness's model runs: Anthropic, OpenAI, Cloudflare Workers AI, a local OpenAI-compatible endpoint, or xAI. Chosen separately from the Harness. A Model Provider is not a Source System; Homer does not observe it.
+_Avoid_: Source System, backend
+
+**Host Adapter**:
+The machine-specific part of the curator runner. The core is the same on every host, so a new machine needs only a new adapter. The first runs Docker on Linux, including inside WSL2 on Windows.
+_Avoid_: driver, plugin
+
+**Qualification**:
+A dry run that proves a Curator Profile works on one host, against fixture flags with pushing disabled. Only qualified options can be switched to; changing the host clears it.
+_Avoid_: certification, smoke test
+
 ## Context
 
 **Context Pin**:
