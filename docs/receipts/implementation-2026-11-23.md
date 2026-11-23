@@ -128,7 +128,8 @@ found.
    explicit yes once CI is green and the Codex review is clean. A pull request that
    touches code, configuration or CI needs the full gate: a passing online Verdict
    with a reproduce check for the head SHA, then Danny's yes. AGENTS.md's Merge
-   section does not say this yet; it waits for Danny to change the contract.
+   section now says this: docs-only means only Markdown files, and nothing under
+   `.github/`.
 
 ## Gotchas
 

@@ -49,7 +49,9 @@ A red honest check is better than a green lie.
 
 ## Merge and deploy
 
-- Nothing merges without Danny's explicit yes, and the software-factory merge contract applies: CI green, an online passing Verdict for the current head SHA from a judge independent of the author model, and a passing reproduce check.
+- Nothing merges without Danny's explicit yes.
+- A pull request that touches code, configuration or CI also needs the software-factory merge contract: CI green, an online passing Verdict for the current head SHA from a judge independent of the author model, and a passing reproduce check.
+- A docs-only pull request, one that changes only Markdown files and nothing under `.github/`, needs CI green and a clean Codex review of the current head SHA instead of a Verdict (Danny, 2026-11-23).
 - No production deploy, Control Room cutover, credential change or destructive migration without a human yes.
 - Never weaken the `main` ruleset or a CI check to land a change.
 
