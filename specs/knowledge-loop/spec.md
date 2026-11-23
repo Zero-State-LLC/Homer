@@ -19,7 +19,7 @@ the host; Langfuse collection in open pull request #30, later, for traces.
 | Model providers | A separate choice from the harness: Anthropic, OpenAI, a local OpenAI-compatible endpoint, and Cloudflare Workers AI. Any harness that accepts an OpenAI-compatible endpoint can use the last two. Danny asked for Cloudflare on 2026-11-23. |
 | Switching layer | The Agent Client Protocol (ACP). |
 | Cadence | Nightly at 02:00 Pacific, plus Run now in the UI. |
-| Host | Any enrolled machine, through a host adapter. Danny is preparing a dedicated machine first; Galadriel can take over later by a host switch. |
+| Host | Any enrolled machine, through a host adapter. First, Danny's dedicated machine: Windows with WSL2 (Ubuntu) and Docker, no GPU, 32 GB of memory. Galadriel can take over later by a host switch. |
 | GitHub identity | A GitHub App installed on Homer only, with contents write, pull requests write, and issues read (Homer is private, and issue-backed flags must be readable). It is not in the bypass list, so it cannot merge without review. |
 | Buzz identity | Its own key, separate from Homer's alert key. Membership starts with the flag channel; a human adds any channel whose threads flags may cite. |
 | Target repositories | Homer only. A proposed agent-context change becomes a Linear Task with the patch. |
@@ -155,6 +155,32 @@ when every need is met. The UI shows the unmet needs for each option, so an oper
 sees why an option is unavailable on a machine.
 
 Qualification is per profile and host. Switching the host clears it.
+
+### Docker host adapter
+
+The first adapter runs the harness in Docker on Linux. It serves Danny's machine,
+where the runner runs inside WSL2 (Ubuntu) rather than on Windows, and later
+Galadriel.
+
+- The runner's clone and every run's folders live on the Linux file system, not a
+  Windows drive, so file types and permission bits are reported exactly.
+- Each run gets two copies of `main`: one the agent edits, and a reference copy it
+  never sees. Changes are found by comparing the two, without Git.
+- The harness container runs as the runner's own user, with a read-only root file
+  system, no Linux capabilities, no privilege escalation, and memory and process
+  limits.
+- Egress: the harness container sits on an internal Docker network with no DNS.
+  Its only way out is an allowlist proxy, a second container that accepts
+  `CONNECT` to the provider's hosts on port 443 and refuses everything else. Before
+  each session, a probe on the same network must fail to connect out directly, or
+  the session does not start.
+- The provider's credential reaches the container through the environment by name.
+  It never appears on a command line or in a log.
+- ACP runs over the container's standard input and output. The adapter advertises
+  no file-system or terminal capability, so the harness uses its own tools inside
+  the container.
+- The `local` provider is not offered on Danny's machine, which has no GPU. It
+  needs a host serving a model on loopback, such as Galadriel.
 
 ## Journeys and workflows
 
@@ -322,11 +348,12 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
      and the run sequence with its receipts. Tested with in-memory adapters,
      including a planted hook, a planted Git config, a symlink, and a mode change,
      each refused or inert; and two runs on one day with distinct branches.
-   - A host adapter for Danny's dedicated machine, once its operating system and
-     container runtime are known, with input gathering, ACP, and the publisher.
-     Tests include linked evidence fetched one level deep, an unreachable link, and
-     the per-flag and per-item limits. Tested end to end on that machine.
-5. **Qualification dry run** and its fixtures, for the four launch options.
+   - The Docker host adapter, for Danny's machine (Windows with WSL2) and later
+     Galadriel, then input gathering and the publisher. Tests include the egress
+     probe, linked evidence fetched one level deep, an unreachable link, and the
+     per-flag and per-item limits. Tested end to end on that machine.
+5. **Qualification dry run** and its fixtures, for the four launch options. Hermes
+   with a local model qualifies only on a host that serves one.
 6. **Curator page** in the operator UI.
 7. **Flag intake**: Buzz (with the Buzz Collector), then the GitHub label, then the
    Linear label.
