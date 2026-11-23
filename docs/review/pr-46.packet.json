@@ -26,7 +26,5 @@
   "stage": "verify",
   "author_model": "openai/gpt-6",
   "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
-  "links": [
-    "https://github.com/Zero-State-LLC/Homer/pull/46"
-  ]
+  "links": ["https://github.com/Zero-State-LLC/Homer/pull/46"]
 }
