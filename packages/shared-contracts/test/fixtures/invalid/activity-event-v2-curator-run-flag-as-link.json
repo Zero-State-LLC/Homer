@@ -1,0 +1,39 @@
+{
+  "contract": "home.activity-event/v2",
+  "eventKey": "homer:curator.run_completed:nightly-2026-11-23",
+  "kind": "curator.run_completed",
+  "occurredAt": "2026-11-23T10:31:00Z",
+  "actor": {
+    "sourceAccount": "homer:curator",
+    "actorId": "actor:homer-curator",
+    "actorKind": "agent"
+  },
+  "repository": "Zero-State-LLC/Homer",
+  "subject": "Curator run opened a pull request",
+  "provenance": {
+    "sourceSystem": "homer",
+    "sourceObjectId": "nightly-2026-11-23",
+    "sourceUrl": "https://homer.example.test/curator/runs/nightly-2026-11-23",
+    "collector": "curator-runner",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-23T10:31:05Z"
+  },
+  "evidence": [
+    {
+      "label": "pull request",
+      "url": "https://github.com/Zero-State-LLC/Homer/pull/61"
+    }
+  ],
+  "data": {
+    "outcome": "opened_pull_request",
+    "profileRevision": 7,
+    "session": "completed",
+    "addressedFlags": ["https://github.com/Zero-State-LLC/Homer/issues/60"],
+    "needsHuman": [
+      {
+        "flag": "linear:knowledge.flagged:ZER-60",
+        "result": "unclear"
+      }
+    ]
+  }
+}

@@ -19,3 +19,24 @@ export function event(suffix = "one"): ActivityEvent {
     },
   };
 }
+
+const channel = "00000000-0000-4000-8000-000000000001";
+/** A contract version 2 Buzz message, as the Buzz mapper would produce it. */
+export function buzzEvent(id = "a".repeat(64)): ActivityEvent {
+  return {
+    contract: "home.activity-event/v2",
+    eventKey: `buzz:message.posted:${channel}/${id}`,
+    kind: "message.posted",
+    occurredAt: "2026-11-23T15:04:05Z",
+    actor: { sourceAccount: `buzz:${"b".repeat(64)}` },
+    subject: "Buzz message",
+    provenance: {
+      sourceSystem: "buzz",
+      sourceObjectId: id,
+      sourceUrl: `buzz://message?channel=${channel}&id=${id}`,
+      collector: "buzz-collector",
+      collectorVersion: "0.1.0",
+      collectedAt: "2026-11-23T15:05:00Z",
+    },
+  };
+}

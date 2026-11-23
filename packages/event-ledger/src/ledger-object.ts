@@ -118,7 +118,7 @@ export class EventLedgerObject extends DurableObject<Env> {
     const comparison = comparisonDigest(payload);
     return this.ctx.storage.transactionSync(() => {
       const identifier =
-        payload.contract === "home.activity-event/v1" ? payload.eventKey : payload.correctionId;
+        payload.contract === "home.correction/v1" ? payload.correctionId : payload.eventKey;
       const column = entryType === "activity_event" ? "event_key" : "correction_id";
       const row = this.ctx.storage.sql
         .exec(`SELECT * FROM entries WHERE ${column}=?`, identifier)

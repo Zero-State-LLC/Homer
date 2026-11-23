@@ -5,11 +5,11 @@ Homer is the Zero State engineering headquarters: it observes work in GitHub, Li
 ## Sources and authority
 
 **Source System**:
-A system Homer reads from: `github`, `linear`, `control-room`, `software-factory`. Homer never becomes the authority for a fact another Source System owns.
+A system Homer reads from: `github`, `linear`, `control-room`, `software-factory`, and, from Activity Event contract version 2, `buzz`. `homer` is Homer's own operations, such as curator runs and profile switches. Homer never becomes the authority for a fact another Source System owns.
 _Avoid_: integration, provider
 
 **Authority**:
-The one Source System whose value wins for a fact. Linear is the Authority for Task ownership, priority and status. GitHub is the Authority for Repository Events. The Control Room is the Authority for Work Sessions and Handoffs. software-factory is the Authority for Work Packet stage and Verdicts. Homer is the Authority only for Observations and Projections.
+The one Source System whose value wins for a fact. Linear is the Authority for Task ownership, priority and status. GitHub is the Authority for Repository Events. The Control Room is the Authority for Work Sessions and Handoffs. software-factory is the Authority for Work Packet stage and Verdicts. Homer is the Authority only for Observations, Projections, and its own operations.
 _Avoid_: owner (for systems), source of truth
 
 **Collector**:

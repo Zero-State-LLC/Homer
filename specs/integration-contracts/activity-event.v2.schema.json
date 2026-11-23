@@ -1,0 +1,508 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/activity-event/v2",
+  "title": "Activity Event",
+  "description": "An immutable record that something happened in a Source System, with Provenance. A Collector appends it to the Event Ledger. Version 2 adds the buzz and homer Source Systems, four kinds, and buzz:// links for Buzz events.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "eventKey", "kind", "occurredAt", "actor", "subject", "provenance"],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.activity-event/v2"
+    },
+    "eventKey": {
+      "type": "string",
+      "pattern": "^(github|linear|control-room|software-factory|buzz|homer):[a-z_.]+:[A-Za-z0-9._:/#@-]{1,200}$",
+      "description": "Event Key. The prefix before the first colon is the Source System and must equal provenance.sourceSystem."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "commit.pushed",
+        "pull_request.opened",
+        "pull_request.reviewed",
+        "pull_request.merged",
+        "pull_request.closed",
+        "ci.completed",
+        "deployment.completed",
+        "task.created",
+        "task.status_changed",
+        "task.assigned",
+        "work_session.started",
+        "work_session.ended",
+        "handoff.recorded",
+        "milestone.planned",
+        "milestone.completed",
+        "blocker.raised",
+        "blocker.cleared",
+        "factory.stage_changed",
+        "factory.verdict_recorded",
+        "message.posted",
+        "knowledge.flagged",
+        "curator.run_completed",
+        "curator.profile_switched"
+      ]
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
+      "description": "When it happened, UTC, ending in Z."
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceAccount"],
+      "description": "sourceAccount is always the raw account. actorId and actorKind are set only from an Identity Binding.",
+      "properties": {
+        "sourceAccount": {
+          "type": "string",
+          "description": "Raw source account, for example github:octocat."
+        },
+        "actorId": {
+          "type": "string",
+          "pattern": "^actor:[a-z0-9-]+$"
+        },
+        "actorKind": {
+          "type": "string",
+          "enum": ["human", "agent", "system", "unknown"]
+        }
+      }
+    },
+    "projectId": {
+      "type": "string",
+      "pattern": "^project:[a-z0-9-]+$"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^Zero-State-LLC/[A-Za-z0-9._-]+$"
+    },
+    "taskId": {
+      "type": "string",
+      "pattern": "^ZER-[0-9]+$"
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Human-readable title. Untrusted text."
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceSystem",
+        "sourceObjectId",
+        "sourceUrl",
+        "collector",
+        "collectorVersion",
+        "collectedAt"
+      ],
+      "properties": {
+        "sourceSystem": {
+          "type": "string",
+          "enum": ["github", "linear", "control-room", "software-factory", "buzz", "homer"]
+        },
+        "sourceObjectId": {
+          "type": "string"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^(https://|buzz://message\\?channel=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}&id=[0-9a-f]{64}$)",
+          "description": "https:// for every Source System. A buzz://message link is allowed only when sourceSystem is buzz."
+        },
+        "collector": {
+          "type": "string"
+        },
+        "collectorVersion": {
+          "type": "string"
+        },
+        "collectedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "url"],
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^(https://|buzz://message\\?channel=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}&id=[0-9a-f]{64}$)",
+            "description": "https://, or a buzz://message link on a Buzz event."
+          }
+        }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": true,
+      "maxProperties": 50,
+      "description": "Kind-specific fields. Untrusted."
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "A buzz://message link is allowed only on a Buzz event; every other Source System uses https://.",
+      "if": {
+        "type": "object",
+        "required": ["provenance"],
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "const": "buzz"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "type": "object",
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "sourceUrl": {
+                "type": "string",
+                "pattern": "^https://"
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "pattern": "^https://"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "Buzz produces only messages and Knowledge Flags.",
+      "if": {
+        "type": "object",
+        "required": ["provenance"],
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "const": "buzz"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["message.posted", "knowledge.flagged"]
+          }
+        }
+      }
+    },
+    {
+      "$comment": "The homer Source System records Homer's own operations: only the curator kinds.",
+      "if": {
+        "type": "object",
+        "required": ["provenance"],
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "const": "homer"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["curator.run_completed", "curator.profile_switched"]
+          }
+        }
+      }
+    },
+    {
+      "$comment": "Curator events come only from homer.",
+      "if": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["curator.run_completed", "curator.profile_switched"]
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["provenance"],
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "const": "homer"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "message.posted comes only from Buzz.",
+      "if": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "message.posted"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["provenance"],
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "const": "buzz"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "Knowledge Flags are raised in Buzz, GitHub or Linear.",
+      "if": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "knowledge.flagged"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["provenance"],
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "enum": ["buzz", "github", "linear"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "Buzz subjects are fixed text, never relay-supplied.",
+      "if": {
+        "type": "object",
+        "allOf": [
+          {
+            "type": "object",
+            "required": ["provenance"],
+            "properties": {
+              "provenance": {
+                "type": "object",
+                "required": ["sourceSystem"],
+                "properties": {
+                  "sourceSystem": {
+                    "type": "string",
+                    "const": "buzz"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "message.posted"
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "const": "Buzz message"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "allOf": [
+          {
+            "type": "object",
+            "required": ["provenance"],
+            "properties": {
+              "provenance": {
+                "type": "object",
+                "required": ["sourceSystem"],
+                "properties": {
+                  "sourceSystem": {
+                    "type": "string",
+                    "const": "buzz"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "knowledge.flagged"
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "const": "Buzz knowledge flag"
+          }
+        }
+      }
+    },
+    {
+      "$comment": "A curator run's subject is fixed text for its outcome.",
+      "if": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "curator.run_completed"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "subject": {
+            "type": "string",
+            "pattern": "^Curator run (opened a pull request|found nothing to change|failed: [a-z_]+)$"
+          }
+        }
+      }
+    },
+    {
+      "$comment": "A curator run cites flags by Event Key, the stable identity of each knowledge.flagged event: the flags it addressed, and any it reported as needing a human.",
+      "if": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "curator.run_completed"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["addressedFlags"],
+            "properties": {
+              "addressedFlags": {
+                "type": "array",
+                "maxItems": 20,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^(buzz|github|linear):knowledge\\.flagged:[A-Za-z0-9._:/#@-]{1,200}$"
+                }
+              },
+              "needsHuman": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["flag", "result"],
+                  "properties": {
+                    "flag": {
+                      "type": "string",
+                      "pattern": "^(buzz|github|linear):knowledge\\.flagged:[A-Za-z0-9._:/#@-]{1,200}$"
+                    },
+                    "result": {
+                      "type": "string",
+                      "enum": ["unclear", "conflict"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
