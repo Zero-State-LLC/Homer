@@ -2,8 +2,11 @@
 
 Author: Hermes (Yes And) for Danny (scrimshawlife-ctrl)
 Date: 2026-11-23
-Status: draft
+Status: accepted
 Product: Homer (`Zero-State-LLC/Homer`)
+
+Danny accepted this intent on 2026-11-23 (#60). The next stage is the spec in
+`specs/work-assignment-router/`.
 
 This file is a proto-spec. It comes **before** specify.
 Next stage is `spec.md` (spec-kit specify). Do not skip to code.
@@ -134,5 +137,6 @@ while labelling the trust level.
 
 ## Next
 
-A human accepts this file (`Status: accepted`). Then specify
-(`spec.md` + `## Workflows`). Do not implement from this file alone.
+Accepted. Next is `specs/work-assignment-router/spec.md` with a `## Workflows`
+section, landed by pull request, then implementation. Do not implement from this
+file alone.
