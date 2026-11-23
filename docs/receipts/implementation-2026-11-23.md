@@ -38,7 +38,7 @@ agent, from any provider, can pick up the work without this session's chat.
 | #55 | `packages/buzz-collector`: the pure Buzz mapper (ZER-46), with the Schnorr verifier passed in |
 
 In review: #56, the Buzz channel allowlist (ZER-47). CI and Codex were clean at
-`6aaf4d9`; it waits for Danny's merge.
+`6aaf4d9`; it still needs the merge contract below, then Danny's merge.
 
 Other open pull requests (#30 to #46: runner fleet, credentials, traces) belong
 to other work and are not part of this handoff.
@@ -67,11 +67,17 @@ to other work and are not part of this handoff.
 - **Branches and merges:** branch from `main` and open a pull request to `main`.
   Merges are squash only.
 - **Review:** after each push, comment `@codex review` and wait for the receipt
-  naming the current head. Fix every finding and ask again. Codex is the judge
-  independent of the author model.
-- **Merging:** merge only on Danny's explicit "merge", with CI green and Codex clean
-  on the current head. These merges used the admin bypass that agent-context
-  `DECISIONS.md` grants.
+  naming the current head. Fix every finding and ask again. A Codex review is a
+  pull request review, not a Verdict (`CONTRIBUTING.md`, stage 5).
+- **Merging, from now on:** follow the merge contract in `AGENTS.md`: CI green, an
+  online passing software-factory Verdict for the current head SHA from a judge
+  independent of the author model, a passing reproduce check, and Danny's explicit
+  yes. The [discovery receipt](discovery-2026-11-18.md) describes the judge gate.
+- **What today's merges had:** Danny's explicit "merge", green CI, and a clean Codex
+  review of the head being merged. They went through the admin bypass that
+  agent-context `DECISIONS.md` grants. This session had no software-factory judge,
+  so no Verdict or reproduce check was recorded for #47 to #55. Whether those
+  merges stand, or need a Verdict after the fact, is Danny's call.
 - **Stacked pull requests:** after a parent squash-merges, merge `main` into the
   child, resolve the conflicts, and get a fresh review before merging.
 - **Linear:** use the labels `ready-for-agent` or `ready-for-human`, and never
