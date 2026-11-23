@@ -1,0 +1,32 @@
+{
+  "id": "WP-2026-11-22-job-evidence-admission",
+  "source": "github:Zero-State-LLC/Homer#46",
+  "pain": "GitHub job webhook deliveries need durable immutable receipts and safe out-of-order reconciliation without mislabelling queued work as a completed CI Activity Event.",
+  "who": "Zero State operators and developers",
+  "done_when": [
+    "GitHub HMAC validation over original bytes, strict body limits, enabled reviewed Repository mapping, delivery UUID and explicit disabled-by-default flag gate admission.",
+    "Separate SQLite Durable Object stores sanitized immutable job evidence and receipts with atomic original receipt return on identical retry and Conflict on changed content under the same delivery ID.",
+    "Late queued reports do not regress completed state, contradictory terminal evidence returns Unknown, and capacity/reading limits fail closed.",
+    "An additive Cloudflare migration preserves existing object classes and does not activate production collection, public read routes, credentials or runner routing.",
+    "Real Worker tests verify unsigned input rejection, retries across restart, conflicting deliveries, disabled/unconfigured operation, immutability, no private job steps and safe error outcomes."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Production/staging deployment",
+      "New live GitHub subscriptions",
+      "Machine activation",
+      "Automatic runner scheduling",
+      "Credentials and Access changes"
+    ]
+  },
+  "risk_tier": "high",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": [
+    "https://github.com/Zero-State-LLC/Homer/pull/46"
+  ]
+}
