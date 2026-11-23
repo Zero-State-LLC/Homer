@@ -121,15 +121,15 @@ export function channelAdmission(
     return { admitted: false, reason: "metadata_unavailable" };
   }
   const list = tags as unknown[];
+  // The check narrows list to string[][], since TypeScript infers both predicates.
   if (!list.every((tag) => Array.isArray(tag) && tag.every((item) => typeof item === "string"))) {
     return { admitted: false, reason: "metadata_unavailable" };
   }
-  const strings = list as string[][];
-  const ids = strings.filter((tag) => tag[0] === "d").map((tag) => tag[1]);
+  const ids = list.filter((tag) => tag[0] === "d").map((tag) => tag[1]);
   if (ids.length !== 1 || ids[0] !== channel) {
     return { admitted: false, reason: "metadata_unavailable" };
   }
-  if (strings.some((tag) => tag[0] === "hidden")) {
+  if (list.some((tag) => tag[0] === "hidden")) {
     return { admitted: false, reason: "direct_message" };
   }
   return { admitted: true, entry };
