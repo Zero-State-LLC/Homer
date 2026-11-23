@@ -226,8 +226,9 @@ Galadriel.
      no hidden file or folder, symlink, new executable, mode change, deletion, or
      path outside the repository. A hidden file could carry linter configuration
      or code;
-   - no changed file holds the provider's credential, plain or encoded, since an
-     injected input can talk the agent into copying it;
+   - no changed file holds the provider's credential, plain or encoded, in its
+     contents or its path, since an injected input can talk the agent into copying
+     it. Such a refusal never names the path;
    - at most 300 changed lines;
    - `markdownlint-cli2` passes, and the pinned `check-agents-md.sh` passes on
      `AGENTS.md`. Both run on the host against the accepted contents, with
