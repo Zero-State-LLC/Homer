@@ -223,6 +223,7 @@ describe("change checks", () => {
         change("docs/agents/b.md"),
         change("docs/agents/c.md", { linesChanged: -1 }),
         change("docs/agents/d.md", { containsSecret: true }),
+        change("docs/agents/sk-live-123.md", { containsSecret: true, status: "deleted" }),
       ]),
     ).toEqual({
       ok: false,
@@ -231,7 +232,8 @@ describe("change checks", () => {
         { path: "docs/agents/a.md", reason: "not_text" },
         { path: "docs/agents/b.md", reason: "duplicate_path" },
         { path: "docs/agents/c.md", reason: "invalid_line_count" },
-        { path: "docs/agents/d.md", reason: "contains_secret" },
+        { path: "", reason: "contains_secret" },
+        { path: "", reason: "contains_secret" },
         { path: "", reason: "too_many_lines" },
       ],
     });
@@ -534,6 +536,21 @@ describe("a curator run", () => {
     expect(h.calls.some((call) => call.startsWith("readFile"))).toBe(false);
     expect(h.published).toEqual([]);
     expect(h.calls.at(-1)).toBe("cleanup");
+  });
+
+  test("a credential in a path never reaches the receipt", async () => {
+    const h = harness({
+      changes: [change("docs/agents/sk-live-123.md", { status: "added", containsSecret: true })],
+      files: { "docs/agents/sk-live-123.md": "# Notes" },
+    });
+    const receipt = await runCurator(h.deps, request);
+    expect(receipt).toMatchObject({
+      outcome: "failed",
+      code: "changes_refused",
+      refusals: [{ path: "", reason: "contains_secret" }],
+    });
+    expect(JSON.stringify(receipt)).not.toContain("sk-live-123");
+    expect(h.published).toEqual([]);
   });
 
   test("failed content checks refuse the run and publish nothing", async () => {
