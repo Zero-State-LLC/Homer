@@ -1,0 +1,31 @@
+{
+  "id": "WP-2026-11-22-workflow-job-mapper",
+  "source": "github:Zero-State-LLC/Homer#45",
+  "pain": "Homer needs accurate, privacy-preserving workflow-job evidence before admitting it into any Activity Event or performance Projection.",
+  "who": "Zero State operators and agents",
+  "done_when": [
+    "The pure mapper validates exact reviewed repository/job/run identity, source timestamps and canonical source URL; unverified sender, private steps and environment variables are not copied.",
+    "Queued, in_progress and completed states retain distinct semantics; missing run attempts or runner identities remain Unknown, not guessed.",
+    "Read-only enrichment refuses mismatched run, job, repository, runner, commit and attempt evidence and does not overwrite original webhook timestamps.",
+    "GitHub provider original actor and rerun triggering actor remain separate and never create Homer Actor Identity Bindings without evidence.",
+    "Synthetic tests cover spoofing, malformed observations, source conflicts, unknown Actors and immutable inputs; no live subscription or dispatch is enabled."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Live webhook collection",
+      "New credentials",
+      "Machine enrollment",
+      "Production deployment"
+    ]
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": [
+    "https://github.com/Zero-State-LLC/Homer/pull/45"
+  ]
+}
