@@ -25,7 +25,8 @@ source migration plan. The live Control Room has not been cut over to Homer.
 | [shared-contracts](packages/shared-contracts/) | Versioned Activity Event, Work Request and Factory Event validation; generated Workers-safe Activity Event validator |
 | [event-ledger](packages/event-ledger/) | Durable Object storage, atomic append, Duplicate/Conflict detection, Corrections, digest verification and replay |
 | [projections](packages/projections/) | Day/week/month calendar, Actor/Project filters, Milestones, evidence-linked Actual Dates, Blockers and Source Freshness |
-| [curator-runner](packages/curator-runner/) | Host-agnostic knowledge-loop curator core: host compatibility, agent permissions, change checks and run receipts; no host adapter yet |
+| [curator-runner](packages/curator-runner/) | Host-agnostic knowledge-loop curator core: host compatibility, agent permissions, change checks, flag reports and run receipts |
+| [curator-host-docker](packages/curator-host-docker/) | Docker host adapter for the curator, on Linux or WSL2: locked-down container, egress allowlist proxy, ACP client and change listing; not yet run on a host |
 | [agent-context](https://github.com/Zero-State-LLC/agent-context) | Shared instructions consumed through a verified Context Pin |
 | [software-factory](https://github.com/Zero-State-LLC/software-factory) | Work Packets and independent Verdicts, integrated through contracts |
 | [Control Room](https://zero-state-control.sleek-park-3366.chatgpt.site) | Existing live coordination surface and Work Session Authority |
