@@ -1,6 +1,6 @@
 # Buzz Collector, alerts, and agent instructions
 
-Status: draft, proposed for acceptance. No collection, posting, key, or
+Status: accepted by Danny on 2026-11-23 (#49). No collection, posting, key, or
 deployment is enabled by this file.
 
 Intent: [`docs/intent/buzz.md`](../../docs/intent/buzz.md), accepted by Danny on

@@ -14,10 +14,11 @@ const host = new DockerHostAdapter({
   hostId: "curator-1",
   runnerClone: "/home/curator/curator/clone",
   workRoot: "/home/curator/curator/runs",
-  secretsDir: "/home/curator/curator/secrets",
   proxyImage: "node@sha256:<digest>",
   harnesses: { hermes: { image: "homer/hermes@sha256:<digest>", command: ["hermes", "acp"] } },
-  cloudflareAccountId: "<account id>",
+  // Read at run time with the 1Password CLI, through OP_SERVICE_ACCOUNT_TOKEN.
+  onePassword: { CLOUDFLARE_AI_TOKEN: "op://Homer Curator/Cloudflare/<field>" },
+  cloudflareAccountId: "op://Homer Curator/Cloudflare/<field>",
 });
 const receipt = await runCurator({ host, inputs, validator, publisher }, request);
 ```
@@ -35,7 +36,9 @@ const receipt = await runCurator({ host, inputs, validator, publisher }, request
    - with no DNS, and `HTTPS_PROXY` pointing at the proxy, which allows `CONNECT`
      only to the provider's hosts on port 443;
    - with the credential passed through the environment by name, never on the
-     command line.
+     command line. Credentials and the Cloudflare account id come from 1Password
+     (`onePassword` and `op://` references, read with the 1Password CLI), or from
+     files in `secretsDir`.
 
    It speaks ACP over the container's standard streams, answers permission requests
    with the core's policy, and returns only after the container is gone. A harness

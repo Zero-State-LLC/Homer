@@ -1,13 +1,13 @@
 # Knowledge loop: flags, curator runs, and agent switching
 
-Status: draft, proposed for acceptance. No curator, schedule, identity, or
+Status: accepted by Danny on 2026-11-23 (#50). No curator, schedule, identity, or
 pull request is enabled by this file.
 
 Intent: [`docs/intent/knowledge-loop.md`](../../docs/intent/knowledge-loop.md),
 accepted by Danny on 2026-11-23. The decisions below follow Danny's 2026-11-23
 yes to the researched answers to that intent's open questions.
 
-Depends on: `specs/buzz/spec.md` (proposed in #49), for contract
+Depends on: [`specs/buzz/spec.md`](../buzz/spec.md) (#49), for contract
 version 2 and Buzz flags; machine enrollment in open pull requests #38 and #39, for
 the host; Langfuse collection in open pull request #30, later, for traces.
 
@@ -19,7 +19,8 @@ the host; Langfuse collection in open pull request #30, later, for traces.
 | Model providers | A separate choice from the harness: Anthropic, OpenAI, a local OpenAI-compatible endpoint, and Cloudflare Workers AI. Any harness that accepts an OpenAI-compatible endpoint can use the last two. Danny asked for Cloudflare on 2026-11-23. |
 | Switching layer | The Agent Client Protocol (ACP). |
 | Cadence | Nightly at 02:00 Pacific, plus Run now in the UI. |
-| Host | Any enrolled machine, through a host adapter. First, Danny's dedicated machine: Windows with WSL2 (Ubuntu) and Docker, no GPU, 32 GB of memory. Galadriel can take over later by a host switch. |
+| Hosting | Runners are local; Cloudflare handles everything else (Danny, 2026-11-23). Cloudflare runs Homer's Workers and Durable Objects, the Event Ledger, flag intake, run requests and receipts, the Curator Profile store, the operator UI behind Access, and Workers AI as a model provider. Cloudflare Sandboxes were considered for the runner and not chosen. |
+| Host | Any enrolled local machine, through a host adapter. First, Danny's dedicated machine: Windows with WSL2 (Ubuntu) and Docker, no GPU, 32 GB of memory. Galadriel can take over later by a host switch. |
 | GitHub identity | A GitHub App installed on Homer only, with contents write, pull requests write, and issues read (Homer is private, and issue-backed flags must be readable). It is not in the bypass list, so it cannot merge without review. |
 | Buzz identity | Its own key, separate from Homer's alert key. Membership starts with the flag channel; a human adds any channel whose threads flags may cite. |
 | Target repositories | Homer only. A proposed agent-context change becomes a Linear Task with the patch. |
@@ -109,7 +110,9 @@ Each harness is launched in ACP mode at a pinned version. Nothing updates itself
 | `cloudflare` | Workers AI, OpenAI-compatible: `https://api.cloudflare.com/client/v4/accounts/<account>/ai/v1` | `api.cloudflare.com` | `CLOUDFLARE_AI_TOKEN`, a token limited to Workers AI |
 | `xai` (later) | xAI API | `api.x.ai` | `XAI_API_KEY` |
 
-- The account id for `cloudflare` is configuration, not a secret.
+- The account id for `cloudflare` is not a secret, but it stays out of commits,
+  pull requests, Linear, and messages. The host reads it from 1Password, like the
+  token.
 - A model must support tool calling to qualify, because the harness edits files
   through tools. The dry run proves it.
 - The local model is chosen at qualification. On a host with an NVIDIA GPU, NIM is
@@ -174,6 +177,10 @@ Galadriel.
   `CONNECT` to the provider's hosts on port 443 and refuses everything else. Before
   each session, a probe on the same network must fail to connect out directly, or
   the session does not start.
+- Secrets come from 1Password through the 1Password CLI on the host, using a
+  service account that can read only the curator's vault. A folder of files that
+  only the runner can read is the fallback. The service account token lives in the
+  runner's environment, never in a container.
 - The provider's credential reaches the container through the environment by name.
   It never appears on a command line or in a log.
 - ACP runs over the container's standard input and output. The adapter advertises
@@ -226,9 +233,9 @@ Galadriel.
      no hidden file or folder, symlink, new executable, mode change, deletion, or
      path outside the repository. A hidden file could carry linter configuration
      or code;
-   - no changed file holds the provider's credential, plain or encoded, in its
-     contents or its path, since an injected input can talk the agent into copying
-     it. Such a refusal never names the path;
+   - no changed file holds the provider's credential or the Cloudflare account id,
+     plain or encoded, in its contents or its path, since an injected input can
+     talk the agent into copying them. Such a refusal never names the path;
    - at most 300 changed lines;
    - `markdownlint-cli2` passes, and the pinned `check-agents-md.sh` passes on
      `AGENTS.md`. Both run on the host against the accepted contents, with

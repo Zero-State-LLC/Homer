@@ -1,6 +1,7 @@
 # Curator host setup: Windows with WSL2
 
-Host decision: Daniel's dedicated curator machine runs Windows, with no GPU and
+Hosting decision (Daniel, 2026-11-23): runners are local, and Cloudflare handles
+everything else. The dedicated curator machine runs Windows, with no GPU and
 32 GB of memory. The curator runner and Docker run inside WSL2 (Ubuntu), so the
 same [Docker host adapter](../../packages/curator-host-docker/) serves this machine
 now and Galadriel later. Contract: the
@@ -40,24 +41,41 @@ reported exactly there.
 
 ```sh
 mkdir -p ~/curator/clone ~/curator/runs ~/curator/inputs
-install -d -m 700 ~/curator/secrets
 ```
 
 The runner's own clone of Homer goes in `~/curator/clone`. The agent never sees it.
 
-## 4. Credentials, by name
+## 4. Credentials from 1Password
 
-Each credential is one file in `~/curator/secrets`, named exactly as the provider
-catalog names it, mode `600`. Create only the ones the chosen profiles need.
+The runner reads the model credentials and the Cloudflare account id from 1Password
+at run time, with the 1Password CLI. Nothing is copied to disk, and neither value
+belongs in this repository, a pull request, Linear, Buzz, or chat.
 
-| File | What it holds |
+1. In 1Password, keep the curator's items in a vault of their own, for example
+   `Homer Curator`, so the runner can read nothing else. Put the Cloudflare account
+   id and the Workers AI token there.
+2. Create a 1Password service account with read access to that vault only.
+3. Install the 1Password CLI in Ubuntu from
+   [1Password's CLI instructions](https://www.1password.dev/cli/get-started).
+4. Put the service account token in the runner's environment as
+   `OP_SERVICE_ACCOUNT_TOKEN`, in an environment file only the runner can read
+   (mode `600`). The adapter passes it to the 1Password CLI only, never to Docker
+   or a container.
+5. In the adapter's configuration on the host, point each credential at its secret
+   reference. References name a vault, item and field; they are not secrets.
+
+| Setting | Refers to |
 | --- | --- |
-| `CLOUDFLARE_AI_TOKEN` | A token from the Workers AI page: **Use REST API**, then **Create a Workers AI API Token**. A custom token needs only Workers AI Read and Edit. |
-| `ANTHROPIC_API_KEY` | For Claude Code |
-| `OPENAI_API_KEY` | For Codex with OpenAI |
+| `onePassword.CLOUDFLARE_AI_TOKEN` | A token from the Workers AI page: **Use REST API**, then **Create a Workers AI API Token**. A custom token needs only Workers AI Read and Edit. |
+| `cloudflareAccountId` | The account id, as an `op://` reference |
+| `onePassword.ANTHROPIC_API_KEY` | For Claude Code, if used |
+| `onePassword.OPENAI_API_KEY` | For Codex with OpenAI, if used |
 
-The Cloudflare account id is configuration, not a secret. It goes in the adapter's
-configuration as `cloudflareAccountId`.
+The runner also treats the account id as sensitive: a change that copies it, or the
+token, into a file is refused.
+
+A fallback without 1Password: one file per credential in `~/curator/secrets`, named
+as above, mode `600`, with `secretsDir` set in the configuration.
 
 ## 5. Images
 

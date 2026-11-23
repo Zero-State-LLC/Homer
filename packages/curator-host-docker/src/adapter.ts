@@ -39,12 +39,24 @@ export interface DockerHostConfig {
   readonly runnerClone: string;
   /** Parent folder of every run's folders. Must be on the Linux file system. */
   readonly workRoot: string;
-  /** One file per credential, named by the credential, readable only by the runner. */
-  readonly secretsDir: string;
+  /**
+   * 1Password secret references (`op://vault/item/field`) by credential name, read on the host
+   * with the 1Password CLI. Authenticate it with a service account that can read only the
+   * curator's vault, through `OP_SERVICE_ACCOUNT_TOKEN` in the runner's environment.
+   */
+  readonly onePassword?: Readonly<Record<string, string>>;
+  /**
+   * The fallback: one file per credential, named by the credential, readable only by the
+   * runner. Used for any credential not in `onePassword`.
+   */
+  readonly secretsDir?: string;
   /** A Node image pinned by digest, for the proxy and the egress probe. */
   readonly proxyImage: string;
   readonly harnesses: Readonly<Record<string, HarnessImage>>;
-  /** Needed for the `cloudflare` provider. Configuration, not a secret. */
+  /**
+   * Needed for the `cloudflare` provider: the account id, or a 1Password secret reference to
+   * it. Not a secret, but it stays out of the repository, so a reference is preferred.
+   */
   readonly cloudflareAccountId?: string;
   /** The internal network's /24 subnet. Default 172.31.250.0/24. */
   readonly subnet?: string;
@@ -71,6 +83,15 @@ interface Run {
 
 const DIGEST = /^[a-z0-9][a-z0-9._/:-]*@sha256:[0-9a-f]{64}$/;
 const CREDENTIAL = /^[A-Z][A-Z0-9_]*$/;
+const OP_REFERENCE = /^op:\/\/[^\r\n\0]+$/;
+const ACCOUNT_ID = /^[0-9a-f]{32}$/;
+
+/** A single-line secret value, without the trailing newline a reader may add. */
+function singleLine(raw: string): string {
+  const value = raw.replace(/\r?\n$/, "");
+  if (value === "" || /[\r\n\0]/.test(value)) throw new Error("secret is malformed");
+  return value;
+}
 const SUBNET = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.0\/24$/;
 const WINDOWS_DRIVE = /^\/mnt\/[a-z](\/|$)/i;
 
@@ -82,16 +103,20 @@ function requireLinuxPath(label: string, path: string): void {
 }
 
 /** The OpenAI-compatible base URL a harness should use, or null for the harness default. */
-export function providerBaseUrl(provider: ProviderSpec, config: DockerHostConfig): string | null {
+export function providerBaseUrl(
+  provider: ProviderSpec,
+  cloudflareAccountId: string | null,
+): string | null {
   switch (provider.id) {
     case "openai":
       return "https://api.openai.com/v1";
     case "xai":
       return "https://api.x.ai/v1";
     case "cloudflare": {
-      const account = config.cloudflareAccountId ?? "";
-      if (!/^[0-9a-f]{32}$/.test(account)) throw new Error("cloudflare account id missing");
-      return `https://api.cloudflare.com/client/v4/accounts/${account}/ai/v1`;
+      if (cloudflareAccountId === null || !ACCOUNT_ID.test(cloudflareAccountId)) {
+        throw new Error("cloudflare account id missing");
+      }
+      return `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/ai/v1`;
     }
     default:
       return null;
@@ -131,7 +156,16 @@ export class DockerHostAdapter implements HostAdapter {
     this.processes = processes;
     requireLinuxPath("runnerClone", config.runnerClone);
     requireLinuxPath("workRoot", config.workRoot);
-    requireLinuxPath("secretsDir", config.secretsDir);
+    if (config.secretsDir !== undefined) requireLinuxPath("secretsDir", config.secretsDir);
+    for (const [name, reference] of Object.entries(config.onePassword ?? {})) {
+      if (!CREDENTIAL.test(name) || !OP_REFERENCE.test(reference)) {
+        throw new TypeError("onePassword maps credential names to op:// references.");
+      }
+    }
+    const account = config.cloudflareAccountId;
+    if (account !== undefined && !ACCOUNT_ID.test(account) && !OP_REFERENCE.test(account)) {
+      throw new TypeError("cloudflareAccountId must be an account id or an op:// reference.");
+    }
     for (const image of [
       config.proxyImage,
       ...Object.values(config.harnesses).map((h) => h.image),
@@ -202,11 +236,18 @@ export class DockerHostAdapter implements HostAdapter {
         if (label.code === 0 && value !== "" && value !== "<no value>") harnesses[id] = value;
       }
     }
-    const credentials: string[] = [];
-    for (const name of await readdir(this.config.secretsDir).catch(() => [] as string[])) {
-      if (!CREDENTIAL.test(name)) continue;
-      const stats = await lstat(join(this.config.secretsDir, name));
-      if (stats.isFile()) credentials.push(name);
+    const credentials = new Set<string>();
+    const dir = this.config.secretsDir;
+    if (dir !== undefined) {
+      for (const name of await readdir(dir).catch(() => [] as string[])) {
+        if (CREDENTIAL.test(name) && (await lstat(join(dir, name))).isFile()) credentials.add(name);
+      }
+    }
+    // Names only: the values are read at session time, never to describe the host.
+    const onePassword = Object.keys(this.config.onePassword ?? {});
+    if (onePassword.length > 0) {
+      const cli = await this.processes.run("op", ["--version"]).catch(() => null);
+      if (cli !== null && cli.code === 0) for (const name of onePassword) credentials.add(name);
     }
     return {
       hostId: this.config.hostId,
@@ -216,7 +257,7 @@ export class DockerHostAdapter implements HostAdapter {
       gpu: this.config.gpu ?? "none",
       localEndpoints: [],
       harnesses,
-      credentials: credentials.sort(),
+      credentials: [...credentials].sort(),
     };
   }
 
@@ -255,14 +296,34 @@ export class DockerHostAdapter implements HostAdapter {
     }
   }
 
+  /** Reads a 1Password secret reference. Neither the value nor the CLI's errors are logged. */
+  private async onePasswordRead(reference: string): Promise<string> {
+    if (!OP_REFERENCE.test(reference)) throw new Error("bad 1Password reference");
+    const token = process.env.OP_SERVICE_ACCOUNT_TOKEN;
+    const result = await this.processes.run(
+      "op",
+      ["read", reference],
+      token === undefined ? {} : { env: { OP_SERVICE_ACCOUNT_TOKEN: token } },
+    );
+    if (result.code !== 0) throw new Error("1Password read failed");
+    return singleLine(result.stdout);
+  }
+
   private async readSecret(name: string): Promise<string> {
     if (!CREDENTIAL.test(name)) throw new Error("bad credential name");
-    const path = join(this.config.secretsDir, name);
-    const stats = await lstat(path);
-    if (!stats.isFile()) throw new Error("credential is not a regular file");
-    const value = (await readFile(path, "utf8")).replace(/\r?\n$/, "");
-    if (value === "" || /[\r\n]/.test(value)) throw new Error("credential is malformed");
-    return value;
+    const onePassword = this.config.onePassword ?? {};
+    if (Object.hasOwn(onePassword, name)) return this.onePasswordRead(onePassword[name] ?? "");
+    const dir = this.config.secretsDir;
+    if (dir === undefined) throw new Error("credential not configured");
+    const path = join(dir, name);
+    if (!(await lstat(path)).isFile()) throw new Error("credential is not a regular file");
+    return singleLine(await readFile(path, "utf8"));
+  }
+
+  private async cloudflareAccountId(): Promise<string | null> {
+    const configured = this.config.cloudflareAccountId;
+    if (configured === undefined) return null;
+    return OP_REFERENCE.test(configured) ? this.onePasswordRead(configured) : configured;
   }
 
   /** Starts the allowlist proxy and proves, with a probe, that nothing else gets out. */
@@ -372,9 +433,12 @@ export class DockerHostAdapter implements HostAdapter {
       CURATOR_PROVIDER: spec.provider.id,
       CURATOR_MODEL: spec.profile.model,
     };
-    const baseUrl = providerBaseUrl(spec.provider, this.config);
-    if (baseUrl !== null) settings.CURATOR_BASE_URL = baseUrl;
     const secrets: Record<string, string> = {};
+    const account = spec.provider.id === "cloudflare" ? await this.cloudflareAccountId() : null;
+    const baseUrl = providerBaseUrl(spec.provider, account);
+    // The base URL can hold the account id, so it travels like a secret and is guarded like one.
+    if (baseUrl !== null) secrets.CURATOR_BASE_URL = baseUrl;
+    if (account !== null) run.secrets.push(account);
     if (spec.provider.credential !== null) {
       const value = await this.readSecret(spec.provider.credential);
       secrets[spec.provider.credential] = value;
