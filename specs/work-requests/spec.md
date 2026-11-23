@@ -40,9 +40,14 @@ WR-<source date>-<slug>
 - `<source date>` is the source object's own immutable date in UTC:
   a Linear Task's `createdAt`, a GitHub issue's `created_at`, or the date fixed in
   a manual request's reviewed definition. It is **never** the emission date.
-- `<slug>` is the source object's identifier, lowercased and bounded to 48
-  characters: `zer-62`, `github-zero-state-llc-homer-issue-59`,
-  `manual-nightly-flags`.
+- `<slug>` is the source object's identifier, lowercased and encoded into at most
+  48 characters: `zer-62`, `github-zero-state-llc-homer-issue-59`,
+  `manual-nightly-flags`. When the lowercased identifier is longer than 48
+  characters it is **not** truncated. The first 39 characters are kept, `-`
+  follows, and 8 hexadecimal characters of `sha256(canonical source)` are
+  appended, so two long identifiers that share a prefix cannot collapse into one
+  id. Two distinct sources that still produce the same `requestId` are a
+  collision: the emitter refuses both with `id_collision` rather than picking one.
 - The pair is total: the same source emitted twice yields the same `requestId`.
   A second emission with identical content is a **Duplicate** and is not
   re-delivered; different content at the same id is a **Conflict** and is
@@ -50,6 +55,21 @@ WR-<source date>-<slug>
 
 The JSON Schema cannot express uniqueness. This section is the normative rule;
 the tests are its proof.
+
+### Duplicate and Conflict
+
+Content is compared over the derived request **excluding `requestedAt`** and
+`contract`. `requestedAt` is the one field whose value depends on the caller's
+clock, so including it would turn every retry into a Conflict and defeat the
+retry guarantee. Every other field participates, including `requestId`,
+`source`, `pain`, `who`, `doneWhen`, `repository`, `riskTier`, `budgetUsd`,
+`requestedBy` and `testCommand`.
+
+A retry that finds an existing receipt reuses the recorded envelope verbatim,
+`requestedAt` included, so the delivered body is byte-identical to the first
+delivery. A retry with a changed field is a Conflict even when only `requestedAt`
+differs from the recorded envelope, because reuse — not re-derivation — is what a
+retry does.
 
 ### Fields the emitter must derive, not accept
 
@@ -65,7 +85,7 @@ the tests are its proof.
 | `riskTier` | reviewed policy | never guessed from text |
 | `budgetUsd` | reviewed policy | positive, at most 500 |
 | `requestedBy.sourceAccount` | emitting Agent | `agent:<name>` |
-| `requestedAt` | caller clock | UTC, ISO-8601 `Z` |
+| `requestedAt` | caller clock | UTC, ISO-8601 `Z`; excluded from Duplicate/Conflict comparison, and reused from the recorded envelope on a retry |
 | `testCommand` | reviewed repository policy | shell-wrapped: `bash -c '...'` |
 
 An impossible derivation is a refusal with a reason code, never a default.
@@ -82,8 +102,13 @@ An impossible derivation is a refusal with a reason code, never a default.
 ### Emit for a GitHub issue
 
 Same shape against a GitHub issue, using `created_at` for the date and
-`repository` from the issue's own repo. A closed issue is refused unless it was
-closed as completed, which is recorded in `links`.
+`repository` from the issue's own repo.
+
+A closed issue is **refused**, whether it was closed as completed, not planned, or
+stale. The accepted intent requires a closed source to be refused, and starting an
+intake Work Packet for work already finished is the failure that rule prevents. If
+completed issues ever need their own path, that is an accepted intent change
+first, not a spec exception.
 
 ### Emit manually
 
@@ -111,6 +136,8 @@ packet `factory judge run --reproduce` accepts proves the chain without GAP.
 | `doneWhen` absent | refuse, reason `acceptance_missing`; never invent criteria |
 | Endpoint returns 4xx | non-zero exit, no receipt, body echoed without credentials |
 | Endpoint returns 2xx with a different id | refuse, reason `delivery_id_mismatch` |
+| Two distinct sources encode to one `requestId` | refuse both, reason `id_collision`; never pick a winner |
+| Issue is closed, including closed as completed | refuse, reason `source_closed` |
 
 No credential, account id or token enters a request, a receipt, a log or a pull
 request.
@@ -123,9 +150,12 @@ request.
 | GitHub issue fixture emits a valid request | second source form |
 | Manual fixture emits a valid request | third source form |
 | Same fixture emitted twice | identical `requestId`, Duplicate acknowledged once |
+| Same fixture emitted twice with different caller clocks | Duplicate, not Conflict: `requestedAt` is outside the comparison |
+| Two long source identifiers sharing a 39-character prefix | different `requestId`s, via the hash suffix |
 | Same id, changed body | Conflict refused |
 | Emission across a simulated midnight | `requestId` unchanged, proving the date is the source's |
 | Unknown, cancelled, unmapped source | refusal with the named reason code |
+| Issue closed as completed | refused with `source_closed`, not admitted as intake |
 | `toWorkPacket` on every fixture | packet validates against the pinned upstream schema |
 | Endpoint failure | non-zero exit, no receipt file written |
 
