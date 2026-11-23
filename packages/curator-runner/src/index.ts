@@ -259,8 +259,8 @@ export interface Change {
   readonly text: boolean;
   readonly linesChanged: number;
   /**
-   * True when the new contents hold a credential the agent's container was given, in any form
-   * the adapter can detect. The agent can be talked into copying one into a file.
+   * True when the path or the new contents hold a credential the agent's container was given,
+   * in any form the adapter can detect. The agent can be talked into copying one into a file.
    */
   readonly containsSecret: boolean;
 }
@@ -290,7 +290,10 @@ export type RefusalReason =
   | "contains_secret";
 
 export interface ChangeRefusal {
-  /** Empty for a refusal of the change set as a whole. */
+  /**
+   * Empty for a refusal of the change set as a whole, and for a change that holds a credential,
+   * whose path may be the credential itself. Refusals reach the receipt.
+   */
   readonly path: string;
   readonly reason: RefusalReason;
 }
@@ -328,6 +331,11 @@ export function checkChanges(
   const seen = new Set<string>();
   let lines = 0;
   for (const change of changes) {
+    if (change.containsSecret) {
+      // Checked first, and named without its path, so the credential never reaches a receipt.
+      refusals.push({ path: "", reason: "contains_secret" });
+      continue;
+    }
     const refuse = (reason: RefusalReason) => refusals.push({ path: change.path, reason });
     if (!safePath(change.path)) {
       refuse("unsafe_path");
@@ -345,7 +353,6 @@ export function checkChanges(
     if (change.executable) refuse("executable");
     if (change.modeChanged) refuse("mode_changed");
     if (!change.text) refuse("not_text");
-    if (change.containsSecret) refuse("contains_secret");
     if (!Number.isSafeInteger(change.linesChanged) || change.linesChanged < 0) {
       refuse("invalid_line_count");
     } else {
