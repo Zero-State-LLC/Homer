@@ -52,9 +52,10 @@ non-Buzz event (refused), and every version 1 fixture unchanged.
 Activity Event, or refuses or skips it. It is a pure function: it does no network
 call, write, or clock read.
 
-Context is reviewed configuration: the relay origin, the channel's UUID and
-reviewed label, whether the channel takes knowledge flags, and an explicit
-`collectedAt`.
+Context is reviewed configuration: the relay origin, the channel's UUID, and an
+explicit `collectedAt`. Nothing else in the catalog affects the mapped event, so
+a catalog change never changes the Event Key or content of a message already
+collected.
 
 Admission, in order:
 
@@ -70,14 +71,17 @@ Admission, in order:
 
 Output, an allowlist:
 
-- `eventKey`: `buzz:message.posted:<channel-uuid>/<event-id>`, or
-  `buzz:knowledge.flagged:<channel-uuid>/<event-id>` when the channel takes flags
-  and the event carries the tag `["t", "knowledge-flag"]`.
+- `eventKey`: `buzz:knowledge.flagged:<channel-uuid>/<event-id>` when the signed
+  event carries the tag `["t", "knowledge-flag"]`, and otherwise
+  `buzz:message.posted:<channel-uuid>/<event-id>`. The kind depends only on the
+  signed event, which cannot change, so re-collecting a message always yields the
+  same Event Key.
 - `occurredAt`: `created_at`, converted to UTC.
 - `actor.sourceAccount`: `buzz:<pubkey>`. `actorId` and `actorKind` are absent.
   The Identity Binding sets them later, never the mapper.
-- `subject`: a fixed text built from the reviewed channel label, such as
-  `Buzz message in homer`. No relay-supplied text.
+- `subject`: fixed text per kind, `Buzz message` or `Buzz knowledge flag`. No
+  relay-supplied text and no catalog label, so renaming a channel's label never
+  creates a Conflict.
 - `provenance`: Source System `buzz`, the event id, the `buzz://message` link,
   collector name and version, and `collectedAt`.
 - `evidence`: the thread root's `buzz://message` link when the event replies in a
@@ -97,8 +101,11 @@ mapped content at the same Event Key is a Conflict, never an overwrite.
 `BuzzChannelCatalog` loads a validated snapshot of reviewed configuration on every
 collection, as `GitHubMappingCatalog` does: schema version, a monotonic revision,
 and entries with channel UUID, reviewed label, enabled state, and whether the
-channel takes knowledge flags. An empty catalog admits nothing. A missing or
-invalid catalog fails closed, with no stale fallback. Replacement is
+channel is a flag channel. The label is for the operator UI only. The flag-channel
+setting is applied by Projections, never by the mapper: a tagged message from a
+channel that is not a flag channel is still collected as `knowledge.flagged`, and
+Projections show it as not actionable. An empty catalog admits nothing. A missing
+or invalid catalog fails closed, with no stale fallback. Replacement is
 compare-and-swap; a stale writer gets a conflict.
 
 Only channels in the catalog are read. Direct messages are never read: a channel
@@ -230,9 +237,10 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
 
 1. **Contract version 2.** New schema file, fixtures, a validator that accepts
    both versions, and Event Ledger acceptance tests. Version 1 fixtures unchanged.
-2. **Pure mapper.** `mapBuzzEvent` with tests for valid messages and flags, a bad
-   signature, a wrong-length signature, a bad id, the wrong channel, the wrong
-   kind, a future timestamp,
+2. **Pure mapper.** `mapBuzzEvent` with tests for valid messages and flags, the
+   same message re-mapped after a catalog change with an identical Event Key and
+   content, a bad signature, a wrong-length signature, a bad id, the wrong channel,
+   the wrong kind, a future timestamp,
    oversized and malformed fields, thread replies, stable retries, and proof that
    no text, name, or attachment reaches the output.
 3. **Channel catalog.** Reviewed configuration with compare-and-swap, an empty
