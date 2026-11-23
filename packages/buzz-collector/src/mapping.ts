@@ -54,6 +54,11 @@ export const MAX_CONTENT_CHARS = 64 * 1024;
 export const MAX_TAGS = 2000;
 export const MAX_TAG_ITEMS = 16;
 export const MAX_TAG_ITEM_CHARS = 4096;
+/**
+ * Budget for the serialized event that is hashed. JSON escaping can make a string six times
+ * longer, so fields within their own limits can still add up to too much.
+ */
+export const MAX_SERIALIZED_CHARS = 512 * 1024;
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const HEX128 = /^[0-9a-f]{128}$/;
@@ -106,6 +111,19 @@ function readTags(value: unknown): Tags | "invalid" | "oversized" {
   return tags;
 }
 
+/** True when the escaped content and tags fit the budget. Stops counting once over it. */
+function withinSerializedBudget(content: string, tags: Tags): boolean {
+  let size = JSON.stringify(content).length;
+  if (size > MAX_SERIALIZED_CHARS) return false;
+  for (const tag of tags) {
+    for (const item of tag) {
+      size += JSON.stringify(item).length + 1;
+      if (size > MAX_SERIALIZED_CHARS) return false;
+    }
+  }
+  return true;
+}
+
 /** NIP-01: the id is the sha256 of `[0, pubkey, created_at, kind, tags, content]`. */
 export function nostrEventId(event: {
   pubkey: string;
@@ -125,18 +143,23 @@ export function nostrEventId(event: {
   return createHash("sha256").update(serialized, "utf8").digest("hex");
 }
 
+type ThreadRoot =
+  | { readonly kind: "none" }
+  | { readonly kind: "root"; readonly id: string }
+  | { readonly kind: "ambiguous" };
+
 /**
  * The thread root a reply names (NIP-10): the `e` tag marked `root`, or else the one marked
- * `reply`. More than one of the deciding marker is ambiguous. Null when it is not a reply.
+ * `reply`. More than one of the deciding marker, or a malformed id, is ambiguous.
  */
-function threadRoot(tags: Tags): string | null | "ambiguous" {
+function threadRoot(tags: Tags): ThreadRoot {
   for (const marker of ["root", "reply"]) {
     const ids = tags.filter((t) => t[0] === "e" && t[3] === marker).map((t) => t[1] ?? "");
-    if (ids.length > 1) return "ambiguous";
+    if (ids.length > 1) return { kind: "ambiguous" };
     const [id] = ids;
-    if (id !== undefined) return HEX64.test(id) ? id : "ambiguous";
+    if (id !== undefined) return HEX64.test(id) ? { kind: "root", id } : { kind: "ambiguous" };
   }
-  return null;
+  return { kind: "none" };
 }
 
 function buzzLink(channel: string, id: string): string {
@@ -169,13 +192,14 @@ export function createBuzzMapper(verify: SchnorrVerify) {
     const tags = readTags(event.tags);
     if (tags === "invalid") return refuse("invalid_event");
     if (tags === "oversized") return refuse("oversized_event");
+    if (!withinSerializedBudget(content, tags)) return refuse("oversized_event");
     if (kind !== CHANNEL_MESSAGE_KIND) return refuse("not_channel_message");
 
     // 2. The id is the event's hash, and the signature is the author's.
     if (nostrEventId({ pubkey, created_at: createdAt, kind, tags, content }) !== id) {
       return refuse("bad_id");
     }
-    let signed = false;
+    let signed: boolean;
     try {
       signed = verify(hexBytes(sig), hexBytes(id), hexBytes(pubkey));
     } catch {
@@ -195,7 +219,7 @@ export function createBuzzMapper(verify: SchnorrVerify) {
     }
 
     const root = threadRoot(tags);
-    if (root === "ambiguous") return refuse("ambiguous_thread");
+    if (root.kind === "ambiguous") return refuse("ambiguous_thread");
     // The kind depends only on the signed event, so re-collecting yields the same Event Key.
     const flagged = tags.some((t) => t[0] === "t" && t[1] === "knowledge-flag");
     const link = buzzLink(context.channel, id);
@@ -214,9 +238,9 @@ export function createBuzzMapper(verify: SchnorrVerify) {
         collectorVersion: COLLECTOR_VERSION,
         collectedAt: context.collectedAt,
       },
-      ...(root === null || root === id
-        ? {}
-        : { evidence: [{ label: "Thread root", url: buzzLink(context.channel, root) }] }),
+      ...(root.kind === "root" && root.id !== id
+        ? { evidence: [{ label: "Thread root", url: buzzLink(context.channel, root.id) }] }
+        : {}),
     };
     if (!validateActivityEvent(mapped).ok) return refuse("invalid_activity_event");
     return { outcome: "mapped", event: mapped };

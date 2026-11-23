@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   MAX_CONTENT_CHARS,
+  MAX_TAG_ITEM_CHARS,
   MAX_TAGS,
   createBuzzMapper,
   nostrEventId,
@@ -221,6 +222,10 @@ describe("refusing a Buzz event", () => {
     expect(refusal(signed({ content: "x".repeat(MAX_CONTENT_CHARS + 1) }))).toBe("oversized_event");
     const many = Array.from({ length: MAX_TAGS + 1 }, () => ["t", "x"]);
     expect(refusal({ ...signed(), tags: many })).toBe("oversized_event");
+    // Within every per-field limit, but escaping would make the hashed text enormous.
+    const nul = "\u0000".repeat(MAX_TAG_ITEM_CHARS);
+    const escaping = Array.from({ length: MAX_TAGS }, () => Array.from({ length: 16 }, () => nul));
+    expect(refusal({ ...signed(), tags: escaping })).toBe("oversized_event");
     expect(
       refusal({
         ...signed(),
