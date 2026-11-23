@@ -141,7 +141,7 @@
             "type": "string",
             "format": "uri",
             "pattern": "^(https://|buzz://message\\?channel=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}&id=[0-9a-f]{64}$)",
-            "description": "https://, or a buzz://message link on a Buzz event or on a homer event citing a Buzz Knowledge Flag."
+            "description": "https://, or a buzz://message link on a Buzz event."
           }
         }
       }
@@ -155,7 +155,7 @@
   },
   "allOf": [
     {
-      "$comment": "A buzz://message source URL is allowed only on a Buzz event; every other Source System uses https://.",
+      "$comment": "A buzz://message link is allowed only on a Buzz event; every other Source System uses https://.",
       "if": {
         "type": "object",
         "required": ["provenance"],
@@ -183,31 +183,7 @@
                 "pattern": "^https://"
               }
             }
-          }
-        }
-      }
-    },
-    {
-      "$comment": "buzz://message evidence is allowed on a Buzz event, and on a homer event that cites a Buzz Knowledge Flag.",
-      "if": {
-        "type": "object",
-        "required": ["provenance"],
-        "properties": {
-          "provenance": {
-            "type": "object",
-            "required": ["sourceSystem"],
-            "properties": {
-              "sourceSystem": {
-                "type": "string",
-                "enum": ["buzz", "homer"]
-              }
-            }
-          }
-        }
-      },
-      "else": {
-        "type": "object",
-        "properties": {
+          },
           "evidence": {
             "type": "array",
             "items": {
@@ -471,6 +447,59 @@
           "subject": {
             "type": "string",
             "pattern": "^Curator run (opened a pull request|found nothing to change|failed: [a-z_]+)$"
+          }
+        }
+      }
+    },
+    {
+      "$comment": "A curator run cites flags by Event Key, the stable identity of each knowledge.flagged event: the flags it addressed, and any it reported as needing a human.",
+      "if": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "curator.run_completed"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "required": ["data"],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["addressedFlags"],
+            "properties": {
+              "addressedFlags": {
+                "type": "array",
+                "maxItems": 20,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^(buzz|github|linear):knowledge\\.flagged:[A-Za-z0-9._:/#@-]{1,200}$"
+                }
+              },
+              "needsHuman": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["flag", "result"],
+                  "properties": {
+                    "flag": {
+                      "type": "string",
+                      "pattern": "^(buzz|github|linear):knowledge\\.flagged:[A-Za-z0-9._:/#@-]{1,200}$"
+                    },
+                    "result": {
+                      "type": "string",
+                      "enum": ["unclear", "conflict"]
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

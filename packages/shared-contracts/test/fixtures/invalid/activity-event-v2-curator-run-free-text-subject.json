@@ -22,19 +22,21 @@
     {
       "label": "pull request",
       "url": "https://github.com/Zero-State-LLC/Homer/pull/61"
-    },
-    {
-      "label": "flag",
-      "url": "buzz://message?channel=00000000-0000-4000-8000-000000000001&id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    },
-    {
-      "label": "flag",
-      "url": "https://github.com/Zero-State-LLC/Homer/issues/60"
     }
   ],
   "data": {
     "outcome": "opened_pull_request",
     "profileRevision": 7,
-    "session": "completed"
+    "session": "completed",
+    "addressedFlags": [
+      "buzz:knowledge.flagged:00000000-0000-4000-8000-000000000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "github:knowledge.flagged:Zero-State-LLC/Homer#60"
+    ],
+    "needsHuman": [
+      {
+        "flag": "linear:knowledge.flagged:ZER-60",
+        "result": "unclear"
+      }
+    ]
   }
 }

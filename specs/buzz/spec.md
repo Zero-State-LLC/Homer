@@ -39,9 +39,7 @@ Version 2 equals version 1 except:
 - `provenance.sourceUrl` and each `evidence[].url` may be
   `buzz://message?channel=<uuid>&id=<event-id>` when `sourceSystem` is `buzz`.
   Buzz has no web page for a message, so no `https://` link exists. Every other
-  Source System still needs `https://` in both places, with one exception the
-  knowledge-loop spec adds: a `homer` curator event may cite a Buzz Knowledge Flag's
-  `buzz://message` link as evidence. Its source URL stays `https://`.
+  Source System still needs `https://` in both places.
 
 The Event Ledger validates an append against the version its `contract` field
 names, and accepts both. Fixtures cover a valid Buzz message, a valid thread

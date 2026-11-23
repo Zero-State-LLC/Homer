@@ -57,16 +57,34 @@ describe("Activity Event contract version 2", () => {
     }
   });
 
-  it("allows buzz:// evidence only on Buzz and homer events", () => {
-    expect(errorsOf("invalid/activity-event-v2-buzz-url-in-github-evidence.json")).toContain(
-      '/evidence/0/url must match pattern "^https://"',
-    );
+  it("allows buzz:// evidence only on Buzz events", () => {
+    for (const name of [
+      "invalid/activity-event-v2-buzz-url-in-github-evidence.json",
+      "invalid/activity-event-v2-buzz-url-in-homer-evidence.json",
+    ]) {
+      expect(errorsOf(name)).toContain('url must match pattern "^https://"');
+    }
+  });
+
+  it("cites a curator run's flags by their Event Keys", () => {
     const run = validateActivityEvent(
       loadFixture("valid/activity-event-v2-curator-run-completed.json"),
     );
-    expect(run.ok).toBe(true);
-    if (run.ok) {
-      expect(run.value.evidence?.some((link) => link.url.startsWith("buzz://"))).toBe(true);
+    if (!run.ok) {
+      expect.fail(run.errors.join("\n"));
+    }
+    expect(run.value.data?.["addressedFlags"]).toEqual([
+      "buzz:knowledge.flagged:00000000-0000-4000-8000-000000000001/" + "a".repeat(64),
+      "github:knowledge.flagged:Zero-State-LLC/Homer#60",
+    ]);
+    expect(errorsOf("invalid/activity-event-v2-curator-run-without-flags.json")).toContain(
+      "/data must have required property 'addressedFlags'",
+    );
+    for (const name of [
+      "invalid/activity-event-v2-curator-run-flag-as-link.json",
+      "invalid/activity-event-v2-curator-run-non-flag-key.json",
+    ]) {
+      expect(errorsOf(name)).toContain("/data/addressedFlags/0 must match pattern");
     }
   });
 

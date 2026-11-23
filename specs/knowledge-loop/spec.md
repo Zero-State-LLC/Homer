@@ -39,9 +39,13 @@ built once, with both specs' additions.
   It admits only the `curator.*` kinds below.
 - `knowledge.flagged` is admitted from `buzz`, `github`, and `linear`.
 - `curator.run_completed`: Event Key `homer:curator.run_completed:<run-id>`.
-  Evidence holds the pull request link, if any, and one link per flag addressed.
-  A Buzz flag has only a `buzz://message` link, so a `homer` event may carry that
-  link as evidence; its source URL is still `https://`.
+  Evidence holds the pull request link, if any. The run cites flags by Event Key,
+  the stable identity of each `knowledge.flagged` event, not by link: a link can
+  change (a Linear link carries the Task's title) and a Buzz flag has only a
+  `buzz://` link. `data.addressedFlags`, required, lists the Event Keys of the
+  flags it addressed; `data.needsHuman` lists any it reported `unclear` or
+  `conflict`, each with its result. The schema checks that every entry is a
+  `knowledge.flagged` Event Key from Buzz, GitHub, or Linear.
   The subject is fixed text for the outcome: `Curator run opened a pull request`,
   `Curator run found nothing to change`, or `Curator run failed: <reason code>`.
 - `curator.profile_switched`: Event Key
@@ -65,9 +69,10 @@ from the source at run time. A flag names what is missing or wrong, where (a fil
 a term or heading), the evidence (a link), and optionally a suggested fix. A flag
 that lacks these is still admitted; the curator reports it as unclear.
 
-A flag is **resolved** when a `curator.run_completed` event cites it and the pull
-request it links has a `pull_request.merged` event. A flag cited by three runs
-without a merge is shown as stuck. A flag the curator cannot act on is reported as
+A flag is **resolved** when a `curator.run_completed` event lists its Event Key in
+`data.addressedFlags` and the pull request in that event's evidence has a
+`pull_request.merged` event. A flag listed by three runs without a merge is shown
+as stuck. A flag the curator cannot act on is listed in `data.needsHuman`, shown as
 needing a human, and stays open.
 
 ### Curator Profile
