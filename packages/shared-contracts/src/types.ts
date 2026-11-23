@@ -5,12 +5,7 @@
 
 /** `buzz` and `homer` exist only in Activity Event contract version 2. */
 export type SourceSystem =
-  | "github"
-  | "linear"
-  | "control-room"
-  | "software-factory"
-  | "buzz"
-  | "homer";
+  "github" | "linear" | "control-room" | "software-factory" | "buzz" | "homer";
 
 export type ActorKind = "human" | "agent" | "system" | "unknown";
 
@@ -100,14 +95,7 @@ export interface WorkRequest {
 }
 
 export type PacketStage =
-  | "intake"
-  | "spec"
-  | "implement"
-  | "verify"
-  | "merge"
-  | "deploy"
-  | "learn"
-  | "done";
+  "intake" | "spec" | "implement" | "verify" | "merge" | "deploy" | "learn" | "done";
 
 export interface FactoryEventStageChanged {
   contract: "home.factory-event/v1";
