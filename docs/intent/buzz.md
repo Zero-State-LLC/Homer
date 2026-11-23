@@ -128,12 +128,16 @@ Danny's review:
   message text. Stored text could never be removed from an append-only
   Ledger.
 
+Resolved by ZER-44 on 2026-11-23 (details in `specs/buzz/spec.md`):
+
+- The relay is `https://zer0state.communities.buzz.xyz`, a hosted
+  community on the public internet. A Worker reaches it directly. It does
+  not enforce federated identity (NIP-FI).
+- Alerts go to the private `homer` channel, which Boof created.
+
 Still open, for the spec:
 
-- What is the relay address, and how does a Worker reach it? Does the
-  relay require federated identity (NIP-FI)?
-- Which channels go on the Collector allowlist, and which channel takes
-  alerts?
+- Which channels go on the Collector allowlist?
 - Which kinds come first: every message in an allowlisted channel, or only
   messages that name a Task, a pull request, or an Agent?
 - Does Homer post alerts by signing Buzz events with its own key, or by
@@ -143,8 +147,8 @@ Still open, for the spec:
 - Which TypeScript Nostr library does Homer use? Homer has none today, and
   Buzz's SDK is Rust. The spec picks one and pins it.
 - What is the freshness budget for `buzz`?
-- Who creates Homer's Buzz key and registers it as a relay member? That
-  needs the relay's own signing key.
+- How does Homer's key join the hosted community? The relay is not ours,
+  so its own membership tools are not available.
 - Is adding `buzz` a new Activity Event contract version or a revision of
   version 1?
 
