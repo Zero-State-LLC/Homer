@@ -1,0 +1,31 @@
+{
+  "id": "WP-2026-11-22-runner-measurements",
+  "source": "github:Zero-State-LLC/Homer#44",
+  "pain": "Agent coding overload makes it hard to measure CI wait, execution and comparable runner speed without fabricated telemetry.",
+  "who": "Zero State operators and developers",
+  "done_when": [
+    "Strict GitHub Job Attempt input rejects invalid source IDs, evidence URLs, timestamps and untrusted shapes; source-created to started duration is explicitly a proxy, not verified runnable queue time.",
+    "Separate execution and end-to-end durations preserve Unknown on missing, reversed or future-inconsistent timestamps and never invent source facts.",
+    "Comparable environment and cache-mode grouping with deterministic p50/p95 thresholds refuses to rank insufficient or stale samples.",
+    "Reruns, Duplicate/conflicting evidence, unsuccessful jobs and caller-owned sample immutability are covered by synthetic tests.",
+    "The scheduling intent, ADR and spec preserve GitHub Authority and prohibit any job dispatch, runner activation, paid overflow, credential action or production deploy."
+  ],
+  "scope": {
+    "repo": "Zero-State-LLC/Homer",
+    "out_of_scope": [
+      "Live GitHub Collector",
+      "Changing GitHub Actions runs-on labels",
+      "Production deployments",
+      "External provider activation"
+    ]
+  },
+  "risk_tier": "medium",
+  "budget_usd": 5,
+  "owner_agent": "ADVERSARY",
+  "stage": "verify",
+  "author_model": "openai/gpt-6",
+  "test_command": "bash -c 'npm ci --no-audit --no-fund && npm run check'",
+  "links": [
+    "https://github.com/Zero-State-LLC/Homer/pull/44"
+  ]
+}
