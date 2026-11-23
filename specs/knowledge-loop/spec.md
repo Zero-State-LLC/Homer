@@ -189,8 +189,8 @@ Qualification is per profile and host. Switching the host clears it.
    inputs. It answers every permission request by the profile's policy, so a
    headless run never waits on approval. The agent ends with a flag report: one
    result per flag, `addressed`, `unclear`, or `conflict`. The report is untrusted.
-   A flag it omits, names twice, or does not recognize, and every flag when the
-   report is missing or malformed, counts as `unclear`. A flag counts as
+   A flag it omits, names twice, or gives any other result, and every flag when
+   the report is missing or malformed, counts as `unclear`. A flag counts as
    `addressed` only when the run also has accepted changes.
 7. When the session ends or times out (30 minutes), the runner compares the folder
    with `main` and checks the changes:
