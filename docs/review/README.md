@@ -1,6 +1,6 @@
 # Homer merge review handoff
 
-For the current operator stack (PRs31,32,35,38,39), use the
+For the current operator stack (PRs31,32,35,38,39,44,45,46), use the
 [November22 handoff](2026-11-22-operator-stack.md). The audit below records the
 historical foundation stack and does not describe current PR status.
 
