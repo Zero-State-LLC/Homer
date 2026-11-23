@@ -3,7 +3,6 @@
  * Runs on the host after the container has stopped. Symlinks are reported, never followed.
  */
 import type { Change } from "@zs-home/curator-runner";
-import { Buffer } from "node:buffer";
 import { constants } from "node:fs";
 import { lstat, open, readdir, readlink, realpath } from "node:fs/promises";
 import { join, sep } from "node:path";
@@ -72,8 +71,8 @@ async function sameBytes(left: string, right: string): Promise<boolean> {
     const b = await open(right, constants.O_RDONLY | constants.O_NOFOLLOW);
     try {
       const size = 1024 * 1024;
-      const bufferA = Buffer.alloc(size);
-      const bufferB = Buffer.alloc(size);
+      const bufferA = new Uint8Array(size);
+      const bufferB = new Uint8Array(size);
       for (;;) {
         const [readA, readB] = await Promise.all([
           a.read(bufferA, 0, size),
@@ -81,8 +80,8 @@ async function sameBytes(left: string, right: string): Promise<boolean> {
         ]);
         if (readA.bytesRead !== readB.bytesRead) return false;
         if (readA.bytesRead === 0) return true;
-        if (!bufferA.subarray(0, readA.bytesRead).equals(bufferB.subarray(0, readB.bytesRead))) {
-          return false;
+        for (let index = 0; index < readA.bytesRead; index++) {
+          if (bufferA[index] !== bufferB[index]) return false;
         }
       }
     } finally {
@@ -91,6 +90,13 @@ async function sameBytes(left: string, right: string): Promise<boolean> {
   } finally {
     await a.close();
   }
+}
+
+/** Unpadded base64 of the text's UTF-8 bytes. */
+function toBase64(text: string): string {
+  let binary = "";
+  for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/=+$/, "");
 }
 
 /**
@@ -103,11 +109,8 @@ export function holdsSecret(text: string, secrets: readonly string[]): boolean {
   const squeezed = text.replace(/\s+/g, "");
   return secrets.some((secret) => {
     if (secret === "") return false;
-    const forms = [
-      secret,
-      Buffer.from(secret).toString("base64").replace(/=+$/, ""),
-      Buffer.from(secret).toString("base64url"),
-    ];
+    const base64 = toBase64(secret);
+    const forms = [secret, base64, base64.replace(/\+/g, "-").replace(/\//g, "_")];
     return forms.some((form) => text.includes(form) || squeezed.includes(form));
   });
 }
@@ -207,7 +210,8 @@ async function compare(
     modeChanged: before !== undefined && after !== undefined && before.mode !== after.mode,
     text: status === "deleted" ? oldText !== null : newText !== null,
     linesChanged: lineDistance(lines(oldText ?? ""), lines(newText ?? "")),
-    containsSecret: newText !== null && holdsSecret(newText, secrets),
+    containsSecret:
+      holdsSecret(path, secrets) || (newText !== null && holdsSecret(newText, secrets)),
   };
 }
 
@@ -242,6 +246,7 @@ export async function readAcceptedFile(
   if (path.startsWith("/") || path.split("/").some((part) => part === "" || part === "..")) {
     throw new Error("unsafe path");
   }
+  if (holdsSecret(path, secrets)) throw new Error("path holds a credential");
   const root = await realpath(workRoot);
   const full = join(root, path);
   if ((await realpath(full)) !== full || !full.startsWith(root + sep)) {

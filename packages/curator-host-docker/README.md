@@ -42,9 +42,9 @@ const receipt = await runCurator({ host, inputs, validator, publisher }, request
    that stops reading its input, or sends an oversized message or request id, ends
    the session.
 3. `listChanges()` compares the two copies on the host, without Git, and reports
-   symlinks, modes and line counts for the core's checks. It marks any change that
-   holds the run's credential, plain, split or base64-encoded, so the core refuses
-   it.
+   symlinks, modes and line counts for the core's checks. It marks any change whose
+   path or contents hold the run's credential, plain, split or base64-encoded, so
+   the core refuses it without naming the path.
 4. `readFile()` refuses a symlink anywhere on the path, anything that is not UTF-8
    text, and anything holding the run's credential.
 5. `cleanup()` removes the containers, the network and the folders, and fails if

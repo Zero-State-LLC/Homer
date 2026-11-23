@@ -1,4 +1,3 @@
-import { Buffer } from "node:buffer";
 import { chmod, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,7 +11,7 @@ afterEach(async () => {
 });
 
 /** A reference copy and an agent copy holding the same files. */
-async function trees(files: Record<string, string | Buffer>) {
+async function trees(files: Record<string, string | Uint8Array>) {
   const root = await mkdtemp(join(tmpdir(), "curator-tree-"));
   made.push(root);
   const base = join(root, "base");
@@ -27,7 +26,7 @@ async function trees(files: Record<string, string | Buffer>) {
   return { base, work };
 }
 
-const binary = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]);
+const binary = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02]);
 
 describe("line distance", () => {
   test("counts added plus removed lines", () => {
@@ -78,7 +77,7 @@ describe("tree changes", () => {
     await symlink("/etc/passwd", join(work, "link.md"));
     await chmod(join(work, "AGENTS.md"), 0o755);
     await writeFile(join(work, "run.md"), "#!/bin/sh\n", { mode: 0o755 });
-    await writeFile(join(work, "docs/logo.png"), Buffer.from([0x00, 0xff]));
+    await writeFile(join(work, "docs/logo.png"), new Uint8Array([0x00, 0xff]));
     const changes = await listTreeChanges(base, work);
     expect(changes).toEqual([
       {
@@ -142,7 +141,7 @@ describe("credentials in changes", () => {
   test("plain, split and base64 copies are caught", () => {
     expect(holdsSecret("token: cf-Abc123-very-secret-token", [secret])).toBe(true);
     expect(holdsSecret("cf-Abc123-very-\n  secret-token", [secret])).toBe(true);
-    const encoded = Buffer.from(secret).toString("base64");
+    const encoded = btoa(secret);
     expect(holdsSecret(`see ${encoded}`, [secret])).toBe(true);
     expect(holdsSecret("nothing here", [secret])).toBe(false);
     expect(holdsSecret("anything", [])).toBe(false);
@@ -154,6 +153,18 @@ describe("credentials in changes", () => {
     const [change] = await listTreeChanges(base, work, [secret]);
     expect(change).toMatchObject({ path: "CONTEXT.md", containsSecret: true });
     await expect(readAcceptedFile(work, "CONTEXT.md", [secret])).rejects.toThrow("credential");
+  });
+
+  test("a credential used as a file or folder name is caught too", async () => {
+    const { base, work } = await trees({ "CONTEXT.md": "# A\n" });
+    await mkdir(join(work, "docs", secret), { recursive: true });
+    await writeFile(join(work, "docs", secret, "notes.md"), "# Notes\n");
+    await writeFile(join(work, "docs", `${secret}.md`), "# Notes\n");
+    const changes = await listTreeChanges(base, work, [secret]);
+    expect(changes.map((c) => c.containsSecret)).toEqual([true, true]);
+    await expect(readAcceptedFile(work, `docs/${secret}.md`, [secret])).rejects.toThrow(
+      "credential",
+    );
   });
 });
 
