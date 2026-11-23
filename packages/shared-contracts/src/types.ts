@@ -14,6 +14,7 @@ export type SourceSystem =
 
 export type ActorKind = "human" | "agent" | "system" | "unknown";
 
+/** The last four Kinds exist only in Activity Event contract version 2. */
 export type EventKind =
   | "commit.pushed"
   | "pull_request.opened"
@@ -34,7 +35,6 @@ export type EventKind =
   | "blocker.cleared"
   | "factory.stage_changed"
   | "factory.verdict_recorded"
-  // Version 2 only.
   | "message.posted"
   | "knowledge.flagged"
   | "curator.run_completed"
