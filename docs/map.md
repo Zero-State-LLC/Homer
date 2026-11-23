@@ -8,7 +8,12 @@ Homer is the Zero State engineering headquarters. It observes work in GitHub, Li
 
 ## What matters now
 
-The repository is being bootstrapped through reviewed pull requests, starting from the accepted stage-zero intent in [`docs/intent/home-foundation.md`](intent/home-foundation.md). The next stage is a specification in `specs/`. The related Linear Task is ZER-9 (Control Room Activity Calendar and Project Timelines). Do not invent a Milestone date; an Unknown Date is a valid answer.
+Two accepted specs are being built, one Linear Task per work packet in the Homer project (team ZER):
+
+- Buzz as a Source System and alert channel: [`specs/buzz/spec.md`](../specs/buzz/spec.md).
+- The knowledge loop (Knowledge Flags, the Curator, Curator Profiles): [`specs/knowledge-loop/spec.md`](../specs/knowledge-loop/spec.md).
+
+Hosting (Danny, 2026-11-23): runners are local, and Cloudflare handles everything else. The state of the work, the open pull requests, and the next Tasks are in the latest handoff, [`docs/receipts/implementation-2026-11-23.md`](receipts/implementation-2026-11-23.md). The foundation intent, [`docs/intent/home-foundation.md`](intent/home-foundation.md), still governs the Event Ledger and Projections (ZER-9). Do not invent a Milestone date; an Unknown Date is a valid answer.
 
 ## Authority / source order
 
