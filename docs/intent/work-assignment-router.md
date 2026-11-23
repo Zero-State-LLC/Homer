@@ -95,23 +95,32 @@ Non-goals:
 - Load-balancing across a cloud pool. Hosts are local by decision.
 - Replacing the Curator Profile store or its compare-and-swap semantics.
 
-## Open questions
+## Resolved questions (2026-11-23, Danny)
 
-- **Where the router lives.** A pure function in `packages/shared-contracts` or a
-  new `packages/work-router`. The function-first option is testable without a
-  Worker and matches how `toWorkPacket` and the Buzz mapper are built.
-- **Whether a decision is an Activity Event.** Recording `homer`-sourced
-  assignments would audit well, but a new Kind means Activity Event contract
-  version 3. The alternative is a receipt outside the ledger, which is cheaper
-  and weaker. I would start with a receipt and revisit.
-- **Granularity.** Route per Work Request, per flag batch, or per run window.
-  Per Work Request is composable; per window matches the current 02:00 cron.
-- **Qualification transport.** Whether a host's `describe()` result is signed and
-  by whom. Without that, a host can overstate its capability.
-- **Interaction with PR #44.** `specs/runner-scheduling/spec.md` already defines
-  eligibility gates and abstention for GitHub job attempts. This router should
-  reuse those reason-code shapes rather than invent a second vocabulary, and
-  neither should quietly become the other.
+Settled in review before acceptance. Implement does not reopen these.
+
+- **The router lives in a new `packages/work-router`**: pure functions, no Worker,
+  no I/O, tested the way the Buzz mapper is.
+- **The decision is a receipt, not an Activity Event.** A `homer`-sourced event
+  would cost Activity Event version 3 before the event shape is known. Revisit
+  when dispatch exists.
+- **One Assignment per Work Request.** A run window is a batch of decisions, not a
+  second routing mode.
+- **The router never moves the active Curator Profile pointer.** That pointer is a
+  single-writer compare-and-swap that only a qualified profile may win; applying
+  an Assignment stays a separate, accepted action.
+- **v1 trust root is a reviewed Curator Profile with a current Qualification
+  revision.** The target — a host bound through the runner controller's
+  enrollment — is unavailable: that controller is unmerged in PR #38/#39. The
+  downgrade is named in [ADR 007](../../specs/adr/007-work-assignment-router-trust.md)
+  so it cannot be mistaken for the final model.
+- **Reason codes are one shared shape**, three states and one code per Candidate,
+  with a registry in `shared-contracts`. PR #44's spec names no literal codes, so
+  there is no list to inherit; it populates its own into the same shape.
+
+Still open, and only a human can answer it: whether v1 must refuse work outright
+when the only Candidate is trusted solely by the weaker root, or may assign it
+while labelling the trust level.
 
 ## Claims
 
