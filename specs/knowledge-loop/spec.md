@@ -19,7 +19,7 @@ the host; Langfuse collection in open pull request #30, later, for traces.
 | Switching layer | The Agent Client Protocol (ACP). |
 | Cadence | Nightly at 02:00 Pacific, plus Run now in the UI. |
 | Host until Galadriel | Delphi or Morpheus (DGX Spark), whichever is less loaded. Danny names it. |
-| GitHub identity | A GitHub App installed on Homer only, with contents and pull request write. It is not in the bypass list, so it cannot merge without review. |
+| GitHub identity | A GitHub App installed on Homer only, with contents write, pull requests write, and issues read (Homer is private, and issue-backed flags must be readable). It is not in the bypass list, so it cannot merge without review. |
 | Buzz identity | Its own key, separate from Homer's alert key. Membership starts with the flag channel; a human adds any channel whose threads flags may cite. |
 | Target repositories | Homer only. A proposed agent-context change becomes a Linear Task with the patch. |
 | Traces | None at launch. Langfuse is added once #30 is live. |
@@ -240,9 +240,10 @@ Work packets, in order. Each becomes a Linear Task when this spec is accepted.
 
 1. **Contract additions** in version 2: the `homer` Source System, `curator.*`
    kinds, and `knowledge.flagged` from three sources, with fixtures.
-2. **GitHub App.** Danny creates it, installs it on Homer only, and stores its key
-   on the host's secret store. A receipt records the permissions and the bypass
-   list, with no key material.
+2. **GitHub App.** Danny creates it with contents write, pull requests write, and
+   issues read, installs it on Homer only, and stores its key on the host's secret
+   store. A receipt records the permissions and the bypass list, with no key
+   material. A test reads a private Homer issue with the App.
 3. **Curator Profile store and harness catalog**, with compare-and-swap,
    qualification clearing, and switch events.
 4. **Host runner**: run claim, input gathering, metadata-free export, container
