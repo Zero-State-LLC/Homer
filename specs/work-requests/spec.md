@@ -94,17 +94,28 @@ shared store is an open choice below.
 
 Danny decided on 2026-11-24 that a recorded request stands.
 
-1. The emitter derives the `requestId` from the source.
-2. **No recorded request:** it derives the full request, validates it, records
-   it, and outputs it.
-3. **A recorded request with the same `source`:** this is a **Duplicate**. The
+1. The emitter reads the source and derives the `requestId`. A source it cannot
+   read, or whose date it cannot parse, is refused here (`source_not_found`,
+   `source_date_unknown`).
+2. It checks admission: a canceled or duplicate Linear Task and a closed GitHub
+   issue are refused (`source_canceled`, `source_closed`), with or without a
+   record. A recorded request stands when its source is edited, not when its
+   work is canceled. The record is kept either way.
+3. **No recorded request:** it derives the full request, validates it, records
+   it, and outputs it. Any refusal in the derivation refuses the emission.
+4. **A recorded request with the same `source`:** this is a **Duplicate**. The
    emitter outputs the recorded request byte for byte, `requestedAt` and
-   `requestedBy` included, and exits 0. It also derives the request again. If the
-   packet that `toWorkPacket` makes from the new derivation differs from the
-   packet made from the recorded request, it warns `source_changed` on standard
-   error and names the changed packet fields. It never replaces the record. A
-   changed requirement needs a new source: a new Task, issue or manual file.
-4. **A recorded request with a different `source`:** refused as `id_collision`,
+   `requestedBy` included, and exits 0. It also derives the request again:
+   - If that derivation refuses, for example `acceptance_missing` because the
+     `Done when` section was removed, it warns `source_changed` with that reason
+     code. The refusal does not reach the exit status.
+   - If it succeeds and the packet that `toWorkPacket` makes from it differs from
+     the packet made from the recorded request, it warns `source_changed` and
+     names the changed packet fields.
+
+   It never replaces the record. A changed requirement needs a new source: a new
+   Task, issue or manual file.
+5. **A recorded request with a different `source`:** refused as `id_collision`,
    naming both sources.
 
 Comparing packets, not requests, keeps `contract`, `requestedAt` and
@@ -252,7 +263,8 @@ source's API response, the policy and the bindings, and does no I/O.
 | Policy file missing or invalid | refuse, `policy_invalid`; no built-in values |
 | Store missing or unreadable | stop before deriving; never emit without a record |
 | Same `requestId`, different `source` in the store | refuse, `id_collision`, naming both |
-| Source edited after its request was recorded | output the recorded request and warn `source_changed`; never overwrite |
+| Source edited after its request was recorded, even into one that no longer derives | output the recorded request and warn `source_changed`, with the derivation's reason code when it refuses; never overwrite |
+| Source canceled or closed after its request was recorded | refuse, `source_canceled` or `source_closed`; the record is kept |
 | Source text holds a secret-shaped string | refuse, `secret_in_source`, naming the field and never the value |
 | Endpoint returns non-2xx | non-zero exit, no receipt, response body not echoed |
 
@@ -271,6 +283,8 @@ a pull request.
 | Emit twice from the same store | the second output is byte-identical: a Duplicate |
 | Emit twice with a different Agent and clock | still a Duplicate: `requestedBy` and `requestedAt` stay out of the comparison |
 | Emit, edit the source's `Done when`, emit again | recorded request returned, `source_changed` names `done_when`, exit 0 |
+| Emit, remove the `Done when` section, emit again | recorded request returned, `source_changed` with `acceptance_missing`, exit 0 |
+| Emit, cancel the Task, emit again | refused `source_canceled`; the record is unchanged |
 | Emission across a simulated midnight | `requestId` unchanged: the date is the source's |
 | `homer.v2`, `homer_v2` and `homer-v2` issues with the same number | three different ids, through the hash suffix |
 | Two long manual slugs sharing a 39-character prefix | different ids |
