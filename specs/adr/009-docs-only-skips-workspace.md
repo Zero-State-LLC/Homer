@@ -1,7 +1,7 @@
 # ADR 009: a docs-only pull request skips the workspace steps, decided inside `check`
 
-Status: proposed. Not accepted until Danny accepts the intent.
-Intent: [CI feedback time](../../docs/intent/ci-feedback.md) (draft).
+Status: accepted by Danny on 2026-11-24 (#62).
+Intent: [CI feedback time](../../docs/intent/ci-feedback.md) (accepted).
 Spec: [CI feedback time](../ci-feedback/spec.md), requirements R2 to R6 and
 packet 2.
 Evidence: [CI baseline receipt](../../docs/receipts/ci-baseline-2026-11-24.md).
@@ -59,8 +59,9 @@ without the other is a defect.
 - A docs-only pull request gets a green `check` in seconds instead of about 76.
   `audit`, Docs and Secret scan run exactly as before.
 - No ruleset edit and no job rename. A docs-only pull request still reports a
-  green `check`, so Danny can later make `check` a required check without
-  blocking docs-only pull requests, which a `paths` filter would have prevented.
+  green `check`, so `check` can be a required check without blocking docs-only
+  pull requests, which a `paths` filter would have prevented. Danny decided on
+  2026-11-24 to require `check` and `audit` once packet 2 lands.
 - The runner still starts for a docs-only pull request, about 5 seconds.
 - Docs-only is now written in two places, `AGENTS.md` for the merge contract and
   `scripts/ci-changes.sh` for CI. The script cites `AGENTS.md`, and the spec

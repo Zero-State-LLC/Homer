@@ -1,7 +1,8 @@
 # CI feedback time
 
-Status: proposed. Not accepted until Danny accepts the intent.
-Intent: [CI feedback time](../../docs/intent/ci-feedback.md) (draft).
+Status: accepted by Danny on 2026-11-24 (#62), with the defaults below.
+Intent: [CI feedback time](../../docs/intent/ci-feedback.md), accepted by Danny on
+2026-11-24.
 Evidence: [CI baseline receipt](../../docs/receipts/ci-baseline-2026-11-24.md).
 Decisions: [ADR 008](../adr/008-ci-builds-once.md),
 [ADR 009](../adr/009-docs-only-skips-workspace.md),
@@ -160,7 +161,8 @@ when this spec is accepted.
    Acceptance: the classifier test passes in CI with a case for every row of the
    rules table; a code pull request still runs every step; the first docs-only
    pull request after merge shows the workspace steps skipped, the summary line,
-   and a green `check` in under 20 seconds, recorded in a receipt.
+   and a green `check` in under 20 seconds, recorded in a receipt. Then Danny
+   adds `check` and `audit` to the `main` ruleset's required checks.
 
 Open pull request #32 adds an `admin-browser` job that builds the workspace. When
 it lands after packet 2, that job takes the same classifier step and `if:`
@@ -172,7 +174,7 @@ Each default holds unless Danny changes it when accepting this spec.
 
 | Choice | Default | Alternative |
 | --- | --- | --- |
-| Require `check` and `audit` in the `main` ruleset | Not changed here. Packet 2 makes it safe, because a docs-only pull request still gets a green `check` | Danny adds both after packet 2 lands |
+| Require `check` and `audit` in the `main` ruleset | Decided (Danny, 2026-11-24): Danny adds both to the required checks after packet 2 lands, which keeps a green `check` on docs-only pull requests | Leave them unrequired |
 | `audit` on docs-only pull requests | Keeps running: 7 seconds, in parallel with `check`, and a new advisory should block any merge | Skip it with the same classifier |
 | Non-Markdown files that cannot affect the build, such as images under `assets/` | Not docs-only: run everything | Widen the rule, which first needs `AGENTS.md`'s definition to change |
 | Keep tuning CI over time, the write-up's main point | Each CI change records before and after in a receipt; [ADR 010](../adr/010-measured-ci-changes-only.md) lists when to revisit | A scheduled agent that opens CI pull requests. Declined by default: the Zero State SDLC adds no bots or agent fleets |

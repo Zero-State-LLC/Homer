@@ -1,7 +1,7 @@
 # ADR 010: Homer adopts a CI technique only when a measurement shows it pays
 
-Status: proposed. Not accepted until Danny accepts the intent.
-Intent: [CI feedback time](../../docs/intent/ci-feedback.md) (draft).
+Status: accepted by Danny on 2026-11-24 (#62).
+Intent: [CI feedback time](../../docs/intent/ci-feedback.md) (accepted).
 Spec: [CI feedback time](../ci-feedback/spec.md), requirement R7.
 Evidence: [CI baseline receipt](../../docs/receipts/ci-baseline-2026-11-24.md).
 

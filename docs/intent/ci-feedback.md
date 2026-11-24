@@ -2,8 +2,11 @@
 
 Author: Claude (Claude Code) for Danny (scrimshawlife-ctrl)
 Date: 2026-11-24
-Status: draft
+Status: accepted
 Product: Homer (`Zero-State-LLC/Homer`)
+
+Danny accepted this intent on 2026-11-24 (#62), with the spec's defaults. The
+next stage is the spec in `specs/ci-feedback/`.
 
 This file is a proto-spec. It comes **before** specify.
 Next stage is `spec.md` (spec-kit specify). Do not skip to code.
@@ -75,12 +78,12 @@ Non-goals:
 - TypeScript 7 while `typescript-eslint` needs TypeScript below 6.1.
 - The Docs and Secret scan workflows. Their jobs take 5 to 8 seconds.
 
-## Open questions
+## Resolved questions (2026-11-24, Danny)
 
-- Should `check` and `audit` become required status checks in the `main`
-  ruleset? Today they are not; only the four Docs and Secret scan jobs are. This
-  stream makes it possible without blocking docs-only pull requests, but the
-  ruleset is Danny's to change. Default: propose it; do not change it here.
+- **`check` and `audit` become required status checks on `main` once packet 2
+  (#64) lands.** Today only the four Docs and Secret scan jobs are required.
+  Packet 2 keeps a green `check` on docs-only pull requests, so requiring it then
+  blocks nothing. Danny edits the ruleset; no agent changes it.
 
 ## Claims
 
@@ -97,6 +100,7 @@ Non-goals:
 
 ## Next
 
-A human accepts this file (`Status: accepted`). Then the spec in
-`specs/ci-feedback/spec.md` with its `## Workflows` section, and ADRs 008 to
-010. Do not implement from this file alone.
+Accepted. The spec is `specs/ci-feedback/spec.md`, with its `## Workflows`
+section, and the decisions are ADRs 008 to 010. Packet 1 is pull request #63
+and packet 2 is pull request #64. Both need a Verdict, which waits on ZER-62. Do
+not implement from this file alone.
