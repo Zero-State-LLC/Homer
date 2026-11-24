@@ -1,21 +1,25 @@
 # Work Request emission (v0.1.0)
 
-Status: draft. Written after Danny accepted the
-[Work Request intent](../../docs/intent/work-requests.md) on 2026-11-23 (#59).
-No emitter, endpoint or packet exists on `main`; nothing here is enabled.
+Status: proposed. Not accepted until Danny accepts this spec.
+Intent: [Homer emits Work Requests](../../docs/intent/work-requests.md), accepted
+by Danny on 2026-11-23 (#59) and amended on 2026-11-24 (#61): Done Linear Tasks
+are admitted, and a recorded request stands when its source is edited.
 Decision: [ADR 006](../adr/006-work-request-transport.md).
 Contract: `../integration-contracts/work-request.v1.schema.json`, mapped to a
 Work Packet by `toWorkPacket` in `packages/shared-contracts/src/factory.ts`.
+Linear Task: ZER-62. No emitter, store or endpoint exists on `main`; nothing here
+is enabled.
 
 ## Scope and boundaries
 
 Homer builds a Work Request from one Source System object, validates it with
-`validateWorkRequest`, and makes it available to software-factory. Homer never
-advances a Work Packet past `intake` and never writes a Verdict.
+`validateWorkRequest`, records it, and makes it available to software-factory.
+Homer never advances a Work Packet past `intake` and never writes a Verdict.
 
-In scope: a pure builder, a CLI, a receipt, and refusal of bad sources.
-Out of scope: judging, packet stages after intake, Linear or GitHub write-back,
-and any Change to an Activity Event contract.
+In scope: a pure builder, a request store, a CLI, a delivery receipt, a reviewed
+policy file, and refusal of bad sources.
+Out of scope: judging, choosing the judge model, packet stages after intake,
+Linear or GitHub write-back, and any change to an Activity Event contract.
 
 ## Domain vocabulary
 
@@ -28,6 +32,11 @@ them:
 - **Requester**: the Agent that emits the request, recorded as
   `requestedBy.sourceAccount` = `agent:<name>`, with `actorId` only from its
   Identity Binding. The human with the pain is `who`.
+- **Recorded request**: the first Work Request emitted for a `requestId`, kept in
+  the request store. It never changes. A retry returns it.
+- **Receipt**: the record that a recorded request reached a configured endpoint.
+  Emission and delivery are separate records: printing a request records it but
+  writes no receipt.
 
 ## Contract
 
@@ -37,141 +46,274 @@ them:
 WR-<source date>-<slug>
 ```
 
-- `<source date>` is the source object's own immutable date in UTC:
-  a Linear Task's `createdAt`, a GitHub issue's `created_at`, or the date fixed in
-  a manual request's reviewed definition. It is **never** the emission date.
-- `<slug>` is the source object's identifier, lowercased and encoded into at most
-  48 characters: `zer-62`, `github-zero-state-llc-homer-issue-59`,
-  `manual-nightly-flags`. When the lowercased identifier is longer than 48
-  characters it is **not** truncated. The first 39 characters are kept, `-`
-  follows, and 8 hexadecimal characters of `sha256(canonical source)` are
-  appended, so two long identifiers that share a prefix cannot collapse into one
-  id. Two distinct sources that still produce the same `requestId` are a
-  collision: the emitter refuses both with `id_collision` rather than picking one.
-- The pair is total: the same source emitted twice yields the same `requestId`.
-  A second emission with identical content is a **Duplicate** and is not
-  re-delivered; different content at the same id is a **Conflict** and is
-  refused with both payloads named, never overwritten.
+`<source date>` is the source object's own immutable date in UTC: a Linear Task's
+`createdAt`, a GitHub issue's `created_at`, or the `date` in a manual request's
+reviewed file. It is **never** the emission date.
+
+`<slug>` is computed from the canonical source, the `source` string with a GitHub
+owner and repository lowercased (GitHub treats both case-insensitively):
+
+| Source | Encoded form before bounding |
+| --- | --- |
+| `linear:ZER-62` | `zer-62` |
+| `github:Zero-State-LLC/Homer#59` | `github-zero-state-llc-homer-issue-59` |
+| `manual:nightly-flags` | `manual-nightly-flags` |
+
+The GitHub form is `github-<owner>-<repo>-issue-<n>`. In it, every character
+outside `[a-z0-9-]` becomes `-`. A GitHub repository name may hold `.` or `_`,
+so that replacement can map two repositories to one form (`homer.v2`,
+`homer_v2` and `homer-v2`). The encoding is therefore **exact** only when no
+character was replaced and the form has at most 48 characters. Otherwise the
+slug is the form's first 39 characters, then `-`, then the first 8 hexadecimal
+characters of `sha256` over the canonical source in UTF-8. The Linear and manual
+forms cannot lose a character, so only their length can trigger the hash.
+
+The forms start with different prefixes (`zer-`, `github-`, `manual-`), so two
+source forms cannot meet. A collision that remains is caught by the request
+store: a recorded request at the same `requestId` with a different `source` is
+refused as `id_collision`.
 
 The JSON Schema cannot express uniqueness. This section is the normative rule;
 the tests are its proof.
 
-### Duplicate and Conflict
+### The request store
 
-Content is compared over the derived request **excluding `requestedAt`** and
-`contract`. `requestedAt` is the one field whose value depends on the caller's
-clock, so including it would turn every retry into a Conflict and defeat the
-retry guarantee. Every other field participates, including `requestId`,
-`source`, `pain`, `who`, `doneWhen`, `repository`, `riskTier`, `budgetUsd`,
-`requestedBy` and `testCommand`.
+The emitter keeps one file per `requestId`: `<store>/<requestId>.json`, holding
+the recorded request exactly as first emitted. It creates the file atomically and
+never overwrites, renames or deletes it. A missing or unreadable store stops the
+emitter before it derives anything; it never falls back to emitting without a
+record.
 
-A retry that finds an existing receipt reuses the recorded envelope verbatim,
-`requestedAt` included, so the delivered body is byte-identical to the first
-delivery. A retry with a changed field is a Conflict even when only `requestedAt`
-differs from the recorded envelope, because reuse — not re-derivation — is what a
-retry does.
+Version 1 keeps the store on the machine where the software-factory judge runs
+(Danny's machine, as in ZER-63), at `$HOMER_WORK_REQUEST_STORE`, by default
+`~/.local/state/homer/work-requests/`. A request emitted on another machine has
+no record there, so emitting anywhere else is not supported in version 1. A
+shared store is an open choice below.
+
+### Retries and changed sources
+
+Danny decided on 2026-11-24 that a recorded request stands.
+
+1. The emitter derives the `requestId` from the source.
+2. **No recorded request:** it derives the full request, validates it, records
+   it, and outputs it.
+3. **A recorded request with the same `source`:** this is a **Duplicate**. The
+   emitter outputs the recorded request byte for byte, `requestedAt` and
+   `requestedBy` included, and exits 0. It also derives the request again. If the
+   packet that `toWorkPacket` makes from the new derivation differs from the
+   packet made from the recorded request, it warns `source_changed` on standard
+   error and names the changed packet fields. It never replaces the record. A
+   changed requirement needs a new source: a new Task, issue or manual file.
+4. **A recorded request with a different `source`:** refused as `id_collision`,
+   naming both sources.
+
+Comparing packets, not requests, keeps `contract`, `requestedAt` and
+`requestedBy` out of the comparison: none of them reaches the packet. A retry by
+a different Agent, at a different time, is still a Duplicate.
 
 ### Fields the emitter must derive, not accept
 
 | Field | Derived from | Rule |
 | --- | --- | --- |
 | `contract` | constant | `home.work-request/v1` |
-| `requestId` | source | rule above |
-| `source` | source | the three admitted forms |
-| `pain` | source title plus body | at least 10 characters; Markdown stripped of control characters |
-| `who` | source assignee or reporter | the human's source account label; never an email |
-| `doneWhen` | source acceptance criteria | at least one item; if the source has none, refuse rather than invent |
-| `repository` | reviewed Project mapping | must match `^Zero-State-LLC/[A-Za-z0-9._-]+$` |
-| `riskTier` | reviewed policy | never guessed from text |
-| `budgetUsd` | reviewed policy | positive, at most 500 |
-| `requestedBy.sourceAccount` | emitting Agent | `agent:<name>` |
-| `requestedAt` | caller clock | UTC, ISO-8601 `Z`; excluded from Duplicate/Conflict comparison, and reused from the recorded envelope on a retry |
-| `testCommand` | reviewed repository policy | shell-wrapped: `bash -c '...'` |
+| `requestId` | source | the rule above |
+| `source` | source | one of the three admitted forms |
+| `pain` | source title and summary | Linear and GitHub: `<title>: <first paragraph>`, where the first paragraph is the body's text before its first heading or list; control characters removed, whitespace collapsed, at most 600 characters, cut at a word boundary. Manual: the file's `pain`. At least 10 characters |
+| `who` | source creator | the Actor named by the creator's Identity Binding; with no binding, the raw stable account (`linear:<user id>`, `github:<login>`, or the manual file's `who`). Never the assignee, a display name or an email |
+| `doneWhen` | source acceptance criteria | Linear and GitHub: the list items under the body's first heading named `Done when` or `Observable done`, case-insensitive, at any heading level. Manual: the file's `doneWhen`. Each item trimmed, with control characters removed; duplicates dropped in order. At least one item of at least 5 characters, or refuse `acceptance_missing` |
+| `repository` | policy | a Linear Task: its Project through `linearProjects`; a GitHub issue: its own repository; a manual request: its file's `repository`. The repository must have an entry in `repositories` |
+| `riskTier` | policy | the repository's entry; never guessed from text |
+| `budgetUsd` | policy | the repository's entry; positive, at most 500 |
+| `testCommand` | policy | the repository's entry, shell-wrapped: `bash -c '...'` |
+| `links` | source | the Linear or GitHub source's own `https://` URL; none for a manual request |
+| `requestedBy` | emitting Agent | `sourceAccount` = `agent:<name>`; `actorId` only from its Identity Binding |
+| `requestedAt` | emitter clock | UTC, ISO-8601 with `Z`, taken when the request is first recorded; a retry returns the recorded value |
 
-An impossible derivation is a refusal with a reason code, never a default.
+`paths` and `outOfScope` are not emitted in version 1. An impossible derivation
+is a refusal with a reason code, never a default.
+
+The `pain` and `doneWhen` rules match how Homer's Tasks are already written:
+ZER-62 and ZER-63 carry a `## Done when` section, and the `intent` issue form
+has an `Observable done` field. No Identity Binding store exists yet (ZER-48), so
+until one does, `who` is the raw account and `actorId` is absent.
+
+### The policy file
+
+`docs/work-requests/policy.json` is reviewed configuration, changed only by pull
+request:
+
+```json
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "linearProjects": { "Homer": "Zero-State-LLC/Homer" },
+  "repositories": {
+    "Zero-State-LLC/Homer": {
+      "riskTier": "low",
+      "budgetUsd": 5,
+      "testCommand": "bash -c 'npm ci --no-audit --no-fund && npm run check'"
+    }
+  }
+}
+```
+
+The Homer values are Danny's (2026-11-24): the lowest risk tier and budget, so a
+judge run stays cheap. A missing or invalid policy file refuses every source with
+`policy_invalid`. The emitter never falls back to built-in values.
+
+### Manual requests
+
+A manual request is a reviewed file, `docs/work-requests/<slug>.json`, landed by
+pull request. It holds `date` (`YYYY-MM-DD`), `repository`, `title`, `pain`,
+`who` and `doneWhen`, so a manual request has a fixed date and cannot be
+fabricated at emission time. The `manual:<slug>` source names the file.
 
 ## Workflows
 
 ### Emit for a Linear Task
 
-1. Resolve `linear:ZER-<n>` through the reviewed Linear mapping.
-2. Refuse if the Task is cancelled, in a non-Homer Project, or has no acceptance
-   criteria.
-3. Build, validate, and print or write the request.
+1. Read the Task through the Linear API with the reviewed read-only key (see
+   [Credentials](#credentials)).
+2. Refuse if the Task does not exist (`source_not_found`), is in a Canceled or
+   Duplicate state (`source_canceled`), or has no Project mapped in the policy
+   (`source_not_mapped`).
+3. A Task in Backlog, Todo, In Progress, In Review or **Done** is admitted. Done is
+   admitted so merged work can get an after-the-fact Verdict (Danny, 2026-11-24,
+   ZER-63). ZER-68, ZER-69 and ZER-70 were filed as Done Tasks for #51 to #53 for
+   that reason.
+4. Derive, record and output, by the store rules above.
 
 ### Emit for a GitHub issue
 
-Same shape against a GitHub issue, using `created_at` for the date and
-`repository` from the issue's own repo.
+The same shape against a GitHub issue, read with the machine's `gh`
+authentication, using `created_at` for the date and the issue's own repository.
 
-A closed issue is **refused**, whether it was closed as completed, not planned, or
-stale. The accepted intent requires a closed source to be refused, and starting an
-intake Work Packet for work already finished is the failure that rule prevents. If
-completed issues ever need their own path, that is an accepted intent change
-first, not a spec exception.
+A closed GitHub issue is refused as `source_closed`, whether it was closed as
+completed, not planned or stale. Admitting Done Linear Tasks did not change this;
+see Open choices.
 
 ### Emit manually
 
-A manual request is a reviewed file under `docs/work-requests/`, one per slug, so
-it has a fixed date and cannot be fabricated at emission time.
+Read `docs/work-requests/<slug>.json` from the emitter's checkout of `main`, and
+refuse `source_not_found` when it is absent there.
 
 ### Deliver
 
-1. Print the validated JSON when no endpoint is configured.
-2. When `GAP_WORK_REQUEST_URL` is set, POST the same body.
-3. On a non-2xx response, exit non-zero and write **no** receipt.
-4. On success, write a receipt naming the request id, the endpoint, the response
-   status and the instant. The receipt is Homer's own record.
+1. With no endpoint configured, print the recorded request. A human gives it to
+   `toWorkPacket` and `factory judge run`, as the runbook says.
+2. When `GAP_WORK_REQUEST_URL` is set, POST the recorded request.
+3. On a non-2xx response, exit non-zero and write **no** receipt. The recorded
+   request stays, so a retry POSTs the same body.
+4. On success, write a receipt beside the record, `<requestId>.receipt.json`,
+   naming the request id, the endpoint's origin (never its path or query), the
+   response status and the instant.
 
-`toWorkPacket(request, now)` applied to the emitted body is the acceptance test: a
-packet `factory judge run --reproduce` accepts proves the chain without GAP.
+GAP has no intake endpoint yet, so its response format and authentication are
+not specified. `delivery_id_mismatch` applies only once that format carries an
+id. Delivery waits for both.
+
+`toWorkPacket(request, now)` applied to the emitted request is the acceptance
+test: a packet that `factory judge run --reproduce` accepts proves the chain
+without GAP.
+
+### Credentials
+
+The emitter runs on the judge's machine. It reads Linear with a read-only API key
+from 1Password through the read-only service account, the way the curator
+runner reads its secrets, and GitHub with that machine's `gh` authentication. The
+key reaches the process environment only; it never enters a request, the store,
+a receipt, a log or a pull request. The builder itself is pure: it takes the
+source's API response, the policy and the bindings, and does no I/O.
+
+### Skills
+
+- `anti-slop-code`
+- `production-systems`
+- `google-developer-style`
+
+### GitHub Actions
+
+| Workflow | Path | When to use |
+| --- | --- | --- |
+| CI | `.github/workflows/ci.yml` | Builder, store and CLI tests run in the workspace `check` job |
+| Docs | `.github/workflows/docs.yml` | Markdown lint and links for this spec and the runbook |
+| Secret scan | `.github/workflows/secret-scan.yml` | Proves no key or token entered fixtures or receipts |
 
 ## Security and abuse cases
 
 | Case | Behaviour |
 | --- | --- |
-| Source names a repository outside the reviewed mapping | refuse, reason `source_not_mapped` |
-| Issue text contains a secret-shaped string | strip and warn; never echo the value |
-| Source date missing or unparseable | refuse, reason `source_date_unknown`; never substitute the current date |
-| `doneWhen` absent | refuse, reason `acceptance_missing`; never invent criteria |
-| Endpoint returns 4xx | non-zero exit, no receipt, body echoed without credentials |
-| Endpoint returns 2xx with a different id | refuse, reason `delivery_id_mismatch` |
-| Two distinct sources encode to one `requestId` | refuse both, reason `id_collision`; never pick a winner |
-| Issue is closed, including closed as completed | refuse, reason `source_closed` |
+| Source names a Project or repository outside the policy | refuse, `source_not_mapped` |
+| Source does not exist | refuse, `source_not_found` |
+| Linear Task in a Canceled or Duplicate state | refuse, `source_canceled` |
+| GitHub issue closed, including closed as completed | refuse, `source_closed` |
+| Source date missing or unparseable | refuse, `source_date_unknown`; never substitute the current date |
+| No `Done when` or `Observable done` items | refuse, `acceptance_missing`; never invent criteria |
+| Policy file missing or invalid | refuse, `policy_invalid`; no built-in values |
+| Store missing or unreadable | stop before deriving; never emit without a record |
+| Same `requestId`, different `source` in the store | refuse, `id_collision`, naming both |
+| Source edited after its request was recorded | output the recorded request and warn `source_changed`; never overwrite |
+| Source text holds a secret-shaped string | refuse, `secret_in_source`, naming the field and never the value |
+| Endpoint returns non-2xx | non-zero exit, no receipt, response body not echoed |
 
-No credential, account id or token enters a request, a receipt, a log or a pull
-request.
+Refusing a secret-shaped string, rather than stripping it, keeps the derivation
+deterministic and treats the secret in a Task as the incident it is. No
+credential, account id or token enters a request, the store, a receipt, a log or
+a pull request.
 
 ## Test and acceptance matrix
 
 | Test | Proves |
 | --- | --- |
-| Linear fixture emits a valid request | the happy path for the most common source |
-| GitHub issue fixture emits a valid request | second source form |
-| Manual fixture emits a valid request | third source form |
-| Same fixture emitted twice | identical `requestId`, Duplicate acknowledged once |
-| Same fixture emitted twice with different caller clocks | Duplicate, not Conflict: `requestedAt` is outside the comparison |
-| Two long source identifiers sharing a 39-character prefix | different `requestId`s, via the hash suffix |
-| Same id, changed body | Conflict refused |
-| Emission across a simulated midnight | `requestId` unchanged, proving the date is the source's |
-| Unknown, cancelled, unmapped source | refusal with the named reason code |
-| Issue closed as completed | refused with `source_closed`, not admitted as intake |
-| `toWorkPacket` on every fixture | packet validates against the pinned upstream schema |
-| Endpoint failure | non-zero exit, no receipt file written |
+| A Linear, a GitHub and a manual fixture each emit a valid request | the three source forms |
+| A Done Linear Task emits; a canceled one is refused | Danny's 2026-11-24 rule |
+| A GitHub issue closed as completed is refused | `source_closed` still holds |
+| Emit twice from the same store | the second output is byte-identical: a Duplicate |
+| Emit twice with a different Agent and clock | still a Duplicate: `requestedBy` and `requestedAt` stay out of the comparison |
+| Emit, edit the source's `Done when`, emit again | recorded request returned, `source_changed` names `done_when`, exit 0 |
+| Emission across a simulated midnight | `requestId` unchanged: the date is the source's |
+| `homer.v2`, `homer_v2` and `homer-v2` issues with the same number | three different ids, through the hash suffix |
+| Two long manual slugs sharing a 39-character prefix | different ids |
+| A store seeded with the same id and another source | `id_collision` |
+| `Done when` under `##`, `###` and `Observable done` headings | each extracts; no heading refuses `acceptance_missing` |
+| A creator with and without an Identity Binding | the Actor, or the raw account; never the assignee |
+| Missing policy, missing store | `policy_invalid`; stop before deriving |
+| A secret-shaped string in the body | `secret_in_source`, value not printed |
+| `toWorkPacket` on every emitted fixture | the packet validates against the pinned upstream schema |
+| Endpoint failure | non-zero exit, no receipt file, record kept |
 
 ## Execution plan and dependencies
 
-1. Builder and refusal codes in `packages/shared-contracts` beside `toWorkPacket`.
-2. Fixtures for the three sources, then the matrix above.
-3. The CLI, then delivery behind `GAP_WORK_REQUEST_URL`.
-4. A runbook for a human pasting the JSON into `factory judge run`.
+1. The pure builder and refusal codes in `packages/shared-contracts`, beside
+   `toWorkPacket`, with fixtures of raw Linear and GitHub API responses.
+2. `docs/work-requests/policy.json` with Homer's values.
+3. The store and CLI in a new `packages/work-request-emitter`: reads, the store,
+   printing, and the tests above.
+4. The runbook `docs/deployment/work-requests.md`: from a Task to a packet to
+   `factory judge run --reproduce` to a Verdict comment on the pull request.
+5. Delivery behind `GAP_WORK_REQUEST_URL`, once GAP has an intake endpoint.
 
-Blocked on nothing in Homer. Unblocks the after-the-fact Verdicts for #51 to #55
-and the merge of #56.
+Steps 1 to 4 unblock ZER-63 and the Verdicts that #56, #63 and #64 wait on.
+Step 5 waits on GAP.
+
+## Open choices with defaults
+
+Each default holds unless Danny changes it when accepting this spec.
+
+| Choice | Default | Alternative |
+| --- | --- | --- |
+| Where the request store lives | On the judge's machine, under `$HOMER_WORK_REQUEST_STORE` | A records branch in Homer that any machine can append to; or the Event Ledger, which needs Activity Event version 3 (ADR 006 deferred it) |
+| A GitHub issue closed as completed | Refused, as the intent's text says | Admitted like a Done Linear Task |
+| How the emitter reads sources | It reads Linear and GitHub itself on the judge's machine, so no hand-editable copy sits between source and request | It takes a snapshot file that an agent exports, which keeps credentials off the emitter but lets the caller alter the source |
+| Endpoint variable | `GAP_WORK_REQUEST_URL` | Whatever name GAP's intake defines when it exists |
+| Saying in the contract README that `requestId` is unique per source | In this spec only, as the intent left open | Also in `specs/integration-contracts/README.md` now |
 
 ## Primary references
 
-- [Intent](../../docs/intent/work-requests.md), accepted 2026-11-23.
+- [Intent](../../docs/intent/work-requests.md), accepted 2026-11-23, amended
+  2026-11-24.
 - [ADR 006](../adr/006-work-request-transport.md).
 - `specs/integration-contracts/README.md` and the Work Request schema.
 - `docs/receipts/implementation-2026-11-23.md`, decisions 5 and 7.
+- Linear: ZER-62 (this work), ZER-63 (after-the-fact Verdicts), ZER-68 to
+  ZER-70 (Done Tasks for #51 to #53).

@@ -5,7 +5,8 @@ Date: 2026-11-23
 Status: accepted
 Product: Homer (`Zero-State-LLC/Homer`)
 
-Danny accepted this intent on 2026-11-23 (#59). The next stage is the spec in
+Danny accepted this intent on 2026-11-23 (#59) and amended it on 2026-11-24
+(#61), as Resolved questions records. The next stage is the spec in
 `specs/work-requests/`.
 
 This file is a proto-spec. It comes **before** specify.
@@ -42,6 +43,8 @@ Observable done (a stranger can check this without reading the chat):
   `validateWorkRequest` accepts.
 - A source that does not exist, is closed, or does not match the schema's
   `source` pattern is refused, with a reason naming the source and the field.
+  A Done Linear Task is not closed for this rule; a canceled one is (amended
+  2026-11-24).
 - Every emitted Work Request carries `testCommand`, so the reproduce check can
   run without a second author step.
 - `toWorkPacket` applied to an emitted Work Request produces a packet that
@@ -96,6 +99,20 @@ them.
 - **A failed delivery exits non-zero and writes no receipt.** A receipt that
   claims delivery it did not achieve would repeat the silent-success defect in
   issue #43.
+
+## Resolved questions (2026-11-24, Danny)
+
+Decided while reviewing the spec in #61. They amend this intent.
+
+- **A Done Linear Task is admitted.** After-the-fact Verdicts (ZER-63) grade
+  merged work, so their sources are Done. A canceled Task is still refused, and so
+  is a closed GitHub issue. ZER-68 to ZER-70 were filed as Done Tasks for #51 to
+  #53, which had none.
+- **A recorded request stands.** When a source is edited after its Work Request
+  was recorded, a retry returns the recorded request and warns that the source
+  changed. A changed requirement needs a new source.
+- **Homer's policy is the lowest risk tier and budget** (`low`, 5 USD), so a judge
+  run stays cheap.
 
 Still open, and only a human can answer them: whether the schema's inability to
 express `requestId` uniqueness is fixed in the contract README now or in a later
