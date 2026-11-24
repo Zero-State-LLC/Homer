@@ -42,6 +42,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Changed
 
+- A docs-only pull request, as `AGENTS.md` defines it, skips the workspace steps of the CI `check` job; every other change, and any change CI cannot classify, runs them all (ADR 009, `scripts/ci-changes.sh` and its test).
+
 - CI and `npm run check` build the workspace once instead of four and three times, and check formatting first (ADR 008).
 
 - Context Pin moves to agent-context `a4b7b7e`, whose `AGENTS.md` template checks Trail-code's `.trail/cache/` map and records Homer's Pocock exception. Only `templates/AGENTS.md.template` changes digest.
