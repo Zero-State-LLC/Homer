@@ -409,6 +409,8 @@ const CHANGELOG_OK = [
   "",
   "```md",
   "## Not a heading inside a fence",
+  "### Nor a subsection",
+  "#### Nor a deep heading",
   "```",
   "",
   "### Fixed",
@@ -459,25 +461,25 @@ test("check-versions names each CHANGELOG problem by line", async (t) => {
       "a subsection Keep a Changelog does not have",
       CHANGELOG_OK.replace("### Fixed", "### Fixes"),
       "0.0.0",
-      'CHANGELOG.md:21: "### Fixes" is not one of "### Added", "### Changed", "### Deprecated", "### Removed", "### Fixed", "### Security"',
+      'CHANGELOG.md:23: "### Fixes" is not one of "### Added", "### Changed", "### Deprecated", "### Removed", "### Fixed", "### Security"',
     ],
     [
       "a subsection twice in one section",
       CHANGELOG_OK.replace("### Fixed", "### Added"),
       "0.0.0",
-      'CHANGELOG.md:21: a second "### Added" in "## [0.2.0] - 2026-12-01"',
+      'CHANGELOG.md:23: a second "### Added" in "## [0.2.0] - 2026-12-01"',
     ],
     [
       "releases out of order",
       CHANGELOG_OK.replace("## [0.2.0] - 2026-12-01", "## [0.0.9] - 2026-12-01"),
       "0.0.0",
-      "CHANGELOG.md:25: 0.1.0 must come after 0.0.9: newest release first",
+      "CHANGELOG.md:27: 0.1.0 must come after 0.0.9: newest release first",
     ],
     [
       "a release listed twice",
       CHANGELOG_OK.replace("## [0.2.0] - 2026-12-01", "## [0.1.0] - 2026-12-01"),
       "0.0.0",
-      "CHANGELOG.md:25: 0.1.0 already has a section at line 11",
+      "CHANGELOG.md:27: 0.1.0 already has a section at line 11",
     ],
     [
       "a date that does not exist",
@@ -489,7 +491,7 @@ test("check-versions names each CHANGELOG problem by line", async (t) => {
       "a heading in another form",
       CHANGELOG_OK.replace("## [0.1.0] - 2026-11-24", "## 0.1.0 (2026-11-24)"),
       "0.0.0",
-      'CHANGELOG.md:25: "## 0.1.0 (2026-11-24)" is neither "## Unreleased" nor "## [X.Y.Z] - YYYY-MM-DD"',
+      'CHANGELOG.md:27: "## 0.1.0 (2026-11-24)" is neither "## Unreleased" nor "## [X.Y.Z] - YYYY-MM-DD"',
     ],
     [
       "Unreleased not first",
@@ -501,13 +503,13 @@ test("check-versions names each CHANGELOG problem by line", async (t) => {
       "a version with a v",
       CHANGELOG_OK.replace("## [0.1.0]", "## [v0.1.0]"),
       "0.0.0",
-      'CHANGELOG.md:25: "v0.1.0" is not a product version',
+      'CHANGELOG.md:27: "v0.1.0" is not a product version',
     ],
     [
       "a heading below ###",
       CHANGELOG_OK.replace("- A fix.", "#### Detail"),
       "0.0.0",
-      "CHANGELOG.md:23: headings below ### are not used",
+      "CHANGELOG.md:25: headings below ### are not used",
     ],
   ];
   for (const [name, text, version, error] of cases) {
@@ -523,7 +525,7 @@ test("release-notes prints exactly one section's body", () => {
   assert.equal(releaseNotes(CHANGELOG_OK, "0.1.0"), "### Security\n\n- Notes for 0.1.0.\n");
   assert.equal(
     releaseNotes(CHANGELOG_OK, "v0.2.0"),
-    "### Added\n\n- Notes for 0.2.0.\n\n```md\n## Not a heading inside a fence\n```\n\n### Fixed\n\n- A fix.\n",
+    "### Added\n\n- Notes for 0.2.0.\n\n```md\n## Not a heading inside a fence\n### Nor a subsection\n#### Nor a deep heading\n```\n\n### Fixed\n\n- A fix.\n",
   );
   assert.equal(releaseNotes(CHANGELOG_OK, "Unreleased"), "### Added\n\n- Something new.\n");
   assert.throws(() => releaseNotes(CHANGELOG_OK, "v0.3.0"), /no section for 0\.3\.0/);

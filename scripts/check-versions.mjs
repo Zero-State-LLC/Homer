@@ -233,7 +233,7 @@ export function parseChangelog(text) {
   lines.forEach((line, i) => {
     if (/^\s*(```|~~~)/.test(line)) fence = !fence;
     if (!fence && line.startsWith("## ")) {
-      current = { heading: line, line: i + 1, body: [], subsections: [] };
+      current = { heading: line, line: i + 1, body: [], subsections: [], deep: [] };
       const release = RELEASE_HEADING.exec(line);
       if (line === "## Unreleased") current.kind = "unreleased";
       else if (release)
@@ -244,8 +244,13 @@ export function parseChangelog(text) {
     }
     if (!current || (!fence && LINK_DEFINITION.test(line))) return;
     current.body.push(line);
-    if (!fence && line.startsWith("### "))
-      current.subsections.push({ name: line.slice(4), line: i + 1 });
+    // Structure comes only from lines outside code fences.
+    const subsection = !fence && line.startsWith("### ");
+    if (subsection) current.subsections.push({ name: line.slice(4), line: i + 1 });
+    if (!fence && /^#{4,} /.test(line)) current.deep.push(i + 1);
+    if (current.subsections.length === 0 && current.loose === undefined && line.trim() !== "") {
+      current.loose = i + 1; // content before the first subsection
+    }
   });
   return sections;
 }
@@ -301,15 +306,10 @@ export function checkChangelog(text, version) {
       }
       names.add(sub.name);
     }
-    const loose = section.body.findIndex((line) => line.trim() !== "" && !line.startsWith("### "));
-    const first = section.body.findIndex((line) => line.startsWith("### "));
-    if (loose !== -1 && (first === -1 || loose < first)) {
-      at(section.line + 1 + loose, `an entry outside a subsection of "${section.heading}"`);
+    if (section.loose !== undefined) {
+      at(section.loose, `an entry outside a subsection of "${section.heading}"`);
     }
-    if (/^#{4,} /m.test(section.body.join("\n"))) {
-      const deep = section.body.findIndex((line) => /^#{4,} /.test(line));
-      at(section.line + 1 + deep, "headings below ### are not used");
-    }
+    for (const line of section.deep) at(line, "headings below ### are not used");
   }
   // A release candidate is tagged for staging with no GitHub Release, so it
   // needs no section of its own; every release above 0.0.0 does.
