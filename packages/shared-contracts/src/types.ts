@@ -3,13 +3,16 @@
  * The schema files are the authority. These names use the glossary terms.
  */
 
-/** `buzz` and `homer` exist only in Activity Event contract version 2. */
+/** `buzz` and `homer` exist from Activity Event contract version 2, and `sparkdash` from version 3. */
 export type SourceSystem =
-  "github" | "linear" | "control-room" | "software-factory" | "buzz" | "homer";
+  "github" | "linear" | "control-room" | "software-factory" | "buzz" | "homer" | "sparkdash";
 
 export type ActorKind = "human" | "agent" | "system" | "unknown";
 
-/** The last four Kinds exist only in Activity Event contract version 2. */
+/**
+ * The message, knowledge and curator Kinds exist from Activity Event contract
+ * version 2, and the machine alert Kinds from version 3.
+ */
 export type EventKind =
   | "commit.pushed"
   | "pull_request.opened"
@@ -33,9 +36,12 @@ export type EventKind =
   | "message.posted"
   | "knowledge.flagged"
   | "curator.run_completed"
-  | "curator.profile_switched";
+  | "curator.profile_switched"
+  | "machine.alert_fired"
+  | "machine.alert_cleared";
 
-export type ActivityEventContract = "home.activity-event/v1" | "home.activity-event/v2";
+export type ActivityEventContract =
+  "home.activity-event/v1" | "home.activity-event/v2" | "home.activity-event/v3";
 
 export interface ActivityEventActor {
   sourceAccount: string;
@@ -53,7 +59,7 @@ export interface Provenance {
 }
 
 /**
- * Either contract version. The schema for the version `contract` names is the authority on
+ * Any contract version. The schema for the version `contract` names is the authority on
  * which Source Systems, Kinds and links that version allows.
  */
 export interface ActivityEvent {
@@ -127,3 +133,33 @@ export interface FactoryEventVerdictRecorded {
 export type FactoryEvent = FactoryEventStageChanged | FactoryEventVerdictRecorded;
 
 export type Result<T> = { ok: true; value: T } | { ok: false; errors: string[] };
+
+/** A Machine in a Fleet Report: ids and fixed text only, never an address. */
+export interface FleetMachine {
+  machineId: string;
+  name: string;
+  kind: "spark" | "mac" | "host" | "ssh";
+  source: "sparkdash" | "reachability";
+  state: "up" | "down" | "unknown";
+  lastSeenAt: string | null;
+  firing: { rule: string; severity: "warning" | "critical"; since: string }[];
+}
+
+export type FleetDiagnosticCode =
+  "collector_gap" | "sparkdash_restarted" | "version_changed" | "events_backlog" | "queue_full";
+
+/** The Fleet Collector's report for one poll, contract `home.fleet-report/v1`. */
+export interface FleetReport {
+  contract: "home.fleet-report/v1";
+  reportId: string;
+  collector: { name: "fleet-collector"; version: string };
+  collectedAt: string;
+  sparkdash: {
+    state: "ok" | "unreachable" | "metrics_off" | "alerts_off" | "shape_changed";
+    version: string | null;
+    pinnedVersion: string;
+  };
+  machines: FleetMachine[];
+  diagnostics: { code: FleetDiagnosticCode; since: string }[];
+  events: ActivityEvent[];
+}

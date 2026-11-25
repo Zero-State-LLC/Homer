@@ -1,6 +1,6 @@
 # Fleet monitoring through sparkDash
 
-Version: 0.1.1
+Version: 0.1.2
 Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
 monitoring waits for the runner stream's machine list (#35) and controller
 protocol (#38); SSH monitoring is read-only on every machine, except for agentic
@@ -11,6 +11,8 @@ Intent: [Remote fleet monitoring through sparkDash](../../docs/intent/fleet-moni
 Decision: [ADR 011](../adr/011-fleet-monitoring-read-only-outbound.md)
 Amended by [ADR 013](../adr/013-catalog-worker-boundary.md) (accepted by Danny on
 2026-11-24): the intake is built in `homer-intake`, the Worker for machines.
+Corrected in ZER-77: the Fleet Report example's `machineId` follows the runner
+fleet configuration's id rule, as the Machine table says.
 
 Homer shows every machine the team can reach over SSH as up, down or stale,
 with its firing alerts, and sends alert changes to the Buzz `homer` channel.
@@ -139,7 +141,7 @@ Collector posts one Fleet Report per poll:
   "sparkdash": { "state": "ok", "version": "2.91.0", "pinnedVersion": "2.91.0" },
   "machines": [
     {
-      "machineId": "sparkdash:delphi",
+      "machineId": "delphi",
       "name": "Delphi",
       "kind": "spark",
       "source": "sparkdash",

@@ -1,0 +1,107 @@
+{
+  "contract": "home.fleet-report/v1",
+  "reportId": "6f0b8a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b",
+  "collector": {
+    "name": "fleet-collector",
+    "version": "0.1.0+a1b2c3d"
+  },
+  "collectedAt": "2026-11-24T18:00:00Z",
+  "sparkdash": {
+    "state": "ok",
+    "version": "2.91.0",
+    "pinnedVersion": "2.91.0"
+  },
+  "machines": [
+    {
+      "machineId": "delphi",
+      "name": "Delphi",
+      "kind": "spark",
+      "source": "sparkdash",
+      "state": "up",
+      "lastSeenAt": "2026-11-24T18:00:00Z",
+      "firing": [
+        {
+          "rule": "thermal",
+          "severity": "warning",
+          "since": "2026-11-24T17:58:00Z"
+        }
+      ]
+    },
+    {
+      "machineId": "mac-studio",
+      "name": "Mac Studio",
+      "kind": "mac",
+      "source": "sparkdash",
+      "state": "down",
+      "lastSeenAt": "2026-11-24T17:40:00Z",
+      "firing": []
+    },
+    {
+      "machineId": "pc-one",
+      "name": "PC",
+      "kind": "ssh",
+      "source": "reachability",
+      "state": "down",
+      "lastSeenAt": null,
+      "firing": []
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "sparkdash_restarted",
+      "since": "2026-11-24T17:30:00Z"
+    }
+  ],
+  "events": [
+    {
+      "contract": "home.activity-event/v3",
+      "eventKey": "sparkdash:machine.alert_fired:delphi:thermal:1795543080000",
+      "kind": "machine.alert_fired",
+      "occurredAt": "2026-11-24T17:58:00Z",
+      "actor": {
+        "sourceAccount": "sparkdash:alerts"
+      },
+      "subject": "GPU temperature on Delphi",
+      "provenance": {
+        "sourceSystem": "sparkdash",
+        "sourceObjectId": "delphi:thermal@1795543080000",
+        "sourceUrl": "https://sparkdash.example.test/",
+        "collector": "fleet-collector",
+        "collectorVersion": "0.1.0+a1b2c3d",
+        "collectedAt": "2026-11-24T18:00:01Z"
+      },
+      "data": {
+        "machineId": "delphi",
+        "rule": "thermal",
+        "severity": "warning",
+        "startsAt": "2026-11-24T17:58:00Z",
+        "sparkdashVersion": "2.91.0"
+      }
+    },
+    {
+      "contract": "home.activity-event/v3",
+      "eventKey": "homer:machine.alert_fired:pc-one:reachability:1795543020000",
+      "kind": "machine.alert_fired",
+      "occurredAt": "2026-11-24T17:58:00Z",
+      "actor": {
+        "sourceAccount": "homer:fleet-collector"
+      },
+      "subject": "SSH unreachable on PC",
+      "provenance": {
+        "sourceSystem": "homer",
+        "sourceObjectId": "pc-one:reachability@1795543020000",
+        "sourceUrl": "https://sparkdash.example.test/",
+        "collector": "fleet-collector",
+        "collectorVersion": "0.1.0+a1b2c3d",
+        "collectedAt": "2026-11-24T18:00:01Z"
+      },
+      "data": {
+        "machineId": "pc-one",
+        "rule": "reachability",
+        "severity": "critical",
+        "startsAt": "2026-11-24T17:57:00Z",
+        "sparkdashVersion": null
+      }
+    }
+  ]
+}

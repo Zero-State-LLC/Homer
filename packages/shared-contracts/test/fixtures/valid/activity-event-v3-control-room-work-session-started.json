@@ -1,0 +1,21 @@
+{
+  "contract": "home.activity-event/v3",
+  "eventKey": "control-room:work_session.started:session-42",
+  "kind": "work_session.started",
+  "occurredAt": "2026-11-18T08:30:00Z",
+  "actor": {
+    "sourceAccount": "control-room:hermes",
+    "actorId": "actor:hermes",
+    "actorKind": "agent"
+  },
+  "projectId": "project:control-room",
+  "subject": "Work Session started for the Control Room migration notes",
+  "provenance": {
+    "sourceSystem": "control-room",
+    "sourceObjectId": "session-42",
+    "sourceUrl": "https://control-room.example/sessions/42",
+    "collector": "control-room-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-18T08:30:02Z"
+  }
+}

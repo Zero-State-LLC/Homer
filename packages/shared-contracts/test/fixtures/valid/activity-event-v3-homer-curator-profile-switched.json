@@ -1,0 +1,30 @@
+{
+  "contract": "home.activity-event/v3",
+  "eventKey": "homer:curator.profile_switched:8",
+  "kind": "curator.profile_switched",
+  "occurredAt": "2026-11-23T16:00:00Z",
+  "actor": {
+    "sourceAccount": "access:danny@example.test",
+    "actorId": "actor:danny",
+    "actorKind": "human"
+  },
+  "subject": "Curator Profile switched to revision 8",
+  "provenance": {
+    "sourceSystem": "homer",
+    "sourceObjectId": "curator-profile/8",
+    "sourceUrl": "https://homer.example.test/curator/profiles/8",
+    "collector": "curator-profile-store",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-23T16:00:01Z"
+  },
+  "evidence": [
+    {
+      "label": "before",
+      "url": "https://homer.example.test/curator/profiles/7"
+    },
+    {
+      "label": "after",
+      "url": "https://homer.example.test/curator/profiles/8"
+    }
+  ]
+}

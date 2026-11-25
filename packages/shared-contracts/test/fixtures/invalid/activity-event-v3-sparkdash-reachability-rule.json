@@ -1,0 +1,25 @@
+{
+  "contract": "home.activity-event/v3",
+  "eventKey": "sparkdash:machine.alert_fired:delphi:reachability:1795543080000",
+  "kind": "machine.alert_fired",
+  "occurredAt": "2026-11-24T17:58:00Z",
+  "actor": {
+    "sourceAccount": "sparkdash:alerts"
+  },
+  "subject": "SSH unreachable on Delphi",
+  "provenance": {
+    "sourceSystem": "sparkdash",
+    "sourceObjectId": "delphi:reachability@1795543080000",
+    "sourceUrl": "https://sparkdash.example.test/",
+    "collector": "fleet-collector",
+    "collectorVersion": "0.1.0+a1b2c3d",
+    "collectedAt": "2026-11-24T18:00:01Z"
+  },
+  "data": {
+    "machineId": "delphi",
+    "rule": "reachability",
+    "severity": "warning",
+    "startsAt": "2026-11-24T17:58:00Z",
+    "sparkdashVersion": "2.91.0"
+  }
+}

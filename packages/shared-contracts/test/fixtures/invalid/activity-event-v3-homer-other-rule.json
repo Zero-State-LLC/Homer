@@ -1,0 +1,25 @@
+{
+  "contract": "home.activity-event/v3",
+  "eventKey": "homer:machine.alert_fired:pc-one:thermal:1795543020000",
+  "kind": "machine.alert_fired",
+  "occurredAt": "2026-11-24T17:58:00Z",
+  "actor": {
+    "sourceAccount": "homer:fleet-collector"
+  },
+  "subject": "GPU temperature on PC",
+  "provenance": {
+    "sourceSystem": "homer",
+    "sourceObjectId": "pc-one:thermal@1795543020000",
+    "sourceUrl": "https://sparkdash.example.test/",
+    "collector": "fleet-collector",
+    "collectorVersion": "0.1.0+a1b2c3d",
+    "collectedAt": "2026-11-24T18:00:01Z"
+  },
+  "data": {
+    "machineId": "pc-one",
+    "rule": "thermal",
+    "severity": "critical",
+    "startsAt": "2026-11-24T17:57:00Z",
+    "sparkdashVersion": null
+  }
+}
