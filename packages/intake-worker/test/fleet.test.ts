@@ -176,7 +176,7 @@ function report(over: Record<string, unknown> = {}) {
 }
 const post = (e: FleetTestEnv, body: unknown, jwt: string | null = collector) =>
   handleIntakeRequest(request("/v1/fleet/report", jwt, "POST", body), e, key);
-const store = (e: FleetTestEnv) => e.RUNNER_FLEET!.get(e.RUNNER_FLEET!.idFromName(e.CATALOG_NAME));
+const store = (e: FleetTestEnv) => e.RUNNER_FLEET.get(e.RUNNER_FLEET.idFromName(e.CATALOG_NAME));
 const history = (e: FleetTestEnv) => openEventLedger(e.EVENT_LEDGER!).readHistory();
 
 it("accepts a valid report: events in the ledger, the snapshot stored, a receipt back", async () => {
@@ -184,7 +184,7 @@ it("accepts a valid report: events in the ledger, the snapshot stored, a receipt
   expect((await bind(e)).status).toBe(200);
   const response = await post(e, report());
   expect(response.status).toBe(200);
-  const receipt = (await response.json()) as Record<string, unknown>;
+  const receipt = await response.json<Record<string, unknown>>();
   expect(receipt).toMatchObject({ reportId: "6f0b8a1e-2c3d-4e5f-8a9b-0c1d2e3f4a5b", events: 1 });
   expect(
     (await history(e)).map((h) =>
@@ -217,6 +217,15 @@ it("refuses a report that does not validate, and records nothing", async () => {
     report({ events: [{ ...event(), subject: "thermal: GPU0 91C at 10.0.0.5" }] }),
     report({ machines: [{ ...report().machines[0], name: "10.0.0.5" }] }),
     report({ contract: "home.fleet-report/v2" }),
+    // A machine alert is never attributed to an Actor: no Identity Binding applies.
+    report({
+      events: [
+        {
+          ...event(),
+          actor: { sourceAccount: "sparkdash:alerts", actorId: "actor:danny", actorKind: "human" },
+        },
+      ],
+    }),
     "not json",
   ]) {
     const response = await post(e, bad);
@@ -255,6 +264,36 @@ it("refuses a runner controller credential, a person, another workload, and no t
   await bind(e, { enabled: false }, 1);
   expect((await post(e, report())).status).toBe(403);
   expect(await history(e)).toEqual([]);
+});
+
+it("reserves a report id before any event is appended, so overlapping reports cannot both land", async () => {
+  const e = testEnv();
+  await bind(e);
+  const s = store(e);
+  const digest = (n: string) => n.repeat(64);
+  const id = "6f0b8a1e-2c3d-4e5f-8a9b-0c1d2e3f4a80";
+  expect(await s.fleetReportAdmission(collectorDigest, id, digest("a"), ["delphi"])).toBe(
+    "admitted",
+  );
+  // Changed content under the same id, while the first is still appending: refused before its events.
+  expect(await s.fleetReportAdmission(collectorDigest, id, digest("b"), ["delphi"])).toBe(
+    "report_conflict",
+  );
+  // The same content, retried after a failure: it may resume.
+  expect(await s.fleetReportAdmission(collectorDigest, id, digest("a"), ["delphi"])).toBe(
+    "admitted",
+  );
+  // Reports admitted but not yet committed count toward the limit.
+  for (let i = 1; i < 6; i++) {
+    expect(
+      await s.fleetReportAdmission(collectorDigest, `${id.slice(0, -1)}${i}`, digest("c"), [
+        "delphi",
+      ]),
+    ).toBe("admitted");
+  }
+  expect(
+    await s.fleetReportAdmission(collectorDigest, `${id.slice(0, -2)}99`, digest("d"), ["delphi"]),
+  ).toBe("rate_limited");
 });
 
 it("keeps the newer snapshot when an older report arrives after it", async () => {
@@ -330,10 +369,10 @@ it("binds the Collector with a revision precondition and an audit record", async
   expect((await bind(e, { machineIds: ["delphi"] }, 1)).status).toBe(200);
   const read = await handleCatalogRequest(request(bindingPath, admin), e, key);
   expect(read.headers.get("ETag")).toBe('"2"');
-  const body = (await read.json()) as {
+  const body = await read.json<{
     binding: { machineIds: string[] };
     history: { operatorDigest: string }[];
-  };
+  }>();
   expect(body.binding.machineIds).toEqual(["delphi"]);
   expect(body.history).toHaveLength(2);
   expect(body.history.every((h) => /^[a-f0-9]{64}$/.test(h.operatorDigest))).toBe(true);

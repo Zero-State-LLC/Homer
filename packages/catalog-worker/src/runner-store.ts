@@ -160,6 +160,11 @@ export type FleetAdmission =
   | { receipt: FleetReceipt };
 /** At most this many new Fleet Reports a minute. */
 export const FLEET_REPORTS_PER_MINUTE = 6;
+/** A reservation that never committed lapses after this long. */
+const FLEET_RESERVATION_MS = 60 * 60 * 1000;
+/** A principal's reports received, or reserved and not yet committed, since a time. */
+const RECENT_FLEET_REPORTS =
+  "SELECT (SELECT count(*) FROM fleet_reports WHERE principal_digest=? AND received_ms>?) + (SELECT count(*) FROM fleet_reservations WHERE principal_digest=? AND reserved_ms>?) AS n";
 export interface ControllerReport {
   reportId: string;
   operationId: string;
@@ -268,7 +273,9 @@ export class RunnerFleetObject extends DurableObject<unknown> {
  CREATE INDEX IF NOT EXISTS fleet_reports_principal_received ON fleet_reports(principal_digest, received_ms);
  CREATE TRIGGER IF NOT EXISTS fleet_report_no_update BEFORE UPDATE ON fleet_reports BEGIN SELECT RAISE(ABORT,'Fleet report receipts are immutable'); END;
  CREATE TRIGGER IF NOT EXISTS fleet_report_no_delete BEFORE DELETE ON fleet_reports BEGIN SELECT RAISE(ABORT,'Fleet report receipts are immutable'); END;
- CREATE TABLE IF NOT EXISTS fleet_snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), snapshot TEXT NOT NULL, collected_ms INTEGER NOT NULL) STRICT;`);
+ CREATE TABLE IF NOT EXISTS fleet_snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), snapshot TEXT NOT NULL, collected_ms INTEGER NOT NULL) STRICT;
+ CREATE TABLE IF NOT EXISTS fleet_reservations (report_id TEXT PRIMARY KEY, digest TEXT NOT NULL, principal_digest TEXT NOT NULL, reserved_ms INTEGER NOT NULL) STRICT;
+ CREATE INDEX IF NOT EXISTS fleet_reservations_principal_reserved ON fleet_reservations(principal_digest, reserved_ms);`);
   }
   lifecycle(machineId: string, budgetMs: number | null) {
     const config = this.read().config;
@@ -632,9 +639,12 @@ export class RunnerFleetObject extends DurableObject<unknown> {
     return null;
   }
   /**
-   * Before the intake appends a report's events: the principal's binding, the
-   * Machines it may report on, a seen `reportId`, and the rate limit. Nothing is
-   * recorded here; an identical retry is answered with its original receipt.
+   * Before the intake appends a report's events, in one transaction: the
+   * principal's binding, the Machines it may report on, a seen `reportId`, and
+   * the rate limit. An admitted report is reserved, so changed content under
+   * its id is refused before any of its events are appended, and a reserved
+   * report counts toward the limit until it commits. An identical retry is
+   * answered with its original receipt, or resumes its reservation.
    */
   fleetReportAdmission(
     principal: string,
@@ -642,20 +652,39 @@ export class RunnerFleetObject extends DurableObject<unknown> {
     digest: string,
     machineIds: string[],
   ): FleetAdmission {
-    const refused = this.fleetRefusal(principal, machineIds);
-    if (refused) return refused;
-    const seen = this.fleetReceipt(reportId, digest);
-    if (seen === "report_conflict") return seen;
-    if (seen) return { receipt: seen };
-    const recent = this.ctx.storage.sql
-      .exec<{ n: number }>(
-        "SELECT count(*) AS n FROM fleet_reports WHERE principal_digest=? AND received_ms>?",
+    return this.ctx.storage.transactionSync((): FleetAdmission => {
+      const refused = this.fleetRefusal(principal, machineIds);
+      if (refused) return refused;
+      const seen = this.fleetReceipt(reportId, digest);
+      if (seen === "report_conflict") return seen;
+      if (seen) return { receipt: seen };
+      const now = Date.now();
+      // A reservation left by a request that never committed lapses after an hour.
+      this.ctx.storage.sql.exec(
+        "DELETE FROM fleet_reservations WHERE reserved_ms<?",
+        now - FLEET_RESERVATION_MS,
+      );
+      const reserved = this.ctx.storage.sql
+        .exec<{ digest: string }>(
+          "SELECT digest FROM fleet_reservations WHERE report_id=?",
+          reportId,
+        )
+        .toArray()[0];
+      if (reserved) return reserved.digest === digest ? "admitted" : "report_conflict";
+      const since = now - 60_000;
+      const recent = this.ctx.storage.sql
+        .exec<{ n: number }>(RECENT_FLEET_REPORTS, principal, since, principal, since)
+        .toArray()[0];
+      if ((recent?.n ?? 0) >= FLEET_REPORTS_PER_MINUTE) return "rate_limited";
+      this.ctx.storage.sql.exec(
+        "INSERT INTO fleet_reservations VALUES (?,?,?,?)",
+        reportId,
+        digest,
         principal,
-        Date.now() - 60_000,
-      )
-      .toArray()[0];
-    if ((recent?.n ?? 0) >= FLEET_REPORTS_PER_MINUTE) return "rate_limited";
-    return "admitted";
+        now,
+      );
+      return "admitted";
+    });
   }
   /**
    * After the events are in the Event Ledger: the receipt, and the snapshot
@@ -675,6 +704,14 @@ export class RunnerFleetObject extends DurableObject<unknown> {
       if (refused) return refused;
       const seen = this.fleetReceipt(reportId, digest);
       if (seen) return seen;
+      const reserved = this.ctx.storage.sql
+        .exec<{ digest: string }>(
+          "SELECT digest FROM fleet_reservations WHERE report_id=?",
+          reportId,
+        )
+        .toArray()[0];
+      if (reserved && reserved.digest !== digest) return "report_conflict";
+      this.ctx.storage.sql.exec("DELETE FROM fleet_reservations WHERE report_id=?", reportId);
       const now = Date.now();
       const receipt: FleetReceipt = {
         reportId,
