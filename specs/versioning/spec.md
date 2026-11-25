@@ -38,8 +38,12 @@ Danny cuts with notes from the CHANGELOG. Contracts keep their own versions.
 `scripts/version.mjs <version>` is the only way to change the version. It sets
 the root, every workspace package and every internal dependency, and the lock
 file's matching fields. It refuses anything that is not SemVer, or that is not
-above the current version. `scripts/check-versions.mjs` runs in `check` and
-fails when any of these disagree.
+above the current version. `scripts/check-versions.mjs` fails when any of these
+disagree. It runs as its own **Versions** step in the CI `check` job, right
+after the docs-only classifier and before Node setup, because that job runs
+each step itself rather than `npm run check`. It also runs in `npm run check`,
+for local use. It reads files only, so it needs no install and runs for
+docs-only pull requests too.
 
 ### The build version
 
@@ -172,7 +176,10 @@ None new. `docs/deployment/releases.md` is the runbook (packet 5).
 
 ### GitHub Actions
 
-No new workflow. `check` runs `scripts/check-versions.mjs` and its test.
+No new workflow. The `check` job in `.github/workflows/ci.yml` gains a
+**Versions** step that runs `node scripts/check-versions.mjs` and
+`node --test scripts/check-versions.test.mjs`, unconditionally, like the
+classifier's own test.
 
 ## Test matrix
 
@@ -197,7 +204,8 @@ One Linear Task per packet in the Homer project. Each changes code, so each owes
 a Verdict under the merge contract:
 
 1. **Lockstep version.** `version.mjs`, `check-versions.mjs` and its test, the
-   root rename to `homer`, internal dependencies rewritten, and `check` wired.
+   root rename to `homer`, internal dependencies rewritten, and the Versions
+   step in the CI `check` job, plus `npm run check`.
    The version stays `0.0.0` until the release pull request.
 2. **Build version.** `build-info.ts` generation, and every Collector and
    Emitter on `BUILD_VERSION`, with the literal check on.
