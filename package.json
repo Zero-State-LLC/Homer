@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "versions:check": "node scripts/check-versions.mjs && node --test scripts/check-versions.test.mjs scripts/deploy-check.test.mjs",
-    "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger && npm run build -w @zs-home/projections && npm run build -w @zs-home/github-sync && npm run build -w @zs-home/catalog-worker && npm run build -w @zs-home/runner-controller && npm run build -w @zs-home/curator-runner && npm run build -w @zs-home/curator-host-docker && npm run build -w @zs-home/buzz-collector && npm run build -w @zs-home/work-request-emitter",
+    "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger && npm run build -w @zs-home/projections && npm run build -w @zs-home/github-sync && npm run build -w @zs-home/catalog-worker && npm run build -w @zs-home/intake-worker && npm run build -w @zs-home/runner-controller && npm run build -w @zs-home/curator-runner && npm run build -w @zs-home/curator-host-docker && npm run build -w @zs-home/buzz-collector && npm run build -w @zs-home/work-request-emitter",
     "postbuild": "node --test scripts/*runtime.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",

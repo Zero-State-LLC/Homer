@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { abortAllDurableObjects, runInDurableObject } from "cloudflare:test";
 import { expect, it } from "vitest";
-import { handleRequest, type Env } from "../src/index.js";
+import { handleRequest, type IntakeEnv as Env } from "../src/index.js";
 
 const secret = "synthetic-workflow-job-secret";
 const repo = { id: 123, full_name: "Zero-State-LLC/Homer" };
@@ -37,9 +37,6 @@ function testEnv(enabled = "true"): Env {
     CATALOG_NAME: crypto.randomUUID(),
     GITHUB_WEBHOOK_SECRET: secret,
     GITHUB_JOB_INGEST_ENABLED: enabled,
-    ACCESS_ISSUER: "",
-    ACCESS_READ_AUD: "",
-    ACCESS_ADMIN_AUD: "",
   };
 }
 async function configure(e: Env) {

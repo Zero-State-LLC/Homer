@@ -1,8 +1,12 @@
 import { calendarPage, calendarStyle } from "./calendar-ui.js";
 import { openEventLedger, replayEffectiveHistory } from "@zs-home/event-ledger";
 import { projectActivityCalendar, type CalendarOptions } from "@zs-home/projections";
-import type { WebhookEnv } from "./webhook.js";
+import type { EventLedgerObject } from "@zs-home/event-ledger/worker";
 import { adminHeaders } from "./admin-headers.js";
+/** The calendar reads the Event Ledger through the environment's ledger binding. */
+export interface CalendarBindings {
+  EVENT_LEDGER?: DurableObjectNamespace<EventLedgerObject>;
+}
 export const calendarPaths = new Set([
   "/v1/calendar",
   "/v1/workspace/calendar",
@@ -45,7 +49,7 @@ function parseFilters(url: URL): CalendarFilters {
   }
   return filters;
 }
-export async function calendarResponse(url: URL, env: WebhookEnv): Promise<Response> {
+export async function calendarResponse(url: URL, env: CalendarBindings): Promise<Response> {
   if (url.pathname.endsWith(".css")) return calendarStyle();
   const html = url.pathname === "/v1/workspace/calendar";
   const failure = (

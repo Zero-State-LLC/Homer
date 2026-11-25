@@ -3,6 +3,8 @@
 Status: repository implementation authorized by Daniel's continuation on November
 22, 2026 PT, extending ADR 002. ZER-34 remains open until actual host enrollment
 and live drain/resume evidence are verified. No credentials or policy changes.
+Amended by ADR 013 (accepted by Danny on 2026-11-24): `homer-intake` serves poll
+and report, and `homer-catalog` serves enrollment and the lifecycle controls.
 
 ## Decision and boundaries
 
@@ -15,7 +17,13 @@ No arbitrary command, shell, SSH, registration token or reboot API.
 
 ## Server contract
 
-- Separate optional RUNNER_CONTROLLER_AUD; it must differ from read/admin audience.
+- Poll and report are `homer-intake` routes, and the admin routes below are
+  `homer-catalog` routes, behind its admin audience (ADR 013). Both Workers use
+  the same Access issuer and `CATALOG_NAME`, so an enrolled digest is the one
+  intake verifies.
+- Separate optional RUNNER_CONTROLLER_AUD, held by `homer-intake` only; it must
+  differ from read/admin audience. Intake holds neither of those, so the
+  deployment gives the controller paths their own Access application.
   Only workload identities with an explicit reviewed machine binding may poll/report.
   Accept the exact workload audience as a string or a singleton array. Empty,
   mixed and repeated audience arrays are refused. Human subjects are refused.

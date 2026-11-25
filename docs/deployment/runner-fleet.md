@@ -53,7 +53,11 @@ are outstanding. Fixture tests prove application behavior, not machine readiness
 ## Controller protocol preparation
 
 The controller protocol uses a separate Access audience, never the existing admin
-or read audience. It remains disabled until RUNNER_CONTROLLER_AUD is configured.
+or read audience. Its poll and report routes are served by `homer-intake`, the
+Worker for machines, and enrollment by `homer-catalog`, behind the admin
+audience ([ADR 013](../../specs/adr/013-catalog-worker-boundary.md),
+[`intake.md`](intake.md)). It remains disabled until `homer-intake` has
+RUNNER_CONTROLLER_AUD configured.
 An operator must verify the workload identity and its machine before enrolling its
 principal digest. Digest format is SHA256 of issuer, newline, and the verified
 service identity in the existing Access contract; aliases are not identity proof.
@@ -61,7 +65,8 @@ No service token is created by these APIs.
 
 Admin endpoints are `/v1/admin/runners/binding?machineId=...` (GET/PUT, binding
 revision via If-Match) and `/v1/admin/runners/observation?machineId=...` (GET).
-Controller endpoints are `/v1/runner-controller/poll?machineId=...` (GET) and
+Controller endpoints, on `homer-intake`'s hostname, are
+`/v1/runner-controller/poll?machineId=...` (GET) and
 `/v1/runner-controller/report?machineId=...` (POST). The controller may access only
 its bound machine. Configure RUNNER_HEARTBEAT_BUDGET_SECONDS explicitly before
 interpreting freshness; absence yields Unknown.

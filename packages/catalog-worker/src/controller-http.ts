@@ -2,48 +2,42 @@ import type { JWTVerifyGetKey } from "jose";
 import { validateAccessConfig, verifyAccessIdentity } from "./access.js";
 import type { RunnerEnv } from "./runner-http.js";
 import { json, readBytes } from "./http.js";
+import { machineIdFrom } from "./machine.js";
 import { parseControllerBinding, parseLifecycleRequest } from "./runner-store.js";
-export interface ControllerBindings {
-  RUNNER_CONTROLLER_AUD?: string;
+
+/**
+ * The admin side of the runner controller protocol: enrollment, observations
+ * and lifecycle, for people with the admin audience. The machine side, poll
+ * and report, is in `homer-intake` (ADR 013).
+ */
+export interface EnrollmentBindings {
   RUNNER_HEARTBEAT_BUDGET_SECONDS?: string;
 }
-export interface ControllerEnv extends RunnerEnv, ControllerBindings {}
-export const controllerPaths = new Set([
-  "/v1/runner-controller/poll",
-  "/v1/runner-controller/report",
+export interface EnrollmentEnv extends RunnerEnv, EnrollmentBindings {}
+export const enrollmentPaths = new Set([
   "/v1/admin/runners/binding",
   "/v1/admin/runners/observation",
   "/v1/admin/runners/lifecycle",
 ]);
-export async function handleControllerRequest(
+export async function handleEnrollmentRequest(
   request: Request,
-  env: ControllerEnv,
+  env: EnrollmentEnv,
   key?: JWTVerifyGetKey,
 ): Promise<Response> {
   const url = new URL(request.url);
-  if (!controllerPaths.has(url.pathname)) return json({ error: "not_found" }, 404);
-  const controller = url.pathname.startsWith("/v1/runner-controller/");
+  if (!enrollmentPaths.has(url.pathname)) return json({ error: "not_found" }, 404);
   const binding = url.pathname.endsWith("/binding");
   const lifecycle = url.pathname.endsWith("/lifecycle");
-  const report = url.pathname.endsWith("/report");
   if (
-    !(report
-      ? request.method === "POST"
-      : lifecycle
-        ? ["GET", "POST"].includes(request.method)
-        : binding
-          ? ["GET", "PUT"].includes(request.method)
-          : request.method === "GET")
+    !(lifecycle
+      ? ["GET", "POST"].includes(request.method)
+      : binding
+        ? ["GET", "PUT"].includes(request.method)
+        : request.method === "GET")
   )
     return json({ error: "method_not_allowed" }, 405);
   try {
     validateAccessConfig(env);
-    if (
-      controller &&
-      (!env.RUNNER_CONTROLLER_AUD?.trim() ||
-        [env.ACCESS_ADMIN_AUD, env.ACCESS_READ_AUD].includes(env.RUNNER_CONTROLLER_AUD))
-    )
-      throw new Error();
   } catch {
     return json({ error: "access_not_configured" }, 503);
   }
@@ -54,20 +48,14 @@ export async function handleControllerRequest(
   if (!token || token.length > 16384) return json({ error: "unauthorized" }, 401);
   let principal: string;
   try {
-    const identity = await verifyAccessIdentity(token, env, !controller, key, controller);
+    const identity = await verifyAccessIdentity(token, env, true, key);
     if (lifecycle && identity.kind !== "human") return json({ error: "unauthorized" }, 401);
     principal = identity.principal;
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
-  const machineId = url.searchParams.get("machineId");
-  if (
-    !machineId ||
-    !/^[a-z0-9][a-z0-9-]{0,63}$/.test(machineId) ||
-    [...url.searchParams.keys()].some((k) => k !== "machineId") ||
-    url.searchParams.getAll("machineId").length !== 1
-  )
-    return json({ error: "invalid_machine" }, 400);
+  const machineId = machineIdFrom(url);
+  if (!machineId) return json({ error: "invalid_machine" }, 400);
   if (!env.RUNNER_FLEET) return json({ error: "runner_fleet_unavailable" }, 503);
   const store = env.RUNNER_FLEET.get(env.RUNNER_FLEET.idFromName(env.CATALOG_NAME));
   const raw = env.RUNNER_HEARTBEAT_BUDGET_SECONDS;
@@ -76,11 +64,7 @@ export async function handleControllerRequest(
       ? Number(raw) * 1000
       : null;
   try {
-    if (controller && !report) {
-      const command = await store.controllerPoll(machineId, principal);
-      return command ? json(command) : json({ error: "forbidden" }, 403);
-    }
-    if (!controller && request.method === "GET") {
+    if (request.method === "GET") {
       if (lifecycle) {
         const result = await store.lifecycle(machineId, budget);
         return result ? json(result) : json({ error: "unknown_machine" }, 404);
@@ -132,10 +116,7 @@ export async function handleControllerRequest(
         ? json(await store.controllerBinding(machineId), 200, parsed.revision)
         : json({ error: result }, 409);
     }
-    const result = await store.controllerReport(machineId, principal, input);
-    return typeof result === "string"
-      ? json({ error: result }, result === "forbidden" ? 403 : 409)
-      : json(result);
+    return json({ error: "method_not_allowed" }, 405);
   } catch (error) {
     if (error instanceof Error && error.message === "invalid_config")
       return json({ error: "invalid_payload" }, 400);

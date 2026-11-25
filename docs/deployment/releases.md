@@ -65,11 +65,13 @@ Danny only. Agents never push a tag.
 ## Deploy a Worker
 
 Deploy one environment at a time, staging first. In each environment, deploy
-the Event Ledger (`homer-event-ledger`) before the catalog (`homer-catalog`),
-because the catalog binds the ledger's namespace. Deploy a recovery Worker only
-when its recovery procedure calls for it. The environment's bindings, Access
+the Event Ledger (`homer-event-ledger`), then the catalog (`homer-catalog`),
+then intake (`homer-intake`). A binding to another Worker's namespace must
+resolve at upload: the catalog binds the ledger's, and intake binds the
+ledger's and the catalog's (ADR 013). Deploy a recovery Worker only when its
+recovery procedure calls for it. The environment's bindings, Access
 applications and secrets are in
-[`cloudflare-catalog.md`](cloudflare-catalog.md) and
+[`cloudflare-catalog.md`](cloudflare-catalog.md), [`intake.md`](intake.md) and
 [`event-ledger-recovery.md`](event-ledger-recovery.md).
 
 1. Start from a fresh clone of the tag, so nothing else is in the tree:
@@ -106,8 +108,8 @@ applications and secrets are in
      token's values supplied at run time from 1Password, never pasted. Its
      `buildVersion` must equal the deploy check's Build Version, and its
      `workerVersionTag` must be `vX.Y.Z`.
-   - The Event Ledger and recovery Workers have no HTTP surface. Take the
-     version id from the deploy output and confirm its tag and message with
+   - The Event Ledger, intake and recovery Workers serve no version route.
+     Take the version id from the deploy output and confirm its tag and message with
      `npx wrangler versions view <version-id> --config <environment config>`.
 5. Write the [deploy receipt](#the-deploy-receipt) in a pull request.
 
@@ -133,7 +135,7 @@ account id, hostname, token or Access audience.
 | Tag and commit | vX.Y.Z, <full commit SHA> |
 | Deploy check | passed, Build Version X.Y.Z+<7 characters> |
 | Cloudflare version id | <version id> |
-| Durable Object migration tags | v1, runner-v1, job-evidence-v1 |
+| Durable Object migration tags | v1, runner-v1 (homer-catalog); job-evidence-v1 (homer-intake) |
 | Time | YYYY-MM-DDTHH:MM:SSZ |
 | Version answer | the `GET /v1/version` JSON, or the `wrangler versions view` tag and message |
 | Deployed by | <person>, with Danny's yes on <date> |

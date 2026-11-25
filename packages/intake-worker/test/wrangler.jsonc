@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../node_modules/wrangler/config-schema.json",
+  "name": "homer-intake-test",
+  "main": "worker.ts",
+  "compatibility_date": "2026-11-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "durable_objects": {
+    "bindings": [
+      { "name": "RUNNER_FLEET", "class_name": "RunnerFleetObject" },
+      { "name": "JOB_EVIDENCE", "class_name": "WorkflowJobEvidenceObject" },
+      { "name": "MAPPING_CATALOG", "class_name": "MappingCatalogObject" },
+      { "name": "EVENT_LEDGER", "class_name": "EventLedgerObject" },
+    ],
+  },
+  "migrations": [
+    { "tag": "runner-v1", "new_sqlite_classes": ["RunnerFleetObject"] },
+    { "tag": "job-evidence-v1", "new_sqlite_classes": ["WorkflowJobEvidenceObject"] },
+    { "tag": "test-v1", "new_sqlite_classes": ["MappingCatalogObject", "EventLedgerObject"] },
+  ],
+}
