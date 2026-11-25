@@ -572,14 +572,15 @@ try {
     extraHTTPHeaders: { "Cf-Access-Jwt-Assertion": await jwt("synthetic-admin") },
   });
   const fleet = await fleetContext.newPage();
-  await fleet.goto(base + "/v1/admin/runners");
+  // Machines are added on Machine fleet setup; runners are added to them on Runner fleet.
+  await fleet.goto(base + "/v1/admin/machines");
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
   await fleet.getByLabel("Machine ID", { exact: true }).fill("fixture-pc");
   await fleet.getByLabel("Alias", { exact: true }).fill("Fixture PC");
-  await fleet.getByLabel("Repository scope", { exact: true }).fill("Zero-State-LLC/fixture");
   await fleet.getByLabel("Operating system", { exact: true }).selectOption("windows");
   await fleet.getByRole("button", { name: "Review request", exact: true }).click();
-  assert.match(await fleet.locator("#review-text").innerText(), /Desired mode: enabled/);
-  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /New machine, monitored only/);
+  await fleet.getByRole("button", { name: "Save machine configuration", exact: true }).click();
   await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).waitFor();
   await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
   await fleet.getByRole("button", { name: "New machine", exact: true }).click();
@@ -587,6 +588,21 @@ try {
   await fleet.getByLabel("Alias", { exact: true }).fill("Fixture Mac");
   await fleet.getByLabel("Machine kind", { exact: true }).selectOption("mac");
   await fleet.getByLabel("Architecture", { exact: true }).selectOption("arm64");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  await fleet.getByRole("button", { name: "Save machine configuration", exact: true }).click();
+  await fleet.getByRole("button", { name: "Edit Fixture Mac", exact: true }).waitFor();
+  await fleet.goto(base + "/v1/admin/runners");
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  assert.match(await fleet.locator("#fleet").innerText(), /No runners configured/);
+  await fleet.getByLabel("Machine", { exact: true }).selectOption("fixture-pc");
+  await fleet.getByLabel("Repository scope", { exact: true }).fill("Zero-State-LLC/fixture");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /Desired mode: enabled/);
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).waitFor();
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  await fleet.getByRole("button", { name: "New runner", exact: true }).click();
+  await fleet.getByLabel("Machine", { exact: true }).selectOption("fixture-mac");
   await fleet.getByLabel("Repository scope", { exact: true }).fill("Zero-State-LLC/fixture");
   await fleet.getByRole("button", { name: "Review request", exact: true }).click();
   await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
@@ -594,20 +610,21 @@ try {
   await fleet.reload();
   await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).waitFor();
   const fleetData = await (await fleet.request.get(base + "/v1/admin/runners/config")).json();
-  assert.equal(fleetData.config.revision, 2);
+  // Two machine saves, then two runner saves.
+  assert.equal(fleetData.config.revision, 4);
   assert.equal(fleetData.config.machines.length, 2);
   assert.equal(fleetData.observedState, "unknown");
   assert.equal(fleetData.requestStatus, "pending");
   // Edit a persisted machine, explicitly review enabled -> maintenance, then read back.
   await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).click();
-  assert.equal(await fleet.getByLabel("Machine ID", { exact: true }).inputValue(), "fixture-pc");
+  assert.equal(await fleet.getByLabel("Machine", { exact: true }).inputValue(), "fixture-pc");
   assert.equal(await fleet.getByLabel("Desired mode", { exact: true }).inputValue(), "enabled");
   await fleet.getByLabel("Desired mode", { exact: true }).selectOption("maintenance");
   await fleet.getByRole("button", { name: "Review request", exact: true }).click();
   assert.match(await fleet.locator("#review-text").innerText(), /Desired mode: maintenance/);
   assert.equal(
     (await (await fleet.request.get(base + "/v1/admin/runners/config")).json()).config.revision,
-    2,
+    4,
   );
   await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
   await fleet.waitForFunction(() =>
@@ -615,7 +632,7 @@ try {
   );
   const maintained = (await (await fleet.request.get(base + "/v1/admin/runners/config")).json())
     .config;
-  assert.equal(maintained.revision, 3);
+  assert.equal(maintained.revision, 5);
   assert.deepEqual(
     maintained.machines,
     fleetData.config.machines.map((m) =>
@@ -626,12 +643,12 @@ try {
 
   // Another operator changes fields while this operator holds a stale reviewed draft.
   await fleet.getByRole("button", { name: "Edit Fixture PC", exact: true }).click();
-  await fleet.getByLabel("Alias", { exact: true }).fill("Stale PC draft");
+  await fleet.getByLabel("Labels (comma separated)", { exact: true }).fill("stale-draft");
   await fleet.getByLabel("Desired mode", { exact: true }).selectOption("enabled");
   await fleet.getByRole("button", { name: "Review request", exact: true }).click();
   const latest = {
     ...maintained,
-    revision: 4,
+    revision: 6,
     machines: maintained.machines.map((m) =>
       m.id === "fixture-pc"
         ? {
@@ -646,7 +663,7 @@ try {
   assert.equal(
     (
       await fleet.request.put(base + "/v1/admin/runners/config", {
-        headers: { "If-Match": '"3"' },
+        headers: { "If-Match": '"5"' },
         data: latest,
       })
     ).status(),
@@ -667,7 +684,7 @@ try {
   assert.deepEqual(runnerWrites, [409]);
   assert.match(await fleet.locator("#status").innerText(), /No request was retried/);
   assert.equal(await fleet.locator("#review").isHidden(), true);
-  assert.equal(await fleet.getByLabel("Alias", { exact: true }).inputValue(), "Current PC");
+  assert.match(await fleet.locator("#form-title").innerText(), /Current PC/);
   assert.equal(
     await fleet.getByLabel("Repository scope", { exact: true }).inputValue(),
     "Zero-State-LLC/current",
@@ -695,7 +712,7 @@ try {
     (await (await fleet.request.get(base + "/v1/admin/runners/config")).json()).config,
     {
       ...latest,
-      revision: 5,
+      revision: 7,
       machines: latest.machines.map((m) =>
         m.id === "fixture-pc" ? { ...m, desiredState: "enabled" } : m,
       ),
@@ -752,7 +769,7 @@ try {
     await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-pc")
   ).json();
   assert.equal(command.machineId, "fixture-pc");
-  assert.equal(command.revision, 5);
+  assert.equal(command.revision, 7);
   assert.equal(command.desiredState, "enabled");
   assert.equal(
     (await host.request.get(base + "/v1/runner-controller/poll?machineId=fixture-mac")).status(),
@@ -1046,19 +1063,17 @@ try {
   console.log(
     "PASS: exact workload scope, durable duplicate host receipt, operator host-evidence view and immediate revocation",
   );
-  // A monitored machine has no runner fields, no desired mode and no lifecycle controls.
-  await fleet.getByRole("button", { name: "New machine", exact: true }).click();
+  // A monitored machine is added on Machine fleet setup, and gets no runner card.
+  await fleet.goto(base + "/v1/admin/machines");
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
   await fleet.getByLabel("Machine ID", { exact: true }).fill("fixture-spark");
   await fleet.getByLabel("Alias", { exact: true }).fill("Fixture Spark");
   await fleet.getByLabel("Machine kind", { exact: true }).selectOption("spark");
   assert.equal(await fleet.getByLabel("Operating system", { exact: true }).inputValue(), "linux");
   assert.equal(await fleet.getByLabel("Architecture", { exact: true }).inputValue(), "arm64");
-  await fleet.getByLabel("Role", { exact: true }).selectOption("monitored");
-  assert.equal(await fleet.getByLabel("Repository scope", { exact: true }).isDisabled(), true);
-  assert.equal(await fleet.getByLabel("Desired mode", { exact: true }).isDisabled(), true);
   await fleet.getByRole("button", { name: "Review request", exact: true }).click();
-  assert.match(await fleet.locator("#review-text").innerText(), /Monitored only/);
-  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /New machine, monitored only/);
+  await fleet.getByRole("button", { name: "Save machine configuration", exact: true }).click();
   await fleet.getByRole("button", { name: "Edit Fixture Spark", exact: true }).waitFor();
   const monitored = (await (await fleet.request.get(base + "/v1/admin/runners/config")).json())
     .config;
@@ -1070,43 +1085,68 @@ try {
     os: "linux",
     architecture: "arm64",
   });
-  const spark = fleet.locator('article[data-machine-id="fixture-spark"]');
-  assert.match(await spark.innerText(), /Monitored only/);
-  assert.equal(await spark.getByRole("button").count(), 1);
+  assert.match(
+    await fleet.locator('article[data-machine-id="fixture-spark"]').innerText(),
+    /Monitored only/,
+  );
+  // Editing a runner machine's details keeps its runner settings.
+  const macBefore = monitored.machines.find((m) => m.id === "fixture-mac");
+  await fleet.getByRole("button", { name: "Edit Fixture Mac", exact: true }).click();
+  await fleet.getByLabel("Alias", { exact: true }).fill("Fixture Mac Studio");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(
+    await fleet.locator("#review-text").innerText(),
+    /runner settings and desired mode are unchanged/,
+  );
+  await fleet.getByRole("button", { name: "Save machine configuration", exact: true }).click();
+  await fleet.getByRole("button", { name: "Edit Fixture Mac Studio", exact: true }).waitFor();
+  const renamed = (await (await fleet.request.get(base + "/v1/admin/runners/config")).json())
+    .config;
+  assert.deepEqual(
+    renamed.machines.find((m) => m.id === "fixture-mac"),
+    { ...macBefore, alias: "Fixture Mac Studio" },
+  );
+  assert.match(
+    await fleet.locator('article[data-machine-id="fixture-mac"]').innerText(),
+    /CI runner/,
+  );
+  // Runner fleet lists runners only, and offers the Spark for a new runner.
+  await fleet.goto(base + "/v1/admin/runners");
+  await fleet.waitForFunction(() => !document.getElementById("fields").disabled);
+  assert.equal(await fleet.locator('#fleet article[data-machine-id="fixture-spark"]').count(), 0);
+  assert.equal(await fleet.locator("#fleet article.machine").count(), 2);
+  assert.deepEqual(
+    await fleet
+      .getByLabel("Machine", { exact: true })
+      .locator("option")
+      .evaluateAll((options) => options.map((o) => o.value)),
+    ["fixture-spark"],
+  );
   assert.equal(
     (
       await fleet.request.get(base + "/v1/admin/runners/lifecycle?machineId=fixture-spark")
     ).status(),
     404,
   );
-  // A runner machine cannot become monitored only.
-  await fleet
-    .locator('article[data-machine-id="fixture-pc"]')
-    .getByRole("button", { name: /^Edit / })
-    .click();
-  await fleet.getByLabel("Role", { exact: true }).selectOption("monitored");
-  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
-  assert.match(await fleet.locator("#status").innerText(), /keeps its runner settings/);
-  assert.equal(await fleet.locator("#review").isHidden(), true);
   console.log(
-    "PASS: a monitored DGX Spark saves without runner fields or lifecycle controls, and a runner cannot become monitored only",
+    "PASS: machines are set up on Machine fleet setup, runners on Runner fleet, and a runner's settings survive a machine edit",
   );
-  // The fleet status view lists every configured machine as unknown before any Fleet Report.
+  // The Machine fleet page lists every configured machine as unknown before any Fleet Report.
   await fleet.goto(base + "/v1/workspace/fleet");
-  await fleet.getByRole("heading", { name: "Fleet status", exact: true }).waitFor();
+  await fleet.getByRole("heading", { name: "Machine fleet", exact: true }).waitFor();
   assert.match(await fleet.getByRole("status").innerText(), /No Fleet Report has arrived/);
   const statusCard = fleet.locator('article[data-machine-id="fixture-spark"]');
   assert.match(await statusCard.innerText(), /Unknown/);
   assert.match(await statusCard.innerText(), /Fixture Spark/);
-  assert.equal(await fleet.locator("article.machine").count(), monitored.machines.length);
+  assert.equal(await fleet.locator("article.machine").count(), renamed.machines.length);
   assert(await fleet.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   if (process.env.ADMIN_SCREENSHOT_DIR)
     await fleet.screenshot({
-      path: join(process.env.ADMIN_SCREENSHOT_DIR, "fleet-status-mobile.png"),
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "machine-fleet-mobile.png"),
       fullPage: true,
     });
   console.log(
-    "PASS: the fleet status view lists every configured machine as unknown before a report",
+    "PASS: the Machine fleet page lists every configured machine as unknown before a report",
   );
   await fleetContext.close();
   console.log(
