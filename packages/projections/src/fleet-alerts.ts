@@ -26,9 +26,12 @@ export interface FleetAlertRequest {
   params: Record<string, string>;
 }
 
-/** A configured alias when it fits the display-name rule, otherwise the id. */
+/**
+ * A configured alias when it fits the display-name rule, otherwise the id, cut to the rule's
+ * 40 characters. The Alert Key and the `machineId` parameter keep the whole id.
+ */
 function displayName(name: string, machineId: string): string {
-  return DISPLAY_NAME.test(name) ? name : machineId;
+  return DISPLAY_NAME.test(name) ? name : machineId.slice(0, 40);
 }
 
 /** A held diagnostic occurrence, kept by the intake apart from the snapshot. */

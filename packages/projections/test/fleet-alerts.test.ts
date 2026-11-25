@@ -86,6 +86,16 @@ it("raises fleet:<machineId>:reachability for a Reachability Check machine that 
   );
 });
 
+it("cuts a long id to the 40-character display-name rule when it stands in for the name", () => {
+  const id = "lab-" + "x".repeat(46);
+  const box = machine({ machineId: id, kind: "ssh", source: "reachability", state: "down" });
+  const [alert] = projectFleetAlerts(snapshot({ machines: [box] }), [{ id, alias: "Lab <box>" }], {
+    now: T0 + 30_000,
+  });
+  expect(alert?.key).toBe(`fleet:${id}:reachability`);
+  expect(alert?.params).toEqual({ machineId: id, name: id.slice(0, 40), rule: "reachability" });
+});
+
 it("raises fleet:<machineId>:stale when a machine's last read is more than 2 minutes old", () => {
   const old = iso(T0 - 3 * 60_000);
   expect(alerts(snapshot({ machines: [machine({ lastSeenAt: old })] }))).toEqual([
