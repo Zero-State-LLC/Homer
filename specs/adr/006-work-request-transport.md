@@ -1,7 +1,10 @@
 # ADR 006: a Work Request is built locally and delivered by a CLI
 
-Status: proposed. Not accepted until Danny accepts the intent.
-Intent: [Homer emits Work Requests](../../docs/intent/work-requests.md) (draft).
+Status: accepted by Danny on 2026-11-24 (#61), with the Work Request spec.
+Intent: [Homer emits Work Requests](../../docs/intent/work-requests.md), accepted
+2026-11-23 (#59), amended 2026-11-24 (#61).
+Amended 2026-11-24 (Danny): a Done Linear Task is admitted, and a recorded
+request stands when its source changes. Both amendments are marked below.
 Contract: `work-request.v1.schema.json`; mapping `toWorkPacket` in
 `packages/shared-contracts/src/factory.ts`.
 Related, not yet on `main`: ADR 002, ADR 003 and ADR 005 exist only on PR #44.
@@ -30,7 +33,9 @@ certainty:
    GAP having to exist yet.
 
 The emitter refuses an unknown, closed or malformed source, naming the source and
-the field. It sets `testCommand` on every request, shell-wrapped
+the field. A Linear Task counts as closed only when it is canceled or a
+duplicate: a Done Task is admitted, so merged work can get an after-the-fact
+Verdict (amended 2026-11-24). It sets `testCommand` on every request, shell-wrapped
 (`bash -c '...'`), because software-factory executes it without a shell. It
 exits non-zero and writes no receipt when a configured POST fails.
 
@@ -38,8 +43,10 @@ exits non-zero and writes no receipt when a configured POST fails.
 source object's own immutable date — a Linear Task's creation date, a GitHub
 issue's `created_at`, a manual request's fixed slug date. It is never the
 emission date. The same source emitted twice therefore yields the same
-`requestId`: a retry is a Duplicate, and changed content at the same id is a
-Conflict, matching how Event Key already behaves in the Event Ledger.
+`requestId`: a retry is a Duplicate. Changed source content at the same id never
+replaces the first request: the recorded request stands, the emitter returns it
+and warns that the source changed, and a changed requirement needs a new source
+(amended 2026-11-24; this replaces "changed content is a Conflict").
 
 Homer never advances a packet past `intake` and never writes a Verdict.
 

@@ -227,7 +227,7 @@ records it in a receipt.
 
 | Workflow | Path | When to use |
 | --- | --- | --- |
-| CI | `.github/workflows/ci.yml` | Every PR: build, format, lint, types, tests, Worker smoke, audit |
+| CI | `.github/workflows/ci.yml` | Every PR: audit, and build, format, lint, types, tests and Worker smoke unless the PR is docs-only ([CI feedback spec](../ci-feedback/spec.md)) |
 | Docs | `.github/workflows/docs.yml` | Markdown lint, links, and the Context Pin |
 | Secret scan | `.github/workflows/secret-scan.yml` | Every PR, and on schedule |
 
