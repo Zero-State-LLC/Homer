@@ -214,14 +214,14 @@ The Projection that shows each Project's Milestones, Planned versus Actual Dates
 ## Fleet
 
 **Machine**:
-A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down or unknown) and firing alerts, never its address, SSH user, port or key. A runner machine also runs a CI runner and has a desired mode; a monitored machine runs none and is only watched.
+A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down, stale or unknown) and firing alerts, never its address, SSH user, port or key. A runner Machine runs one Runner; a monitored Machine runs none and is only watched.
 
 **Runner**:
-A GitHub Actions self-hosted runner on a runner Machine, scoped to one Repository, with the runner id GitHub gave it. Homer records its desired mode (enabled or maintenance) and what its host reports. GitHub is the Authority for its registration and its jobs.
+The one GitHub Actions self-hosted runner on a runner Machine, scoped to one Repository, with the runner id GitHub gives it at registration. Homer records its desired mode (enabled or maintenance) and what its host reports. GitHub is the Authority for its registration and its jobs.
 _Avoid_: agent, worker (for the runner)
 
 **Job Attempt**:
-One attempt of one GitHub Actions workflow job, named by its job id and run attempt, as GitHub reports it in a `workflow_job` delivery. Runner timing Projections are built from Job Attempts.
+One attempt of one GitHub Actions workflow job, as GitHub reports it in a `workflow_job` delivery, named by its job id and run attempt. The run attempt is Unknown until a read of the run confirms it. Runner timing Projections are built from Job Attempts.
 _Avoid_: build, run (for one attempt)
 
 **Fleet Collector**:
@@ -233,7 +233,7 @@ The Fleet Collector's report for one poll (`home.fleet-report/v1`): every config
 ## Alerts
 
 **Alert**:
-A change-only message from Homer to the Buzz `homer` channel, built from a fixed template and ids, never from source text. At most 30 are posted in any hour; past that, one summary says how many are held.
+A change-only message from Homer to the Buzz `homer` channel, built from a fixed template and ids, never from source text. At most 30 messages go out in any rolling hour, the summary included: when Alerts are held, the last free slot says how many.
 _Avoid_: notification, page
 
 **Alert Key**:
