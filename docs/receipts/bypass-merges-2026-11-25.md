@@ -47,8 +47,8 @@ configuration and its API are unchanged.
 on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
 Alerts and Buzz collection.
 
-Later the same day, after Danny's "Continue" at 13:01 Pacific time, three more
-pull requests followed: two docs-only, and #107, which changes configuration
+Later the same day, after Danny's "Continue" at 13:01 Pacific time, four more
+pull requests followed: three docs-only, and #107, which changes configuration
 and CI and so owes a Verdict like the code pull requests.
 
 | PR | Change | Merged head | Squash commit on `main` |
@@ -56,6 +56,7 @@ and CI and so owes a Verdict like the code pull requests.
 | [#105](https://github.com/Zero-State-LLC/Homer/pull/105) | Docs-only: the docs-only CI receipt (ZER-66) | `82c30be` | `82f300a` |
 | [#106](https://github.com/Zero-State-LLC/Homer/pull/106) | Docs-only: docs hygiene after the 2026-11-24 audit (ZER-89, part 1), with ADR 007 accepted as Danny ruled in chat | `d1f96bb` | `b891b71` |
 | [#107](https://github.com/Zero-State-LLC/Homer/pull/107) | Config: `engines` in every package, `.nvmrc`, and `--retry-wait-time 10` on the `links` check (ZER-89, part 2) | `ef7841f` | `2380f60` |
+| [#110](https://github.com/Zero-State-LLC/Homer/pull/110) | Docs-only: agent instructions for Buzz, `docs/agents/buzz.md`, linked from `AGENTS.md` in one line as the Buzz spec says (ZER-49) | `b96ee3c` | `cefc4f2` |
 
 Codex reviewed #106 at `09e7706`. The merge tool then brought the branch up to
 date with `main`, which added only #105's two files, so `main` after #106 equals
