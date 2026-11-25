@@ -33,6 +33,8 @@ the Authority for each Task's state; this page only points.
   bypass: a dependency change needs a human's yes.
 - The status lines normalized on 2026-11-25 (ZER-89): each marked "inferred" in
   that pull request's table is his to confirm.
+- His accept of the `CONTEXT.md` definitions of Observation, Machine, Runner,
+  Alert, Alert Key and Job Attempt, the last open item of ZER-89.
 
 ## Open questions with defaults
 
