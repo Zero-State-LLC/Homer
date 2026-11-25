@@ -16,26 +16,45 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # The merge commit and both parents, so ci-changes.sh can list the change.
+          fetch-depth: 2
           persist-credentials: false
+      - name: Prove the docs-only classifier fails toward running
+        run: bash scripts/test-ci-changes.sh
+      # Only a docs-only pull request skips the workspace steps (ADR 009). Each
+      # condition tests != 'false', so a missing output runs everything.
+      - name: Classify the change
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: bash scripts/ci-changes.sh
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.changes.outputs.workspace != 'false'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - if: steps.changes.outputs.workspace != 'false'
+        run: npm ci --no-audit --no-fund
       # Build once (ADR 008). Format reads no build output, so it goes first.
       # --ignore-scripts skips the pretypecheck and pretest builds, which would
       # repeat this one, and still runs typecheck and test themselves.
       - name: Format
+        if: steps.changes.outputs.workspace != 'false'
         run: npm run format:check
       - name: Build
+        if: steps.changes.outputs.workspace != 'false'
         run: npm run build
       - name: Lint
+        if: steps.changes.outputs.workspace != 'false'
         run: npm run lint
       - name: Typecheck
+        if: steps.changes.outputs.workspace != 'false'
         run: npm run --ignore-scripts typecheck
       - name: Test
+        if: steps.changes.outputs.workspace != 'false'
         run: npm test --ignore-scripts
       - name: Plain Workers runtime smoke
+        if: steps.changes.outputs.workspace != 'false'
         run: npm run smoke:workers
   audit:
     runs-on: ubuntu-latest
