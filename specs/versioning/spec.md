@@ -137,7 +137,9 @@ way, with its own CHANGELOG section and no GitHub Release.
 
 ### Deploy a Worker
 
-1. Check out the tag. The build refuses to deploy a `.dirty` or `unknown` build.
+1. Check out the tag and build. `scripts/deploy-check.mjs vX.Y.Z` refuses a
+   `.dirty` or `unknown` build, a checkout that is not the annotated tag, and a
+   version or CHANGELOG section that disagrees with the tag.
 2. Upload the Worker version with the tag as its version tag and the commit as
    its message, then deploy it.
 3. Read `GET /v1/version` through Access for the catalog Worker, or Wrangler's
@@ -187,14 +189,15 @@ after-the-fact Verdicts in ZER-63 first.
 
 ### Skills
 
-None new. `docs/deployment/releases.md` is the runbook (packet 5).
+None new. [`docs/deployment/releases.md`](../../docs/deployment/releases.md) is
+the runbook (packet 5).
 
 ### GitHub Actions
 
 No new workflow. The `check` job in `.github/workflows/ci.yml` gains a
 **Versions** step that runs `node scripts/check-versions.mjs` and
-`node --test scripts/check-versions.test.mjs`, unconditionally, like the
-classifier's own test.
+`node --test scripts/check-versions.test.mjs scripts/deploy-check.test.mjs`,
+unconditionally, like the classifier's own test.
 
 ## Test matrix
 

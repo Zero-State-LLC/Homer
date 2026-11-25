@@ -25,6 +25,8 @@ Read [`CONTEXT.md`](CONTEXT.md) first. Use its terms exactly in code, tests, spe
 | Check the TypeScript workspace | `npm run check` |
 | Check that the product version agrees everywhere | `npm run versions:check` |
 | Change the product version (release pull requests only) | `node scripts/version.mjs <version>` |
+| Print a release's notes from the CHANGELOG | `node scripts/release-notes.mjs vX.Y.Z` |
+| Check a clean, built clone of a tag before deploying it | `node scripts/deploy-check.mjs vX.Y.Z` |
 
 `npm run check` runs the version check, format, lint, typecheck, tests and build. Do not invent commands.
 
