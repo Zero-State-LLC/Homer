@@ -38,7 +38,7 @@ The runtime:
 | `sparkdashClient` | Sends only `GET`, only to `/api/health`, `/metrics` and `/api/alerts`, only to the configured `127.0.0.1` or `[::1]` origin. Anything else is refused before sending. It follows no redirect, sends no credential, and reads at most 4 MiB |
 | `checkSshBanner`, `applyCheck` | The Reachability Check: a TCP connection, at most 255 bytes of banner within 5 seconds, nothing sent. Two failures in a row fire `reachability`; the first success clears it |
 | `fileStore` | One state file, so the queue and the cursor move together: events are on disk before the cursor that counts them. Written atomically, readable by its owner only. A file it cannot read stops the Collector instead of starting afresh |
-| `FleetCollector` | Polls every 30 seconds, checks every 60. Each report carries the latest snapshot and the oldest 100 events; a `2xx` removes exactly those and the held diagnostics carried, and the next 100 go at once. A failure keeps everything and retries with backoff, at most once a poll. The queue holds at most 10,000 events |
+| `FleetCollector` | Polls every 30 seconds, checks every 60. Each report carries the latest snapshot and the oldest 100 events; a `2xx` removes exactly those and the held diagnostics carried, and the next 100 go at once. A failure keeps everything and retries with backoff, at most once a poll. The queue holds at most 10,000 events. A Reachability Check transition that finds it full waits in the state file with its own time, up to 100 per machine, and is queued once there is room |
 | `reportIdFor` | A report's id from its content, so an identical retry keeps its `reportId` and changed content never reuses one |
 
 Untrusted text never reaches a report. A Machine's name is cleaned, and a name

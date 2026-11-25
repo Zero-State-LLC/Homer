@@ -257,6 +257,40 @@ describe("the Collector runtime", () => {
     });
   });
 
+  it("keeps a reachability transition that finds the queue full, with its own time, until there is room", async () => {
+    const h0 = harness({
+      reads: () => read({ alerts: ok(alertsBody(range(1, 1))) }),
+      status: () => "unreachable",
+    });
+    await h0.collector.pollOnce();
+    const one = (await h0.store.load()).queue[0]!;
+    const full: StoredState = {
+      ...initialStored(),
+      queue: Array.from({ length: MAX_QUEUE }, () => one),
+    };
+    const results: CheckResult[] = ["failure", "failure", "up"];
+    const h = harness({ reads: () => read(), check: () => results.shift() ?? "up", stored: full });
+    await h.collector.checkOnce();
+    h.tick(60_000);
+    await h.collector.checkOnce();
+    const waiting = await h.store.load();
+    expect(waiting.queue).toHaveLength(MAX_QUEUE);
+    expect(waiting.reachability["pc-one"]?.state).toBe("down");
+    expect(waiting.reachability["pc-one"]?.unsent).toEqual([
+      { kind: "machine.alert_fired", startsAt: START, at: START + 60_000 },
+    ]);
+    // Room again; the machine is back on the next Check.
+    await h.store.save({ ...waiting, queue: [] });
+    h.tick(60_000);
+    await h.collector.checkOnce();
+    const sent = await h.store.load();
+    expect(sent.queue.map((e) => [e.kind, e.occurredAt])).toEqual([
+      ["machine.alert_fired", new Date(START + 60_000).toISOString()],
+      ["machine.alert_cleared", new Date(START + 120_000).toISOString()],
+    ]);
+    expect(sent.reachability["pc-one"]?.unsent).toBeUndefined();
+  });
+
   it("never writes a credential, an address or a response body to its log", async () => {
     const h = harness({
       reads: () => read({ alerts: ok(alertsBody([entry({ id: 1, status: "firing" })])) }),

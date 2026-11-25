@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import type { ActivityEvent, FleetReport } from "@zs-home/shared-contracts";
 import type { CollectorConfig, SshMachine } from "../config.js";
-import { cleanName, machineAlertEvent } from "../events.js";
-import { poll, type ReachabilityReading, type Snapshot } from "../poll.js";
+import { cleanName, iso, machineAlertEvent } from "../events.js";
+import { addHeld, poll, type ReachabilityReading, type Snapshot } from "../poll.js";
 import { acknowledgeReport, buildFleetReport } from "../report.js";
 import type { IntakeClient } from "./intake-client.js";
 import {
@@ -27,6 +27,9 @@ export interface CollectorDeps {
   now: () => number;
   log: (line: LogLine) => void;
 }
+
+/** Reachability transitions waiting for room in the queue, per machine. */
+const MAX_UNSENT = 100;
 
 /** Retries wait longer after each failure, but never past one poll's worth of tries per poll. */
 const BACKOFF_MS = [30_000, 60_000, 120_000, 300_000];
@@ -124,6 +127,7 @@ export class FleetCollector {
       const stored = await store.load();
       const at = now();
       const reachability = { ...stored.reachability };
+      let held = stored.collector.held;
       const events: ActivityEvent[] = [];
       let room = MAX_QUEUE - stored.queue.length;
       for (const [machine, result] of results) {
@@ -131,29 +135,42 @@ export class FleetCollector {
           ? (reachability[machine.machineId] as ReachabilityState)
           : initialReachability();
         const { next, transition } = applyCheck(previous, result, at);
-        if (transition) {
-          // No room: leave this machine as it was, so the next Check makes the same transition.
-          if (room <= 0) continue;
+        // A transition has no history upstream to be read again from: it waits
+        // with its own time until the queue has room, and is never dropped.
+        let unsent = [...(previous.unsent ?? []), ...(transition ? [{ ...transition, at }] : [])];
+        while (unsent.length > 0 && room > 0) {
+          const pending = unsent[0] as NonNullable<ReachabilityState["unsent"]>[number];
           const event = machineAlertEvent({
             source: "homer",
-            kind: transition.kind,
+            kind: pending.kind,
             machineId: machine.machineId,
             name: cleanName(machine.name, machine.machineId),
             rule: "reachability",
             severity: "critical",
-            startsAt: transition.startsAt,
-            at,
+            startsAt: pending.startsAt,
+            at: pending.at,
             sparkdashVersion: this.snapshot?.sparkdash.version ?? null,
             frontDoorOrigin: config.frontDoorOrigin,
             collectedAt: at,
           });
+          unsent = unsent.slice(1);
           if (event === undefined) continue;
           events.push(event);
           room--;
         }
-        reachability[machine.machineId] = next;
+        if (unsent.length > MAX_UNSENT) {
+          // Past this many waiting, the oldest are lost, and a held gap says so.
+          unsent = unsent.slice(-MAX_UNSENT);
+          held = addHeld(held, "collector_gap", iso(at));
+        }
+        reachability[machine.machineId] = unsent.length > 0 ? { ...next, unsent } : next;
       }
-      await store.save({ ...stored, reachability, queue: [...stored.queue, ...events] });
+      await store.save({
+        ...stored,
+        collector: { ...stored.collector, held },
+        reachability,
+        queue: [...stored.queue, ...events],
+      });
       log({ event: "check", machines: machines.length, queued: events.length });
     });
   }

@@ -58,6 +58,8 @@ export interface ReachabilityState {
   failingSince: number | null;
   /** The last successful Check, in ms. */
   lastSuccessAt: number | null;
+  /** Transitions waiting for room in the queue, oldest first, each with its own time. */
+  unsent?: (ReachabilityTransition & { at: number })[];
 }
 
 export function initialReachability(): ReachabilityState {
@@ -96,11 +98,12 @@ export function applyCheck(
   }
   const failingSince = previous.failingSince ?? at;
   const failures = previous.failures + 1;
+  const kept = { state: previous.state, lastSuccessAt: previous.lastSuccessAt };
   if (failures >= 2 && previous.state !== "down") {
     return {
-      next: { ...previous, state: "down", failures, failingSince },
+      next: { ...kept, state: "down", failures, failingSince },
       transition: { kind: "machine.alert_fired", startsAt: failingSince },
     };
   }
-  return { next: { ...previous, failures, failingSince } };
+  return { next: { ...kept, failures, failingSince } };
 }
