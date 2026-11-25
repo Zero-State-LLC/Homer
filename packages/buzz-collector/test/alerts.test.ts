@@ -111,6 +111,25 @@ describe("change-only Alerts", () => {
     ({ state } = apply(round.state, [gap("2026-11-25T18:05:00Z")], T0 + 90_000));
     expect(deliverAll(state, T0 + 90_000).posted).toHaveLength(1);
   });
+
+  it("keeps a one-shot Alert a week from its post, even when posting took longer", () => {
+    const key = "fleet:collector:sparkdash_restarted:2026-11-25T17:59:00Z";
+    const restart: AlertRequest = {
+      key,
+      template: "fleet.held_diagnostic",
+      params: { code: "sparkdash_restarted", since: "2026-11-25T17:59:00Z" },
+    };
+    let { state } = apply(emptyAlertState(), [restart]);
+    const day = 24 * 60 * 60_000;
+    // Posting fails for eight days; it is never dropped.
+    for (let now = T0; now < T0 + 8 * day; now += 600_000) state = markFailed(state, key, now);
+    const posted = T0 + 8 * day;
+    const [due] = dueAlerts(state, templates, posted);
+    state = markDelivered(state, key, due!.content, posted);
+    ({ state } = apply(state, [restart], posted + 30_000));
+    expect(dueAlerts(state, templates, posted + 30_000)).toEqual([]);
+    expect(Object.keys(state.records)).toEqual([key]);
+  });
 });
 
 describe("what may enter a message", () => {

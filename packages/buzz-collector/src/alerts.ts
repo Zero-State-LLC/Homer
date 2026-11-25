@@ -230,7 +230,11 @@ function prune(state: AlertState, now: number): void {
     if (record.pending) continue;
     // A cleared Alert that was posted, or never needed posting, is finished.
     if (record.phase === "cleared") delete state.records[key];
-    else if (record.phase === "once" && record.since <= now - ONE_SHOT_RETENTION_MS)
+    // A one-shot record is kept a week from its post, however long the post took.
+    else if (
+      record.phase === "once" &&
+      (record.delivered?.at ?? record.since) <= now - ONE_SHOT_RETENTION_MS
+    )
       delete state.records[key];
   }
 }
