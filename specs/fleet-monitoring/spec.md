@@ -487,6 +487,10 @@ under the `fleet:` prefix:
   instead of announcing a recovery nobody saw. Their stale Alert is excepted,
   since freshness may still be read. With only the metrics off, alerts are
   still read, so a rule's recovery is real and clears.
+- An unreachable sparkDash says nothing of its metrics, alert notifications,
+  shape or release, and one whose responses changed shape says nothing of the
+  first two or its release, so those Collector Alerts are held too, never
+  cleared by a change of state alone.
 - A machine is named by its alias when the alias fits the Fleet Report's name
   rule, and otherwise by its id, cut to the rule's 40 characters.
 - The templates are `HOMER_ALERT_TEMPLATES` in `@zs-home/buzz-collector`. Where

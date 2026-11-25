@@ -140,7 +140,7 @@ it("holds sparkDash machines' rule Alerts, not their stale Alert, while their al
       configured,
       { now: T0 + 30_000 },
     );
-    expect(plan.hold).toEqual(["fleet:delphi:"]);
+    expect(plan.hold.filter((p) => !p.startsWith("fleet:collector:"))).toEqual(["fleet:delphi:"]);
     expect(plan.holdExcept).toEqual(["fleet:delphi:stale"]);
   }
   // With metrics off, sparkDash's alerts are still read, so a recovery is real.
@@ -152,6 +152,32 @@ it("holds sparkDash machines' rule Alerts, not their stale Alert, while their al
         { now: T0 + 30_000 },
       ).hold,
     ).toEqual([]);
+});
+
+it("holds the Collector conditions an unreachable or reshaped sparkDash hides", () => {
+  const plan = (state: "ok" | "unreachable" | "shape_changed" | "metrics_off") =>
+    projectFleetAlerts(
+      snapshot({
+        sparkdash: { state, version: null, pinnedVersion: "2.91.0" },
+        machines: [machine({ state: "unknown", source: "reachability", kind: "ssh" })],
+      }),
+      configured,
+      { now: T0 + 30_000 },
+    ).hold;
+  expect(plan("unreachable")).toEqual([
+    "fleet:collector:metrics_off",
+    "fleet:collector:alerts_off",
+    "fleet:collector:shape_changed",
+    "fleet:collector:version_changed",
+  ]);
+  expect(plan("shape_changed")).toEqual([
+    "fleet:collector:metrics_off",
+    "fleet:collector:alerts_off",
+    "fleet:collector:version_changed",
+  ]);
+  // Metrics off: alerts and the release are still read, so their recoveries are real.
+  expect(plan("metrics_off")).toEqual([]);
+  expect(plan("ok")).toEqual([]);
 });
 
 it("raises fleet:collector:<state> while sparkDash is not read", () => {

@@ -53,6 +53,16 @@ export interface FleetAlertPlan {
   holdExcept: string[];
 }
 
+/**
+ * The Collector conditions a sparkDash state hides. An unreachable sparkDash, or one whose
+ * responses changed shape, says nothing of its metrics, alert notifications or release, so
+ * their Alerts are held rather than cleared.
+ */
+const HIDDEN_BY: Readonly<Record<string, readonly string[]>> = {
+  unreachable: ["metrics_off", "alerts_off", "shape_changed", "version_changed"],
+  shape_changed: ["metrics_off", "alerts_off", "version_changed"],
+};
+
 /** sparkDash states in which the Collector reads no alerts (its `alertsRead` is false). */
 const ALERTS_UNSEEN = new Set(["unreachable", "alerts_off", "shape_changed"]);
 
@@ -129,6 +139,8 @@ export function projectFleetAlerts(
       template: "fleet.sparkdash_state",
       params: { state: snapshot.sparkdash.state },
     });
+  for (const hidden of HIDDEN_BY[snapshot.sparkdash.state] ?? [])
+    hold.push(`fleet:collector:${hidden}`);
   const occurrences = new Map<string, FleetHeldOccurrence>();
   const recent = options.now - Date.parse(snapshot.receivedAt) < HELD_OCCURRENCE_WINDOW_MS;
   const diagnostics = [
