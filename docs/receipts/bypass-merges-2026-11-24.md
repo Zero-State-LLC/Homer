@@ -171,7 +171,7 @@ receipts, which need Danny's yes for staging.
 
 ## Late evening
 
-Three more pull requests merged under the same grant, each after green CI on
+Five more pull requests merged under the same grant, each after green CI on
 its head and a clean Codex review. `main`'s tree equalled the reviewed head
 after each merge, and CI passed on `main`.
 
@@ -186,11 +186,17 @@ reproduce check.
 | --- | --- | --- | --- |
 | [#84](https://github.com/Zero-State-LLC/Homer/pull/84) | The runbook from a Task to a Verdict (ZER-74), with the packet and Verdict comment commands | `92535ab` | `7c3010b` |
 | [#86](https://github.com/Zero-State-LLC/Homer/pull/86) | `homer-intake` split out of the catalog Worker (ZER-96, ADR 013) | `dbfa1eb` | `5f1119d` |
+| [#88](https://github.com/Zero-State-LLC/Homer/pull/88) | Activity Event v3 and the Fleet Report contract (ZER-77), one Codex fix | `f571e60` | `1052254` |
+| [#89](https://github.com/Zero-State-LLC/Homer/pull/89) | The pure core of the Fleet Collector (ZER-78), four Codex fixes | `f933213` | `839d43f` |
 
 One check moved from code to the deployment in #86. The catalog refused a
 `RUNNER_CONTROLLER_AUD` equal to its read or admin audience; `homer-intake`
 holds neither, so `docs/deployment/intake.md` gives the controller paths their
 own Access application on intake's own hostname.
 
-**Still owed:** both have no Verdict. ZER-63 lists them with their full head
-SHAs.
+Pull requests #88 and #89 are fleet monitoring packets 1 and 2. #88 also changes how the
+Event Ledger checks a Correction's Provenance, against Activity Event version 3,
+so a sparkDash event can be corrected.
+
+**Still owed:** none of the four has a Verdict. ZER-63 lists them with their
+full head SHAs.
