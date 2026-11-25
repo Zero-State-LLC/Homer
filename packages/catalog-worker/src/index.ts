@@ -1,12 +1,13 @@
 import {
-  controllerPaths,
-  handleControllerRequest,
-  type ControllerBindings,
+  enrollmentPaths,
+  handleEnrollmentRequest,
+  type EnrollmentBindings,
 } from "./controller-http.js";
-import { calendarPaths, calendarResponse } from "./calendar.js";
+import { calendarPaths, calendarResponse, type CalendarBindings } from "./calendar.js";
 import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
+import { catalogRoute } from "./routes.js";
 export { RunnerFleetObject } from "./runner-store.js";
-export { WorkflowJobEvidenceObject } from "./job-evidence-store.js";
+export { catalogRoute, catalogRoutes, type CatalogRoute } from "./routes.js";
 import type { CatalogBindings } from "./bindings.js";
 import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
@@ -14,7 +15,6 @@ import { verifyAccessIdentity, validateAccessConfig, type AccessConfig } from ".
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
 import { json, readBytes } from "./http.js";
 import { workerVersion } from "@zs-home/shared-contracts/workers";
-import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
 import { editorPaths, editorResponse } from "./editor.js";
 import { adminPaths, adminAsset, overviewResponse } from "./admin.js";
 import { directoryPaths, directoryPage } from "./directory-ui.js";
@@ -24,10 +24,10 @@ export interface Env
   extends
     CatalogBindings,
     AccessConfig,
-    WebhookEnv,
+    CalendarBindings,
     DirectoryBindings,
     RunnerBindings,
-    ControllerBindings {
+    EnrollmentBindings {
   /** Cloudflare's `version_metadata` binding (versioning spec, "Worker version"). */
   CF_VERSION_METADATA?: { id: string; tag: string; timestamp: string };
 }
@@ -38,10 +38,11 @@ export async function handleRequest(
   key?: JWTVerifyGetKey,
 ): Promise<Response> {
   const url = new URL(request.url);
-  if (controllerPaths.has(url.pathname)) return handleControllerRequest(request, env, key);
+  // Only people and agents call this Worker; machine routes are in homer-intake (ADR 013).
+  if (!catalogRoute(url.pathname)) return json({ error: "not_found" }, 404);
+  if (enrollmentPaths.has(url.pathname)) return handleEnrollmentRequest(request, env, key);
   if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
   const calendarRoute = calendarPaths.has(url.pathname);
-  if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
   const editorRoute = editorPaths.has(url.pathname);
   const adminRoute = adminPaths.has(url.pathname);

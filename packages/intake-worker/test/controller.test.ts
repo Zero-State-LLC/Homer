@@ -2,9 +2,22 @@ import { env } from "cloudflare:workers";
 import { abortAllDurableObjects } from "cloudflare:test";
 import { beforeAll, expect, it } from "vitest";
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT, type JWTVerifyGetKey } from "jose";
-import { handleControllerRequest, type ControllerEnv } from "../src/controller-http.js";
-import { handleRunnerRequest } from "../src/runner-http.js";
-import { verifyAccessIdentity } from "../src/access.js";
+import {
+  handleRequest as handleCatalogRequest,
+  type Env as CatalogEnv,
+} from "@zs-home/catalog-worker";
+import { verifyAccessIdentity } from "@zs-home/catalog-worker/access";
+import { handleRequest as handleIntakeRequest, type IntakeEnv } from "../src/index.js";
+
+// The protocol spans both Workers (ADR 013): people enroll machines in the
+// catalog, and machines poll and report to intake.
+type ControllerEnv = CatalogEnv & IntakeEnv;
+function handleControllerRequest(request: Request, e: ControllerEnv, k?: JWTVerifyGetKey) {
+  return new URL(request.url).pathname.startsWith("/v1/runner-controller/")
+    ? handleIntakeRequest(request, e, k)
+    : handleCatalogRequest(request, e, k);
+}
+const handleRunnerRequest = handleControllerRequest;
 let key: JWTVerifyGetKey;
 let admin: string;
 let host: string;

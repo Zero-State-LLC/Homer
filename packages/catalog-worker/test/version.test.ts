@@ -10,7 +10,6 @@ const config = {
   ACCESS_ISSUER: "https://synthetic.cloudflareaccess.com",
   ACCESS_READ_AUD: "synthetic-read",
   ACCESS_ADMIN_AUD: "synthetic-admin",
-  RUNNER_CONTROLLER_AUD: "synthetic-controller",
   CATALOG_NAME: "synthetic",
 };
 const metadata = {
@@ -73,7 +72,8 @@ it("answers an admin token too, as every read route does", async () => {
 it("refuses a request without a valid read or admin token", async () => {
   expect((await handleRequest(get(null), testEnv(), key)).status).toBe(401);
   for (const jwt of [
-    await token(config.RUNNER_CONTROLLER_AUD, { sub: "" }),
+    // A workload token for another Access application, such as homer-intake's.
+    await token("synthetic-controller", { sub: "", common_name: "host.access" }),
     await token("someone-else"),
     await token(config.ACCESS_READ_AUD, { iss: "https://other.cloudflareaccess.com" }),
     await token(config.ACCESS_READ_AUD, { exp: Math.floor(Date.now() / 1000) - 60 }),

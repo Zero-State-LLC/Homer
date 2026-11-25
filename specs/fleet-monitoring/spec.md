@@ -1,6 +1,6 @@
 # Fleet monitoring through sparkDash
 
-Version: 0.1.0
+Version: 0.1.1
 Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
 monitoring waits for the runner stream's machine list (#35) and controller
 protocol (#38); SSH monitoring is read-only on every machine, except for agentic
@@ -9,6 +9,8 @@ interaction; and sparkDash's deployment follows the research he asked for (see
 Intent: [Remote fleet monitoring through sparkDash](../../docs/intent/fleet-monitoring.md)
 (accepted by Danny on 2026-11-24, #69)
 Decision: [ADR 011](../adr/011-fleet-monitoring-read-only-outbound.md)
+Amended by [ADR 013](../adr/013-catalog-worker-boundary.md) (accepted by Danny on
+2026-11-24): the intake is built in `homer-intake`, the Worker for machines.
 
 Homer shows every machine the team can reach over SSH as up, down or stale,
 with its firing alerts, and sends alert changes to the Buzz `homer` channel.
@@ -322,10 +324,13 @@ server. It does not show that a login works, and the status view says so.
 6. Read the response only for its status. A response never makes the Collector
    do anything else.
 
-### Intake (Homer Worker)
+### Intake (`homer-intake`)
 
 The intake is a second report type on the runner controller protocol from #38,
-not a new mechanism. It reuses that protocol's rules and adds one principal kind:
+not a new mechanism. It is a `homer-intake` route (ADR 013): `homer-intake`
+holds `FLEET_COLLECTOR_AUD`, and binds `RUNNER_FLEET` and the Event Ledger.
+`homer-catalog` keeps the admin binding of a collector's machines and the
+status view. It reuses that protocol's rules and adds one principal kind:
 
 1. A **fleet collector** principal, with its own audience, `FLEET_COLLECTOR_AUD`,
    which differs from the runner controller, read and admin audiences. Human

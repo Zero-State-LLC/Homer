@@ -10,7 +10,11 @@ claims. It does not trust identity headers alone.
 | Read mappings/listings | `GET /v1/catalog` | Read or admin audience |
 | Export complete catalog history | `GET /v1/admin/catalog/archive` | Admin audience only |
 | Replace mappings | `PUT /v1/admin/catalog` | Admin audience only |
-| Collect merged PR | `POST /v1/hooks/github` | GitHub HMAC-SHA256, separate from Access |
+
+The router's caller table (`catalogRoutes` in `src/routes.ts`) names every
+path and its audience; any other path answers `404`. The GitHub webhook, job
+evidence and the runner controller protocol are in
+[`homer-intake`](../intake-worker/) (ADR 013).
 
 Reads return an ETag containing the current revision. Writes require the same
 quoted revision in If-Match and the full next MappingSnapshot at revision +1.
@@ -21,13 +25,6 @@ creating a new revision; never edit history.
 The committed Wrangler configuration has no public route, deployment account,
 Access audience or live catalog name. Missing configuration returns 503.
 No catalog inventory or principal list is compiled into the Worker.
-
-The webhook reads the current catalog per delivery and awaits a durable ledger
-receipt. Repeated deliveries produce one Activity Event. Unknown/disabled
-repositories are ignored; changed content at an existing Event Key is a Conflict.
-Configure the webhook secret and a binding to the existing Event Ledger before
-enabling this route. See the [webhook spec](../../specs/github-webhook/spec.md).
-Historical backfill and automatic delivery recovery are not implemented.
 
 Catalog archives preserve revision audit fields and include a SHA-256 digest.
 The trusted-binding restore operation accepts only an empty target and imports

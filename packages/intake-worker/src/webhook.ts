@@ -1,4 +1,5 @@
-import type { CatalogBindings } from "./bindings.js";
+import type { MappingCatalogObject } from "@zs-home/catalog-worker";
+import { json, readBytes } from "@zs-home/catalog-worker/http";
 import {
   mapMergedPullRequest,
   mapWorkflowJobWebhook,
@@ -6,10 +7,11 @@ import {
 } from "@zs-home/github-sync";
 import { openEventLedger } from "@zs-home/event-ledger";
 import type { EventLedgerObject } from "@zs-home/event-ledger/worker";
-import { json, readBytes } from "./http.js";
 import { WorkflowJobEvidenceObject } from "./job-evidence-store.js";
 
-export interface WebhookEnv extends CatalogBindings {
+export interface WebhookEnv {
+  /** The catalog's namespace, bound by `script_name` (ADR 013): it admits repositories. */
+  MAPPING_CATALOG: DurableObjectNamespace<MappingCatalogObject>;
   CATALOG_NAME: string;
   // Optional until an operator binds the existing ledger and provisions the secret.
   EVENT_LEDGER?: DurableObjectNamespace<EventLedgerObject>;

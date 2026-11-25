@@ -29,7 +29,11 @@ const jwt = (aud, sub = "synthetic-browser") =>
     .sign(privateKey);
 writeFileSync(
   join(temp, "worker.ts"),
+  // One local Worker serves both routers (ADR 013): the runner controller
+  // routes go to homer-intake's, everything else to homer-catalog's. Both see
+  // the same RUNNER_FLEET, as the deployed script_name binding gives them.
   `import {handleRequest} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
+import {handleRequest as handleIntakeRequest} from ${JSON.stringify(resolve("packages/intake-worker/src/index.ts"))};
 export {MappingCatalogObject,RunnerFleetObject} from ${JSON.stringify(resolve("packages/catalog-worker/src/index.ts"))};
 import {createLocalJWKSet} from ${JSON.stringify(require.resolve("jose"))};
 export {EventLedgerObject} from ${JSON.stringify(resolve("packages/event-ledger/src/ledger-object.ts"))};
@@ -41,6 +45,7 @@ export default {async fetch(request, env){
   for(const e of [{...event('browser-human'),subject:'Synthetic reviewed implementation',occurredAt:'2026-11-21T01:00:00Z',actor:{sourceAccount:'synthetic-human',actorId:'actor:fixture',actorKind:'human'}},{...event('browser-unknown'),subject:'Synthetic unattributed merge',occurredAt:'2026-11-22T01:00:00Z'}]){const result=await ledger.appendActivityEvent(e);if(!['appended','duplicate'].includes(result.outcome))return Response.json(result,{status:500});}
   return Response.json({seeded:true});
  }
+ if(new URL(request.url).pathname.startsWith('/v1/runner-controller/'))return handleIntakeRequest(request, env, key);
  const mode=request.headers.get('X-Synthetic-Directory');
  const original=env.CREDENTIAL_DIRECTORY;
  const configured={...env,CREDENTIAL_DIRECTORY:mode==='missing'?undefined:{fetch: req=>original.fetch(new Request(req,{headers:{'X-Synthetic-Directory':mode||'ready'}}))}};

@@ -2,6 +2,7 @@
 
 Status: implementation slice of the accepted foundation intent, runtime catalog
 and migration plan steps 2 and 3. Deployment and source registration remain pending.
+The route is served by `homer-intake`, the Worker for machines (ADR 013).
 
 ## Contract and state transitions
 

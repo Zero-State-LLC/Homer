@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import { abortAllDurableObjects, runInDurableObject } from "cloudflare:test";
 import { expect, it } from "vitest";
 import { openEventLedger } from "@zs-home/event-ledger";
-import { handleRequest, type Env } from "../src/index.js";
+import { handleRequest, type IntakeEnv as Env } from "../src/index.js";
 import { MAX_WEBHOOK_BYTES, verifyGitHubSignature } from "../src/webhook.js";
 
 const secret = "synthetic-webhook-test-secret";
@@ -62,9 +62,6 @@ function testEnv(): Env {
     ...env,
     CATALOG_NAME: crypto.randomUUID(),
     GITHUB_WEBHOOK_SECRET: secret,
-    ACCESS_ISSUER: "",
-    ACCESS_READ_AUD: "",
-    ACCESS_ADMIN_AUD: "",
     EVENT_LEDGER: {
       get: (id, options) => env.EVENT_LEDGER.get(id, options),
       idFromName: () => ledgerId,

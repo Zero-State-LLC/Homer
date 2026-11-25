@@ -16,13 +16,11 @@
   "durable_objects": {
     "bindings": [
       { "name": "RUNNER_FLEET", "class_name": "RunnerFleetObject" },
-      { "name": "JOB_EVIDENCE", "class_name": "WorkflowJobEvidenceObject" },
       { "name": "MAPPING_CATALOG", "class_name": "MappingCatalogObject" },
     ],
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["MappingCatalogObject"] },
     { "tag": "runner-v1", "new_sqlite_classes": ["RunnerFleetObject"] },
-    { "tag": "job-evidence-v1", "new_sqlite_classes": ["WorkflowJobEvidenceObject"] },
   ],
 }

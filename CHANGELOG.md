@@ -89,6 +89,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Changed
 
+- The catalog Worker is split by who calls it (ZER-96, ADR 013). `homer-catalog` keeps every route people and agents reach through Access with the read or admin audience, and no longer holds the webhook secret or `RUNNER_CONTROLLER_AUD`. The new `homer-intake` Worker (`packages/intake-worker`) takes `POST /v1/hooks/github` with job evidence, and the runner controller's poll and report, and holds no read or admin audience, no page and no `GET /v1/version`. `JOB_EVIDENCE` and its `job-evidence-v1` migration move to `homer-intake`. Intake binds the catalog's `MAPPING_CATALOG` and `RUNNER_FLEET` by `script_name`, and the catalog binds nothing of intake's, so the deploy order is the ledger, then `homer-catalog`, then `homer-intake`. Each Worker's router has a caller table and answers `404` for any path it does not list. Routes, contracts and stored formats are unchanged. Deployment: `docs/deployment/intake.md`.
+
 - The Event Ledger Worker is renamed `homer-event-ledger` before its first deploy, so every Worker is `homer-*`. Durable Object class names and migration tags are unchanged.
 
 - Context Pin moves to agent-context `8cf82d5`, which adds the Zero State versioning rule (`templates/versioning.md`): one SemVer version per repository, a CHANGELOG section for every version, release candidates included, and human-only tags. The pin now covers that file; the versioning spec names it as the rule it follows.
