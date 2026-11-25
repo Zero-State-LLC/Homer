@@ -280,3 +280,26 @@ it("serves authenticated fleet assets with safe headers and explicit desired-sta
     }
   }
 });
+it("serves Machine fleet setup to admins only, apart from the runner page", async () => {
+  const e = environment();
+  const get = (path: string, jwt: string) =>
+    handleRunnerRequest(
+      new Request("https://homer.example" + path, { headers: { "Cf-Access-Jwt-Assertion": jwt } }),
+      e,
+      key,
+    );
+  const page = await get("/v1/admin/machines", admin);
+  expect(page.status).toBe(200);
+  expect(page.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
+  const html = await page.text();
+  expect(html).toContain("<h1>Machine fleet setup</h1>");
+  expect(html).toContain('href="/v1/admin/runners"');
+  const script = await get("/v1/admin/machines/app.js", admin);
+  expect(script.headers.get("Content-Type")).toContain("text/javascript");
+  expect(await script.text()).toContain("/v1/admin/runners/config");
+  expect((await get("/v1/admin/machines", read)).status).toBe(401);
+  // The runner page adds runners to configured machines; it no longer describes machines.
+  const runners = await (await get("/v1/admin/runners", admin)).text();
+  expect(runners).toContain('<label for="runner-machine">Machine</label>');
+  expect(runners).not.toContain('name="kind"');
+});

@@ -483,7 +483,7 @@ it("shows a fresh report's machines, with the sparkDash page through the front d
   expect(page.status).toBe(200);
   expect(page.headers.get("Content-Type")).toContain("text/html");
   const html = await page.text();
-  expect(html).toContain("<h1>Fleet status</h1>");
+  expect(html).toContain("<h1>Machine fleet</h1>");
   expect(html).toContain('href="https://sparkdash.example.test/"');
   expect(html).toContain("not that a login works");
   expect((await status(e, "/v1/fleet?machineId=delphi")).status).toBe(400);

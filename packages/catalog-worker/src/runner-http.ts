@@ -3,6 +3,7 @@ import { verifyAccess, validateAccessConfig, type AccessConfig } from "./access.
 import { json, readBytes } from "./http.js";
 import { RunnerFleetObject, parseRunnerConfig, MAX_RUNNER_BYTES } from "./runner-store.js";
 import { runnerAsset } from "./runner-ui.js";
+import { machineAsset, machinePaths } from "./machine-ui.js";
 export interface RunnerBindings {
   RUNNER_FLEET: DurableObjectNamespace<RunnerFleetObject>;
 }
@@ -12,6 +13,7 @@ export const runnerPaths = new Set([
   "/v1/admin/runners/app.js",
   "/v1/admin/runners/style.css",
   "/v1/admin/runners/config",
+  ...machinePaths,
 ]);
 export async function handleRunnerRequest(
   request: Request,
@@ -38,6 +40,7 @@ export async function handleRunnerRequest(
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
+  if (machinePaths.has(url.pathname)) return machineAsset(url.pathname);
   if (!url.pathname.endsWith("/config")) return runnerAsset(url.pathname);
   if (!env.RUNNER_FLEET) return json({ error: "runner_fleet_unavailable" }, 503);
   const store = env.RUNNER_FLEET.get(env.RUNNER_FLEET.idFromName(env.CATALOG_NAME));

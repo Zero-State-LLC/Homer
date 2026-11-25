@@ -1,6 +1,6 @@
 # Fleet monitoring through sparkDash
 
-Version: 0.1.4
+Version: 0.1.5
 Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
 monitoring waits for the runner stream's machine list (#35) and controller
 protocol (#38); SSH monitoring is read-only on every machine, except for agentic
@@ -19,6 +19,9 @@ names only machines in it. See [Machine list](#machine-list).
 Amended in ZER-81: where the status view lives, how it links to sparkDash, and
 how it treats a configured machine the report leaves out and a report time
 ahead of Homer's clock. See [Status view](#status-view).
+Amended in ZER-114 at Danny's request (2026-11-25): machine fleet and runner
+fleet are separate pages. See [Machine list](#machine-list) and
+[Status view](#status-view).
 
 Homer shows every machine the team can reach over SSH as up, down or stale,
 with its firing alerts, and sends alert changes to the Buzz `homer` channel.
@@ -159,6 +162,12 @@ run no CI runner:
 - The Collector's binding names only machines in this list; any other
   `machineId` is `409 unknown_machine`. Machines are never deleted, so the
   check at bind time holds for the binding's lifetime.
+- Machines and runners are edited on separate admin pages (ZER-114, Danny,
+  2026-11-25). **Machine fleet setup**, `/v1/admin/machines`, adds and
+  describes every machine, and keeps a runner machine's runner settings when
+  its details change. **Runner fleet**, `/v1/admin/runners`, lists runners only
+  and adds a runner to a configured machine that has none. Both write the same
+  configuration with the same revision precondition.
 
 ### Fleet Report, contract `home.fleet-report/v1`
 
@@ -408,8 +417,9 @@ A fleet status Projection over the latest snapshot and the machine events:
 
 As built in ZER-81:
 
-- `homer-catalog` serves it to the read audience, `GET` only: the page at
-  `/v1/workspace/fleet` and the same Projection as JSON at `/v1/fleet`. It reads
+- `homer-catalog` serves it to the read audience, `GET` only: the **Machine
+  fleet** page at `/v1/workspace/fleet` (ZER-114 renamed it from Fleet status)
+  and the same Projection as JSON at `/v1/fleet`. It reads
   the latest snapshot and the runner fleet configuration from `RUNNER_FLEET`.
 - Every configured machine is listed, in configuration order. One the latest
   report does not name shows as unknown, and says so. A reported machine the
