@@ -1,6 +1,7 @@
 import type { JWTVerifyGetKey } from "jose";
 import { json } from "@zs-home/catalog-worker/http";
 import { controllerPaths, handleControllerRequest, type ControllerEnv } from "./controller.js";
+import { fleetPaths, handleFleetReport, type FleetEnv } from "./fleet.js";
 import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
 export { WorkflowJobEvidenceObject } from "./job-evidence-store.js";
 
@@ -8,7 +9,7 @@ export { WorkflowJobEvidenceObject } from "./job-evidence-store.js";
  * `homer-intake`: every route a machine pushes to (ADR 013). It holds no read
  * or admin audience, and serves no page and no `GET /v1/version`.
  */
-export interface IntakeEnv extends WebhookEnv, ControllerEnv {
+export interface IntakeEnv extends WebhookEnv, ControllerEnv, FleetEnv {
   /** Cloudflare's `version_metadata` binding; read from Wrangler's output, not served. */
   CF_VERSION_METADATA?: { id: string; tag: string; timestamp: string };
 }
@@ -16,13 +17,17 @@ export interface IntakeEnv extends WebhookEnv, ControllerEnv {
 /** Who calls each path, and how it proves who it is. A path not listed is refused. */
 export interface IntakeRoute {
   caller: "github" | "workload";
-  proof: "hmac" | "RUNNER_CONTROLLER_AUD";
+  proof: "hmac" | "RUNNER_CONTROLLER_AUD" | "FLEET_COLLECTOR_AUD";
 }
 export const intakeRoutes: ReadonlyMap<string, IntakeRoute> = new Map<string, IntakeRoute>([
   ["/v1/hooks/github", { caller: "github", proof: "hmac" }],
   ...[...controllerPaths].map((path): [string, IntakeRoute] => [
     path,
     { caller: "workload", proof: "RUNNER_CONTROLLER_AUD" },
+  ]),
+  ...[...fleetPaths].map((path): [string, IntakeRoute] => [
+    path,
+    { caller: "workload", proof: "FLEET_COLLECTOR_AUD" },
   ]),
 ]);
 
@@ -34,9 +39,9 @@ export async function handleRequest(
 ): Promise<Response> {
   const route = intakeRoutes.get(new URL(request.url).pathname);
   if (!route) return json({ error: "not_found" }, 404);
-  return route.proof === "hmac"
-    ? handleGitHubWebhook(request, env)
-    : handleControllerRequest(request, env, key);
+  if (route.proof === "hmac") return handleGitHubWebhook(request, env);
+  if (route.proof === "FLEET_COLLECTOR_AUD") return handleFleetReport(request, env, key);
+  return handleControllerRequest(request, env, key);
 }
 
 export default {

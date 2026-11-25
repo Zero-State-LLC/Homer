@@ -4,9 +4,16 @@ import {
   type EnrollmentBindings,
 } from "./controller-http.js";
 import { calendarPaths, calendarResponse, type CalendarBindings } from "./calendar.js";
+import { fleetPaths, handleFleetRequest } from "./fleet-http.js";
 import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
 import { catalogRoute } from "./routes.js";
-export { RunnerFleetObject } from "./runner-store.js";
+export {
+  FLEET_REPORTS_PER_MINUTE,
+  RunnerFleetObject,
+  type FleetAdmission,
+  type FleetReceipt,
+  type FleetSnapshot,
+} from "./runner-store.js";
 export { catalogRoute, catalogRoutes, type CatalogRoute } from "./routes.js";
 import type { CatalogBindings } from "./bindings.js";
 import type { JWTVerifyGetKey } from "jose";
@@ -41,6 +48,7 @@ export async function handleRequest(
   // Only people and agents call this Worker; machine routes are in homer-intake (ADR 013).
   if (!catalogRoute(url.pathname)) return json({ error: "not_found" }, 404);
   if (enrollmentPaths.has(url.pathname)) return handleEnrollmentRequest(request, env, key);
+  if (fleetPaths.has(url.pathname)) return handleFleetRequest(request, env, key);
   if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
   const calendarRoute = calendarPaths.has(url.pathname);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";

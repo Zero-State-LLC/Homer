@@ -2,7 +2,7 @@
 
 `homer-intake` is the Worker for machines ([ADR 013](../../specs/adr/013-catalog-worker-boundary.md)).
 It takes every route a machine pushes to: the GitHub webhook, with job evidence,
-and the runner controller protocol. Fleet intake (ZER-80) is built here too. It
+the runner controller protocol, and fleet reports. It
 holds no read or admin audience, serves no page and has no `GET /v1/version`.
 The routes people use are in [`cloudflare-catalog.md`](cloudflare-catalog.md).
 
@@ -11,6 +11,7 @@ The routes people use are in [`cloudflare-catalog.md`](cloudflare-catalog.md).
 | `POST /v1/hooks/github` | GitHub | HMAC-SHA256 over the body, no Access |
 | `GET /v1/runner-controller/poll?machineId=...` | A machine's controller | Access, `RUNNER_CONTROLLER_AUD`, workload only |
 | `POST /v1/runner-controller/report?machineId=...` | A machine's controller | Access, `RUNNER_CONTROLLER_AUD`, workload only |
+| `POST /v1/fleet/report` | The Fleet Collector | Access, `FLEET_COLLECTOR_AUD`, workload only |
 
 The router refuses any other path with `404` before a handler runs. Enrollment,
 the fleet pages and the lifecycle controls stay in `homer-catalog`, behind its
@@ -25,6 +26,7 @@ source or chat logs:
 | --- | --- |
 | `ACCESS_ISSUER` | The same team issuer as `homer-catalog`, so a machine's principal digest is the one an admin enrolled |
 | `RUNNER_CONTROLLER_AUD` | The audience of intake's own Access application for the controller paths |
+| `FLEET_COLLECTOR_AUD` | The audience of intake's own Access application for `/v1/fleet/report`; it must differ from `RUNNER_CONTROLLER_AUD` |
 | `CATALOG_NAME` | The same value as `homer-catalog` in this environment; it names the objects both Workers share |
 | `GITHUB_WEBHOOK_SECRET` | High-entropy webhook secret, installed as a Workers secret |
 | `EVENT_LEDGER` | Cross-Worker binding to the ledger's `EventLedgerObject` namespace, added per environment |
@@ -80,6 +82,22 @@ Rotate the Workers secret and GitHub webhook secret in a coordinated maintenance
 window, then redeliver failures from the transition. No overlap key is retained by
 this implementation. Do not print secret values, raw payloads or JWTs in evidence.
 
+### Fleet reports
+
+Cover `/v1/fleet/report` with an Access application of its own, with a
+service-token policy for the Fleet Collector only, and set its audience as
+`FLEET_COLLECTOR_AUD`. Until it is set, or while it equals
+`RUNNER_CONTROLLER_AUD`, the route answers `503`. An admin then binds the
+Collector's principal digest to the Machines it reports on with
+`PUT /v1/admin/fleet/collector` on `homer-catalog` (If-Match the current
+revision). Until that binding exists, every report is `403`. The Collector's
+own setup is in the fleet monitoring runbook (ZER-83).
+
+Each report's events are appended to the Event Ledger before its receipt is
+stored, so `EVENT_LEDGER` is needed here too. At most 6 new reports a minute are
+taken; the Collector backs off on `429`. Receipts are kept, report bodies are
+not, and receipts are not yet pruned: about 2,880 a day.
+
 ### The runner controller
 
 A controller is enrolled and qualified as in [`runner-fleet.md`](runner-fleet.md).
@@ -113,6 +131,9 @@ ledger. Its migration tags are `job-evidence-v1`.
   repeated audience all fail on the controller paths.
 - A controller reaches only its bound machine; a disabled or replaced binding
   stops it at once.
+- A runner controller's token, a person, an unbound workload and a report
+  naming an unbound machine all fail on `/v1/fleet/report`, and nothing is
+  recorded.
 - Every catalog path, `/v1/version` included, answers `404` on intake's
   hostname.
 - A signed ping, a merged pull request and a repeated delivery behave as the

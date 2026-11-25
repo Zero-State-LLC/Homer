@@ -43,8 +43,9 @@ function call(path: string, jwt: string | null, method = "GET") {
   );
 }
 
-it("lists machine callers only: GitHub by HMAC, and workloads by the controller audience", () => {
+it("lists machine callers only: GitHub by HMAC, and workloads by their own audiences", () => {
   expect([...intakeRoutes.keys()].sort()).toEqual([
+    "/v1/fleet/report",
     "/v1/hooks/github",
     "/v1/runner-controller/poll",
     "/v1/runner-controller/report",
@@ -53,7 +54,9 @@ it("lists machine callers only: GitHub by HMAC, and workloads by the controller 
     expect(route).toEqual(
       path === "/v1/hooks/github"
         ? { caller: "github", proof: "hmac" }
-        : { caller: "workload", proof: "RUNNER_CONTROLLER_AUD" },
+        : path === "/v1/fleet/report"
+          ? { caller: "workload", proof: "FLEET_COLLECTOR_AUD" }
+          : { caller: "workload", proof: "RUNNER_CONTROLLER_AUD" },
     );
   }
 });

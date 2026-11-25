@@ -1,6 +1,7 @@
 import { adminPaths } from "./admin.js";
 import { calendarPaths } from "./calendar.js";
 import { enrollmentPaths } from "./controller-http.js";
+import { fleetPaths } from "./fleet-http.js";
 import { directoryPaths } from "./directory-ui.js";
 import { editorPaths } from "./editor.js";
 import { runnerPaths } from "./runner-http.js";
@@ -27,7 +28,7 @@ export const catalogRoutes: ReadonlyMap<string, CatalogRoute> = new Map<string, 
   ["/v1/admin/catalog", admin],
   ["/v1/admin/catalog/archive", admin],
   ["/v1/admin/catalog/snapshot", admin],
-  ...[...editorPaths, ...adminPaths, ...runnerPaths, ...enrollmentPaths].map(
+  ...[...editorPaths, ...adminPaths, ...runnerPaths, ...enrollmentPaths, ...fleetPaths].map(
     (p): [string, CatalogRoute] => [p, admin],
   ),
 ]);
