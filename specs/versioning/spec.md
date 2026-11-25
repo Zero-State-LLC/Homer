@@ -1,7 +1,8 @@
 # Versioning and releases
 
 Version: 0.1.0
-Status: draft, for Danny's acceptance
+Status: accepted by Danny on 2026-11-24 (#75), with the defaults in
+[Open choices with defaults](#open-choices-with-defaults)
 Intent: [Versioning and releases](../../docs/intent/versioning-and-releases.md)
 (accepted by Danny on 2026-11-24, #74)
 Decision: [ADR 012](../adr/012-one-product-version.md)

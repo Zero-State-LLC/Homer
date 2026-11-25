@@ -1,6 +1,6 @@
 # ADR 012: one product version, and Provenance versions from the build
 
-Status: proposed, for Danny's acceptance with the spec.
+Status: accepted by Danny on 2026-11-24 with the spec (#75).
 Intent: [Versioning and releases](../../docs/intent/versioning-and-releases.md)
 (accepted by Danny on 2026-11-24, #74).
 Spec: [Versioning and releases](../versioning/spec.md).
