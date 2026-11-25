@@ -124,10 +124,14 @@ const SLUG_PREFIX_WHEN_HASHED = 39;
 const PAIN_MAX = 600;
 const PAIN_MIN = 10;
 const DONE_WHEN_ITEM_MIN = 5;
-/** Jev's context is 32,000 tokens; this keeps the state well inside it. */
+/**
+ * Jev's context is 32,000 tokens; this keeps the state well inside it. Longer
+ * text is refused, never cut, so Jev always reads every criterion it rates.
+ */
 const RISK_STATE_MAX = 24_000;
 
 const LINEAR_IDENTIFIER = /^ZER-[0-9]+$/;
+const DONE_WHEN_HEADING = /^#{1,6}\s+(done when|observable done)\s*:?\s*$/i;
 const GITHUB_SOURCE = /^github:([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+)#([0-9]+)$/;
 const MANUAL_SLUG = /^[a-z0-9-]+$/;
 const REPOSITORY = /^Zero-State-LLC\/[A-Za-z0-9._-]+$/;
@@ -474,20 +478,35 @@ export function readWorkRequestPolicy(raw: unknown): WorkRequestResult<WorkReque
 
 /**
  * The list items under the first heading named `Done when` or `Observable done`,
- * at any level. Each is trimmed and stripped of control characters; items shorter
- * than five characters and duplicates are dropped, in order.
+ * at any level, outside fenced code: an example in a code block is never a
+ * criterion. Each item is trimmed and stripped of control characters; items
+ * shorter than five characters and duplicates are dropped, in order.
  */
 export function extractDoneWhen(markdown: string): string[] {
-  const lines = markdown.split(/\r?\n/);
-  const start = lines.findIndex((line) =>
-    /^#{1,6}\s+(done when|observable done)\s*:?\s*$/i.test(line.trim()),
-  );
-  if (start === -1) {
-    return [];
-  }
   const items: string[] = [];
-  for (const line of lines.slice(start + 1)) {
+  let collecting = false;
+  let fence: string | undefined;
+  for (const line of markdown.split(/\r?\n/)) {
     const trimmed = line.trim();
+    const fenceOpen = /^(`{3,}|~{3,})/.exec(trimmed)?.[1];
+    if (fence !== undefined) {
+      if (
+        fenceOpen !== undefined &&
+        fenceOpen[0] === fence[0] &&
+        fenceOpen.length >= fence.length
+      ) {
+        fence = undefined;
+      }
+      continue;
+    }
+    if (fenceOpen !== undefined) {
+      fence = fenceOpen;
+      continue;
+    }
+    if (!collecting) {
+      collecting = DONE_WHEN_HEADING.test(trimmed);
+      continue;
+    }
     if (/^#{1,6}\s/.test(trimmed) || isCollapsibleMarker(trimmed)) {
       break;
     }
@@ -501,16 +520,7 @@ export function extractDoneWhen(markdown: string): string[] {
       items[last] = `${items[last] ?? ""} ${trimmed}`;
     }
   }
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const item of items) {
-    const clean = collapse(item);
-    if (clean.length >= DONE_WHEN_ITEM_MIN && !seen.has(clean)) {
-      seen.add(clean);
-      result.push(clean);
-    }
-  }
-  return result;
+  return cleanItems(items);
 }
 
 /**
@@ -603,10 +613,17 @@ export function prepareWorkRequest(
     return refuse("source_malformed", "who", "The creator has no usable account.");
   }
 
-  const state =
-    source.manual === undefined
-      ? `${source.title}\n\n${source.body}`
-      : `${source.title}\n\n${source.manual.pain}\n\n${doneWhen.map((item) => `- ${item}`).join("\n")}`;
+  // Title and criteria first, then the body: Jev rates the work the packet asks for.
+  const criteria = doneWhen.map((item) => `- ${item}`).join("\n");
+  const rest = source.manual === undefined ? source.body : source.manual.pain;
+  const state = `${source.title}\n\nDone when:\n${criteria}\n\n${rest}`;
+  if (state.length > RISK_STATE_MAX) {
+    return refuse(
+      "risk_unavailable",
+      "body",
+      "The source is too long for the risk decision; shorten it rather than lose part of it.",
+    );
+  }
 
   return ok({
     requestId: workRequestId(source),
@@ -622,7 +639,7 @@ export function prepareWorkRequest(
       floor: entry.riskFloor,
       model: policy.riskDecider.model,
       minConfidence: policy.riskDecider.minConfidence,
-      state: state.slice(0, RISK_STATE_MAX),
+      state,
     },
   });
 }

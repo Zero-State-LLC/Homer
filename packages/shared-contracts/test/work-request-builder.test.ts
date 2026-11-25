@@ -256,6 +256,28 @@ describe("Work Request builder: derived fields", () => {
     );
   });
 
+  it("never takes criteria from fenced code", () => {
+    const body = [
+      "An old request, quoted:",
+      "",
+      "```markdown",
+      "## Done when",
+      "",
+      "- The old example criterion",
+      "```",
+      "",
+      "## Done when",
+      "",
+      "- The real criterion holds",
+      "~~~",
+      "- Inside a fence under the heading",
+      "## Not a heading inside the fence",
+      "~~~",
+      "- A second real criterion",
+    ].join("\n");
+    expect(extractDoneWhen(body)).toEqual(["The real criterion holds", "A second real criterion"]);
+  });
+
   it("refuses a source with no Done when items", () => {
     for (const description of ["No criteria at all.", "## Done when\n\nJust prose."]) {
       const source = read(readLinearIssue({ ...linearRaw(), description }));
@@ -379,6 +401,12 @@ describe("Work Request builder: risk tier", () => {
     expectRefusal(decideRiskTier(answer, risk), "risk_unavailable");
   });
 
+  it("refuses a source too long for Jev instead of cutting it", () => {
+    const description = `${"filler ".repeat(4000)}\n\n${linearRaw().description}`;
+    const source = read(readLinearIssue({ ...linearRaw(), description }));
+    expectRefusal(prepareWorkRequest(source, policy(), NO_BINDINGS), "risk_unavailable", "body");
+  });
+
   it("keeps numeric probabilities and drops anything else", () => {
     const withProbabilities = read(
       decideRiskTier({ ...SURE_LOW, probabilities: { low: 0.95, medium: 0.04, high: 0.01 } }, risk),
@@ -388,8 +416,11 @@ describe("Work Request builder: risk tier", () => {
     expect(garbled).not.toHaveProperty("probabilities");
   });
 
-  it("gives Jev the title and the body", () => {
+  it("gives Jev the title, every criterion first, then the body", () => {
     const prepared = read(prepareWorkRequest(linear(), policy(), NO_BINDINGS));
+    expect(prepared.risk.state).toContain(
+      "\n\nDone when:\n- A Linear Task, a GitHub issue and a manual request each produce a valid Work Request.\n",
+    );
     expect(prepared.risk.state.startsWith("Homer: emit Work Requests from its sources\n\n")).toBe(
       true,
     );
