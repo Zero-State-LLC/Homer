@@ -273,8 +273,13 @@ A fleet status Projection over the latest snapshot and the machine events:
 - Each machine shows its state, last-seen time, firing alerts and, for a sparkDash
   machine, a link to the sparkDash page through the front door.
 - A reachability-only machine shows its telemetry as unknown.
-- With no snapshot newer than 2 minutes, every machine shows as stale, and the
-  view says when the last report came.
+- **Per machine:** a machine whose `lastSeenAt` is more than 2 minutes before the
+  report's `collectedAt` shows as stale, even when reports are fresh and
+  `sparkdash_up` says `1`. A machine with `lastSeenAt: null` shows as unknown.
+- **Fleet-wide:** with no snapshot newer than 2 minutes, every machine shows as
+  stale, and the view says when the last report came.
+- A machine that turns stale raises `fleet:<machineId>:stale`, and it clears
+  when a fresh read arrives.
 - The view lives in the operator UI behind the existing Access policy.
 
 ### Alerts to Buzz
@@ -287,6 +292,7 @@ that work (ZER-55) first.
 | --- | --- | --- |
 | `fleet:<machineId>:<rule>` | A `machine.alert_fired` or `machine.alert_cleared` event. Critical and warning alerts are sent; `concurrency` is not | `<rule name> on <machine name>` / `... cleared` |
 | `fleet:collector:stale` | No report for 2 minutes | `Fleet monitoring has not reported since <time>` |
+| `fleet:<machineId>:stale` | A machine's own last read is more than 2 minutes old | `No fresh reading from <machine name> since <time>` / `... fresh again` |
 | `fleet:collector:<state>` | `unreachable`, `metrics_off`, `alerts_off` or `shape_changed` | One fixed sentence per state |
 | `fleet:collector:<code>` | A diagnostic in the latest report: `version_changed`, `events_backlog` (only after 10 minutes) or `queue_full`. It clears when a report no longer carries it | One fixed sentence per code. `version_changed` names the pinned and the seen release |
 | `fleet:collector:<code>:<since>` | A held diagnostic, `collector_gap` or `sparkdash_restarted`, the first time a report carries it. One Alert per occurrence; it does not clear | One fixed sentence per code, with the `since` time |
@@ -353,6 +359,8 @@ and the new contracts' fixtures, like any other package.
 | Intake gets the same report twice | the events are Duplicates; the snapshot is unchanged |
 | Intake gets an older report after a newer one | the snapshot stays the newer one |
 | No report for 2 minutes | every machine stale; `fleet:collector:stale` |
+| Fresh reports, but one machine's `lastSeenAt` is 3 minutes before `collectedAt` | that machine stale and `fleet:<machineId>:stale`; the others as reported |
+| A machine with `lastSeenAt: null` | unknown, never up |
 | Intake post fails for 10 minutes | the queued events are delivered in order once it answers; only the latest snapshot is sent |
 | Credential missing | the Collector exits non-zero, naming the variable, never a value |
 
