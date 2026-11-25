@@ -63,8 +63,16 @@ interface VerdictFinding {
   file?: unknown;
 }
 
+/** A Verdict field as text: strings as they are, other values as JSON. */
+function text(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === undefined || value === null) return "";
+  if (typeof value === "number" || typeof value === "boolean") return `${value}`;
+  return JSON.stringify(value) ?? "";
+}
+
 function code(value: unknown): string {
-  return "`" + String(value ?? "").replace(/`/g, "'") + "`";
+  return "`" + text(value).replace(/`/g, "'") + "`";
 }
 
 /**
@@ -84,16 +92,16 @@ export function verdictComment(
   const met = items.filter((i) => i.status === "met").length;
   const count = (s: string) => findings.filter((f) => f.severity === s).length;
   const rep = (verdict["reproduce"] ?? {}) as Record<string, unknown>;
-  const problems = Array.isArray(gate.problems) ? gate.problems.map(String) : [];
+  const problems = Array.isArray(gate.problems) ? gate.problems.map(text) : [];
   const lines = [
-    `## software-factory Verdict: **${String(verdict["verdict"]).toUpperCase()}** (mode: **${String(verdict["mode"])}**)`,
+    `## software-factory Verdict: **${text(verdict["verdict"]).toUpperCase()}** (mode: **${text(verdict["mode"])}**)`,
     "",
     `- judge: ${code(verdict["judge_model"])}; author_model ${code(verdict["author_model"])}`,
     `- head: ${code(verdict["head_sha"])}; packet ${code(verdict["packet_id"])}; diff sha256 ${code(verdict["diff_sha256"])}`,
     `- done_when: ${met}/${items.length} met; findings: high ${count("high")}, medium ${count("medium")}, low ${count("low")}`,
     rep["ran"] === true
-      ? `- reproduce: exit ${String(rep["exit_code"])} in ${String(rep["duration_s"])} s, command ${code(rep["command"])}, output sha256 ${code(rep["output_sha256"])}`
-      : `- reproduce: did not run (${String(rep["error"] ?? "no reproduce check")})`,
+      ? `- reproduce: exit ${text(rep["exit_code"])} in ${text(rep["duration_s"])} s, command ${code(rep["command"])}, output sha256 ${code(rep["output_sha256"])}`
+      : `- reproduce: did not run (${text(rep["error"]) || "no reproduce check"})`,
     gate.merge_allowed === true
       ? "- `factory judge gate`: `merge_allowed: true`, no problems."
       : `- \`factory judge gate\`: \`merge_allowed: false\`: ${problems.join("; ") || "no reason given"}.`,
@@ -103,7 +111,7 @@ export function verdictComment(
     lines.push("", "### Findings", "");
     for (const f of findings) {
       const where = f.file ? ` ${code(f.file)}` : "";
-      lines.push(`- **${String(f.severity)}**${where}: ${String(f.summary ?? "")}`);
+      lines.push(`- **${text(f.severity)}**${where}: ${text(f.summary)}`);
     }
   }
   // A fence longer than any backtick run in the JSON, so quoted evidence

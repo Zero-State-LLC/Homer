@@ -70,7 +70,8 @@ describe("judgePacket", () => {
     expect(() => judgePacket({ ...request(), riskTier: "huge" }, "a/b", now)).toThrow(
       PacketRefusedError,
     );
-    const { testCommand: _omitted, ...withoutTest } = request();
+    const withoutTest = request();
+    delete withoutTest["testCommand"];
     expect(() => judgePacket(withoutTest, "a/b", now)).toThrow(/no testCommand/);
   });
 });
@@ -79,7 +80,7 @@ describe("asciiJson", () => {
   it("escapes every character outside ASCII, and stays the same JSON", () => {
     const value = { pain: "Danny’s “calendar” — naïve 🗓️" };
     const text = asciiJson(value);
-    expect(/^[\x00-\x7f]*$/.test(text)).toBe(true);
+    expect([...text].every((c) => c.charCodeAt(0) < 128)).toBe(true);
     expect(JSON.parse(text)).toEqual(value);
   });
 });
