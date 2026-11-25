@@ -27,6 +27,7 @@ Read [`CONTEXT.md`](CONTEXT.md) first. Use its terms exactly in code, tests, spe
 | Change the product version (release pull requests only) | `node scripts/version.mjs <version>` |
 | Print a release's notes from the CHANGELOG | `node scripts/release-notes.mjs vX.Y.Z` |
 | Check a clean, built clone of a tag before deploying it | `node scripts/deploy-check.mjs vX.Y.Z` |
+| Get a Verdict for a pull request, on the judge's machine | [`docs/deployment/work-requests.md`](docs/deployment/work-requests.md) |
 
 `npm run check` runs the version check, format, lint, typecheck, tests and build. Do not invent commands.
 
