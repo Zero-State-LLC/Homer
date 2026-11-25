@@ -1,0 +1,11 @@
+{
+  "identifier": "ZER-62",
+  "title": "Homer: emit Work Requests from its sources",
+  "description": "Homer needs to emit Work Requests so code pull requests can get a software-factory Verdict. Today nothing emits them.\n\n## What it does\n\n* a Linear Task\n* a GitHub issue\n\n## Done when\n\n* A Linear Task, a GitHub issue and a manual request each produce a valid Work Request.\n* An invalid source is refused with a clear reason.\n* A Homer Work Request carries `testCommand` so the reproduce check can run.\n\n>>> Agent notes\n\n* Contract: `specs/integration-contracts/work-request.v1.schema.json`.\n\n>>>",
+  "createdAt": "2026-11-23T18:16:15.854Z",
+  "url": "https://linear.app/example/issue/ZER-62/homer-emit-work-requests-from-its-sources",
+  "state": { "type": "backlog", "name": "Backlog" },
+  "project": { "name": "Homer" },
+  "creator": { "id": "00000000-0000-4000-8000-000000000001" },
+  "assignee": { "id": "00000000-0000-4000-8000-000000000002" }
+}
