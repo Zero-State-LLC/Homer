@@ -36,7 +36,7 @@ path or host before sending. A test proves each refusal.
 | --- | --- | --- | --- |
 | `GET /api/health` | The release pin | `version` | Everything else |
 | `GET /metrics` | The machines, up or down, collector freshness | `sparkdash_up` and `sparkdash_collector_last_success_timestamp_seconds`, with their `unit`, `unit_name`, `kind` and `collector` labels | Every other family and label |
-| `GET /api/alerts` | Alert state and transitions | `enabled`; from `active` and `recent`: `key`, `ruleId`, `unitId`, `severity`, `status`, `startsAt`, `endsAt`, `at` | `label`, `summary`, `unitName`, `ruleName`, `peakSeverity` |
+| `GET /api/alerts` | Alert state and transitions | `enabled`; from `active` and `recent`: `id`, `key`, `ruleId`, `unitId`, `severity`, `status`, `startsAt`, `endsAt`, `at` | `label`, `summary`, `unitName`, `ruleName`, `peakSeverity` |
 
 The Collector never reads `/api/sparks`, which returns addresses and SSH users.
 `label` and `summary` carry text from elsewhere, such as SSH errors and kernel
@@ -46,6 +46,13 @@ lines, and never enter Homer.
 alert notifications are off, `/api/alerts` reports `enabled: false` and sparkDash
 evaluates nothing. Either state is reported (`metrics_off`, `alerts_off`) and
 raises an Alert. Neither is ever read as "no problems".
+
+sparkDash keeps its alert history (`recent`) in memory only: the newest 200
+transitions, each numbered by a sequence `id` that goes up by one with every
+transition and starts again from 1 when sparkDash restarts. Its firing set is
+saved across restarts [verified: `server/alerts/engine.js` and `store.js` at
+`86f972e`]. The continuity rules in [Each poll](#each-poll) rely on both
+facts.
 
 ### Machine
 
@@ -72,7 +79,7 @@ Collector posts one Fleet Report per poll:
   "reportId": "uuid",
   "collector": { "name": "fleet-collector", "version": "0.1.0" },
   "collectedAt": "2026-11-24T18:00:00Z",
-  "sparkdash": { "state": "ok", "version": "2.91.0" },
+  "sparkdash": { "state": "ok", "version": "2.91.0", "pinnedVersion": "2.91.0" },
   "machines": [
     {
       "machineId": "sparkdash:delphi",
@@ -84,14 +91,23 @@ Collector posts one Fleet Report per poll:
       "firing": [{ "rule": "thermal", "severity": "warning", "since": "2026-11-24T17:58:00Z" }]
     }
   ],
+  "diagnostics": [],
   "events": []
 }
 ```
 
 - `sparkdash.state` is `ok`, `unreachable`, `metrics_off`, `alerts_off` or
   `shape_changed`.
-- `machines` holds at most 64 entries and `events` at most 100 Activity Events
-  under contract version 3. The body is at most 256 KiB.
+- `diagnostics` lists the Collector's own conditions, each
+  `{ "code", "since" }`, from a fixed set: `collector_gap` (transitions were
+  lost), `sparkdash_restarted` (sparkDash restarted, so transitions just before
+  the restart may be missing), `version_changed` (`version` differs from
+  `pinnedVersion`), `events_backlog` (more events are waiting than this report
+  carries), and `queue_full` (see [Deliver a report](#deliver-a-report)).
+  Nothing else goes in a diagnostic.
+- `machines` holds at most 64 entries, and `events` at most 100 Activity Events
+  under contract version 3, the oldest waiting ones, in order. The body is at
+  most 256 KiB.
 - `lastSeenAt` is the last time the machine answered: sparkDash's newest
   `sparkdash_collector_last_success_timestamp_seconds` for it, or the last
   successful Reachability Check. Unknown is `null`.
@@ -138,8 +154,9 @@ Both live on the Collector's host, never in the repository.
 - Credentials: the Access service token's client id and secret, each by
   1Password reference (`<NAME>_REF=op://...`) or in the environment, the way the
   Work Request emitter reads its secrets. Never in the configuration file.
-- State: the newest history `at` pushed, the last Fleet Report, the Reachability
-  Check counters, and reports not yet delivered.
+- State: the cursor (the newest history `id` turned into events, and that
+  entry's `key`, `status` and `at`), the alerts active at the last poll, the
+  Reachability Check counters, and the queue of events not yet delivered.
 
 ## Workflows
 
@@ -166,22 +183,35 @@ The runbook in packet 7 covers each step. Nothing here is Homer code.
 
 Every 30 seconds:
 
-1. Read `/api/health`. A release other than the pinned one raises one
-   `sparkdash_version_changed` Alert, and collection goes on only while every
-   response still matches the Collector's own schema.
+1. Read `/api/health`. A release other than the pinned one adds the
+   `version_changed` diagnostic, and collection goes on only while every response
+   still matches the Collector's own schema.
 2. Read `/metrics` and `/api/alerts`, and validate both against the Collector's
    schema. A response that does not match sets `shape_changed`. The Collector
    then maps nothing: every sparkDash machine is `unknown`, and no event is
    built.
 3. Build each sparkDash machine from `sparkdash_up`: `1` is up and `0` is down.
    Attach its firing alerts from `active`.
-4. For each `recent` entry newer than the stored `at`, build a
-   `machine.alert_fired` (`status: "firing"`) or `machine.alert_cleared`
-   (`status: "resolved"`) event.
-5. If an alert that was active at the last poll is neither active now nor
-   resolved in `recent`, sparkDash's history (200 entries) has dropped it. The
-   Collector raises a `collector_gap` Alert and does not invent a clear.
-6. Add the Reachability Check results (below), and post the Fleet Report.
+4. Check continuity against the cursor, the stored `id`:
+   - **No new entries**: the newest `id` equals the cursor and its entry still
+     matches the stored `key`, `status` and `at`.
+   - **Contiguous**: the newest `id` is above the cursor and `recent` still holds
+     the entry at `cursor + 1`. Nothing was evicted between polls.
+   - **Gap**: the newest `id` is above the cursor but the oldest entry held is
+     above `cursor + 1`. More than 200 transitions happened between polls. Add
+     `collector_gap` and turn what is held into events.
+   - **Restart**: the newest `id` is below the cursor, or the entry at the
+     cursor no longer matches. sparkDash restarted. Add `sparkdash_restarted`,
+     and treat every entry held as new. If the oldest entry held is not `id` 1,
+     add `collector_gap` too.
+5. For each new entry, oldest first, build a `machine.alert_fired`
+   (`status: "firing"`) or `machine.alert_cleared` (`status: "resolved"`)
+   event. Write the events to the queue on disk, and only then move the cursor.
+   An event is never dropped to make room.
+6. If an alert that was active at the last poll is neither active now nor
+   resolved in `recent`, add `collector_gap`. The Collector never invents a
+   clear.
+7. Add the Reachability Check results (below), and deliver the Fleet Report.
 
 If sparkDash does not answer, the report says `unreachable`, every sparkDash
 machine is `unknown`, and the Reachability Checks still run.
@@ -204,11 +234,19 @@ server. It does not show that a login works, and the status view says so.
 
 ### Deliver a report
 
-1. `POST <intake>/v1/fleet/report` with the Access service token headers.
-2. Retry a failed post with backoff, up to 1 hour, keeping undelivered reports on
-   disk (at most 1,000). Past that, drop the oldest snapshots and keep their
-   events. Event Keys make a resent event a Duplicate, never a second event.
-3. Read the response only for its status. A response never makes the Collector
+1. Build the report from the current snapshot and the oldest 100 events in the
+   queue. If more are waiting, add `events_backlog`.
+2. `POST <intake>/v1/fleet/report` with the Access service token headers.
+3. On a `2xx`, remove exactly the events that report carried from the queue. The
+   next report carries the next 100, without waiting for the next poll, until
+   the queue is empty.
+4. On a failure, keep the queue and try again with backoff, at most every poll.
+   Only the latest snapshot is ever sent; an old one is not kept. Event Keys
+   make a resent event a Duplicate, never a second event.
+5. The queue holds at most 10,000 events. When it is full, the Collector stops
+   moving the cursor and adds `queue_full`. sparkDash's own history then holds
+   the newest transitions, and the continuity rules report any it loses.
+6. Read the response only for its status. A response never makes the Collector
    do anything else.
 
 ### Intake (Homer Worker)
@@ -243,8 +281,7 @@ that work (ZER-55) first.
 | `fleet:<machineId>:<rule>` | A `machine.alert_fired` or `machine.alert_cleared` event. Critical and warning alerts are sent; `concurrency` is not | `<rule name> on <machine name>` / `... cleared` |
 | `fleet:collector:stale` | No report for 2 minutes | `Fleet monitoring has not reported since <time>` |
 | `fleet:collector:<state>` | `unreachable`, `metrics_off`, `alerts_off` or `shape_changed` | One fixed sentence per state |
-| `fleet:collector:version` | `sparkdash_version_changed` | `sparkDash changed from <pinned> to <seen>` |
-| `fleet:collector:gap` | `collector_gap` | `sparkDash dropped alert history; check its page` |
+| `fleet:collector:<code>` | A diagnostic in the latest report: `collector_gap`, `sparkdash_restarted`, `version_changed`, `events_backlog` (only after 10 minutes) or `queue_full` | One fixed sentence per code. `version_changed` names the pinned and the seen release |
 
 ### Threat model
 
@@ -288,6 +325,12 @@ and the new contracts' fixtures, like any other package.
 | A `recent` entry with `status: "firing"`, then one with `"resolved"` | one `machine.alert_fired` and one `machine.alert_cleared`, with keys from the same `startsAt` |
 | The same `recent` entries on the next poll | no new events |
 | An active alert missing from both `active` and `recent` | `collector_gap`; no invented clear |
+| `recent` holds `id` 101 to 300 and the cursor is 90 | `collector_gap`; ids 101 to 300 become events |
+| `recent` holds `id` 91 to 290 and the cursor is 90 | contiguous; ids 91 to 290 become events; no diagnostic |
+| The newest `id` is 4 and the cursor is 250 | `sparkdash_restarted`; ids 1 to 4 become events |
+| 150 transitions between two polls | two reports, 100 events then 50, none lost; `events_backlog` on the first |
+| The Collector stops after queueing events, before delivering them | the events are delivered after it starts again; the cursor did not skip them |
+| The queue holds 10,000 events | the cursor stops; `queue_full` |
 | `label` or `summary` with an address, an error line or markup | absent from the report and the event |
 | A machine name with control characters or more than 40 characters | replaced by the `machineId` |
 | A report that contains an IPv4 or IPv6 address anywhere | refused by the Collector's own check |
@@ -300,7 +343,7 @@ and the new contracts' fixtures, like any other package.
 | Intake gets the same report twice | the events are Duplicates; the snapshot is unchanged |
 | Intake gets an older report after a newer one | the snapshot stays the newer one |
 | No report for 2 minutes | every machine stale; `fleet:collector:stale` |
-| Intake post fails for 10 minutes | reports kept on disk, then delivered in order |
+| Intake post fails for 10 minutes | the queued events are delivered in order once it answers; only the latest snapshot is sent |
 | Credential missing | the Collector exits non-zero, naming the variable, never a value |
 
 ## Acceptance and implementation plan

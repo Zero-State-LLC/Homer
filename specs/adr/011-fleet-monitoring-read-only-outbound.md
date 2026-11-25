@@ -74,7 +74,8 @@ The Event Ledger is binding-only, with no public endpoint.
 - **sparkDash's webhook channel posts to Homer.** sparkDash sends each message
   once with no retry, so a missed send is lost. A channel is only a URL and
   cannot carry an Access token, so Homer would need an open endpoint or a
-  relay. Polling the persisted alert state avoids both. Rejected.
+  relay. Polling sparkDash's alert state avoids both, and the spec's continuity
+  rules report any transition a poll misses. Rejected.
 - **Prometheus scrapes sparkDash, and Homer reads Prometheus.** That adds a stack
   the intent excludes. `/metrics` keeps it possible later.
 - **DCGM.** NVIDIA's forum answers say it is not supported on the GB10. The
