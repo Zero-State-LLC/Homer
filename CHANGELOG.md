@@ -14,6 +14,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- One lockstep product version (ZER-91): `node scripts/version.mjs <version>` sets the root, every workspace package, every internal dependency and the lock file, and refuses a version that is not SemVer or not above the current one. `scripts/check-versions.mjs` fails when any of them disagree, as its own Versions step in CI and in `npm run check`. The root package is renamed `homer`; the version stays `0.0.0` until the first release.
+
 - Accepted versioning and releases intent and spec (`specs/versioning/spec.md`) and ADR 012: one lockstep product version, a build version on every Activity Event, `GET /v1/version` on every Worker, release tags cut only by Danny, and a receipt for every deploy.
 
 - Accepted fleet monitoring intent and spec (`specs/fleet-monitoring/spec.md`) and ADR 011: every machine reachable over SSH, read-only, through sparkDash and an SSH reachability check.

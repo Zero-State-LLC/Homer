@@ -1,5 +1,6 @@
 {
-  "name": "home",
+  "name": "homer",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,6 +10,7 @@
     "packages/*"
   ],
   "scripts": {
+    "versions:check": "node scripts/check-versions.mjs && node --test scripts/check-versions.test.mjs",
     "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger && npm run build -w @zs-home/projections && npm run build -w @zs-home/github-sync && npm run build -w @zs-home/catalog-worker && npm run build -w @zs-home/runner-controller && npm run build -w @zs-home/curator-runner && npm run build -w @zs-home/curator-host-docker && npm run build -w @zs-home/buzz-collector && npm run build -w @zs-home/work-request-emitter",
     "postbuild": "node --test scripts/*runtime.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -16,7 +18,7 @@
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "check": "npm run format:check && npm run build && npm run lint && npm run --ignore-scripts typecheck && npm test --ignore-scripts && npm run smoke:workers",
+    "check": "npm run versions:check && npm run format:check && npm run build && npm run lint && npm run --ignore-scripts typecheck && npm test --ignore-scripts && npm run smoke:workers",
     "pretypecheck": "npm run build",
     "pretest": "npm run build",
     "smoke:admin": "node scripts/catalog-browser/journey.mjs",
