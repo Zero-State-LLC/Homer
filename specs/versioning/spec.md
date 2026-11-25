@@ -1,8 +1,10 @@
 # Versioning and releases
 
-Version: 0.1.0
+Version: 0.1.1
 Status: accepted by Danny on 2026-11-24 (#75), with the defaults in
-[Open choices with defaults](#open-choices-with-defaults)
+[Open choices with defaults](#open-choices-with-defaults). Amended by Danny the
+same day: a release candidate has its own CHANGELOG section, and this is the
+versioning rule for every Zero-State repository.
 Intent: [Versioning and releases](../../docs/intent/versioning-and-releases.md)
 (accepted by Danny on 2026-11-24, #74)
 Decision: [ADR 012](../adr/012-one-product-version.md)
@@ -93,8 +95,10 @@ contract id already in the Event Ledger never changes, which includes the
   `### Changed`, `### Deprecated`, `### Removed`, `### Fixed` and
   `### Security` under it (Keep a Changelog).
 - A release turns Unreleased into `## [X.Y.Z] - YYYY-MM-DD` and opens a new,
-  empty Unreleased. `check-versions.mjs` fails when the root version is above
-  `0.0.0` and has no section of its own.
+  empty Unreleased. Every version above `0.0.0` has a section of its own, a
+  release candidate included (`## [0.1.0-rc.1] - YYYY-MM-DD`), newest first.
+  Each lists what changed since the version before it. `check-versions.mjs`
+  fails when the root version is above `0.0.0` and has no section of its own.
 
 ## Workflows
 
@@ -120,8 +124,8 @@ contract id already in the Event Ledger never changes, which includes the
 3. Create the GitHub Release for the tag, with that version's CHANGELOG section
    as its notes. `scripts/release-notes.mjs vX.Y.Z` prints them.
 
-A release candidate for staging is `vX.Y.Z-rc.N`, tagged the same way, with no
-GitHub Release.
+A release candidate for staging is `vX.Y.Z-rc.N`, prepared and tagged the same
+way, with its own CHANGELOG section and no GitHub Release.
 
 ### Deploy a Worker
 

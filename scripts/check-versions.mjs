@@ -5,8 +5,8 @@
 //
 // It also checks CHANGELOG.md: Unreleased first, then one `## [X.Y.Z] -
 // YYYY-MM-DD` section per release, newest first, each holding only the Keep a
-// Changelog subsections; and once the version is a release above 0.0.0, a
-// section for it.
+// Changelog subsections; and once the version is above 0.0.0, a section for
+// it, a release candidate included.
 // It checks that the contracts table in specs/integration-contracts/README.md
 // lists every schema file there.
 //
@@ -349,10 +349,14 @@ export function checkChangelog(text, version) {
     }
     for (const line of section.deep) at(line, "headings below ### are not used");
   }
-  // A release candidate is tagged for staging with no GitHub Release, so it
-  // needs no section of its own; every release above 0.0.0 does.
-  const release = typeof version === "string" ? SEMVER.exec(version) : null;
-  if (release && release[4] === undefined && version !== "0.0.0" && !seen.has(version)) {
+  // Every version above 0.0.0 has a section of its own, a release candidate
+  // included (Danny, 2026-11-24).
+  if (
+    typeof version === "string" &&
+    SEMVER.test(version) &&
+    version !== "0.0.0" &&
+    !seen.has(version)
+  ) {
     at(
       1,
       `the product version is ${version}, but there is no "## [${version}] - YYYY-MM-DD" section`,
