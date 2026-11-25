@@ -148,15 +148,19 @@ it("holds sparkDash machines' rule Alerts, not their stale Alert, while their al
 });
 
 it("holds the Collector conditions an unreachable or reshaped sparkDash hides", () => {
-  const plan = (state: "ok" | "unreachable" | "shape_changed" | "metrics_off") =>
+  const plan = (
+    state: "ok" | "unreachable" | "shape_changed" | "metrics_off",
+    version: string | null = null,
+  ) =>
     projectFleetAlerts(
       snapshot({
-        sparkdash: { state, version: null, pinnedVersion: "2.91.0" },
+        sparkdash: { state, version, pinnedVersion: "2.91.0" },
         machines: [machine({ state: "unknown", source: "reachability", kind: "ssh" })],
       }),
       configured,
       { now: T0 + 30_000 },
     ).hold;
+  // The release is unread here (version null), so its Alert is held as well.
   expect(plan("unreachable")).toEqual([
     "fleet:collector:metrics_off",
     "fleet:collector:alerts_off",
@@ -168,9 +172,19 @@ it("holds the Collector conditions an unreachable or reshaped sparkDash hides", 
     "fleet:collector:alerts_off",
     "fleet:collector:version_changed",
   ]);
-  // Metrics off: the report cannot say whether notifications are on; the release is read.
-  expect(plan("metrics_off")).toEqual(["fleet:collector:alerts_off"]);
-  expect(plan("ok")).toEqual([]);
+  // A reshaped metrics or alerts response with a readable release: its recovery is real.
+  const readable = projectFleetAlerts(
+    snapshot({
+      sparkdash: { state: "shape_changed", version: "2.91.0", pinnedVersion: "2.91.0" },
+      machines: [machine({ state: "unknown" })],
+    }),
+    configured,
+    { now: T0 + 30_000 },
+  );
+  expect(readable.hold).not.toContain("fleet:collector:version_changed");
+  // Metrics off: the report cannot say whether notifications are on.
+  expect(plan("metrics_off", "2.91.0")).toEqual(["fleet:collector:alerts_off"]);
+  expect(plan("ok", "2.91.0")).toEqual([]);
 });
 
 it("raises fleet:collector:<state> while sparkDash is not read", () => {

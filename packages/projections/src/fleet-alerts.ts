@@ -60,8 +60,8 @@ export interface FleetAlertPlan {
  * off it cannot say whether alert notifications are on. Hidden conditions are held, not cleared.
  */
 const HIDDEN_BY: Readonly<Record<string, readonly string[]>> = {
-  unreachable: ["metrics_off", "alerts_off", "shape_changed", "version_changed"],
-  shape_changed: ["metrics_off", "alerts_off", "version_changed"],
+  unreachable: ["metrics_off", "alerts_off", "shape_changed"],
+  shape_changed: ["metrics_off", "alerts_off"],
   metrics_off: ["alerts_off"],
 };
 
@@ -147,6 +147,8 @@ export function projectFleetAlerts(
     });
   for (const hidden of HIDDEN_BY[snapshot.sparkdash.state] ?? [])
     hold.push(`fleet:collector:${hidden}`);
+  // The release is read from `/api/health` alone; only an unread one hides a recovery.
+  if (snapshot.sparkdash.version === null) hold.push("fleet:collector:version_changed");
   const occurrences = new Map<string, FleetHeldOccurrence>();
   const recent = options.now - Date.parse(snapshot.receivedAt) < HELD_OCCURRENCE_WINDOW_MS;
   const diagnostics = [

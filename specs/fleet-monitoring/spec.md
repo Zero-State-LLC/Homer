@@ -488,12 +488,12 @@ under the `fleet:` prefix:
   machine, and the engine keeps its raised rule Alerts as they were. Its stale
   Alert is excepted, since freshness may still be read. A recovery during
   `metrics_off` is therefore posted when metrics return, never invented.
-- An unreachable sparkDash says nothing of its metrics, alert notifications,
-  shape or release; one whose responses changed shape says nothing of the
-  first two or its release; and with metrics off, notifications are unknown.
-  Those Collector Alerts are held, never cleared by a change of state alone.
-  While the release is unread, no `version_changed` Alert is requested, so the
-  last mismatch stands.
+- An unreachable sparkDash says nothing of its metrics, alert notifications or
+  shape; one whose responses changed shape says nothing of the first two; and
+  with metrics off, notifications are unknown. Those Collector Alerts are held,
+  never cleared by a change of state alone. The release is read from
+  `/api/health` alone: while it is unread (`version` is null), no
+  `version_changed` Alert is requested and the last one is held.
 - A machine is named by its alias when the alias fits the Fleet Report's name
   rule, and otherwise by its id, cut to the rule's 40 characters.
 - The templates are `HOMER_ALERT_TEMPLATES` in `@zs-home/buzz-collector`. Where
