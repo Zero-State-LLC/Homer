@@ -26,9 +26,11 @@ Buzz still works as chat between people and agents.
 
 ## Ask a teammate while grilling
 
-1. Find the Task's thread in Buzz: the thread whose root message names the
-   Task id. If there is none, post a root message that names the Task id and
-   asks your question.
+1. Find the Task's thread in the `general` channel
+   (`cf440167-7ac5-58f6-ade0-9e7ed5f37080`): the thread whose root message
+   starts with the Task id. If there is none, start it with a root message
+   `ZER-N: <Task title>`, then ask in it. Task threads live in `general`, and the
+   asking agent starts one (Danny, 2026-11-25).
 2. Reply in that thread with an @mention of the teammate:
 
    ```sh

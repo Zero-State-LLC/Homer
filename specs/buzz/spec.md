@@ -218,6 +218,9 @@ records it in a receipt.
 
 `docs/agents/buzz.md` tells agents, including Pocock's skills:
 
+- Task threads live in the `general` channel. A Task's thread is the one whose
+  root starts with its id; an agent that finds none starts it with `ZER-N: <title>`
+  (Danny, 2026-11-25).
 - To ask a teammate while grilling, reply in the Task's thread with an @mention
   (`buzz messages send --channel <uuid> --reply-to <root> --content -`), then read
   replies with `buzz messages thread`. The answer lands in `CONTEXT.md`, the intent,

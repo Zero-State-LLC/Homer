@@ -31,19 +31,11 @@ the Authority for each Task's state; this page only points.
 - The pull requests from before the restart, #30, #42 and #56 (ZER-87).
 - Two Dependabot pull requests, #102 and #103. Neither was merged under the
   bypass: a dependency change needs a human's yes.
-- The status lines normalized on 2026-11-25 (ZER-89): each marked "inferred" in
-  that pull request's table is his to confirm.
-- His accept of the `CONTEXT.md` definitions of Observation, Machine, Runner,
-  Alert, Alert Key and Job Attempt (ZER-89).
-- How to finish ZER-89's `links` retry item: run lychee twice, or decide the
-  retry need not be required. `--retry-wait-time 10` (#107) did not absorb a
-  `502`.
-- Who starts a Task's Buzz thread. `docs/agents/buzz.md` defaults to the asking
-  agent (#110). Two of its steps wait on ZER-116, which needs Homer's key.
+- Two steps of `docs/agents/buzz.md` wait on ZER-116, which needs Homer's key.
+
+Danny answered the rest on 2026-11-25; see `grill-2026-11-25.md`.
 
 ## Open questions with defaults
 
-- Fleet Alerts announce a rule's recovery only when sparkDash is `ok`. A
-  recovery seen with metrics off is posted when metrics return. Adding an
-  alerts-enabled flag to the Fleet Report would post it sooner. That is a
-  contract change, not made.
+None. Danny settled the last one on 2026-11-25 (`grill-2026-11-25.md`): a
+recovery seen with metrics off still waits for metrics to return.

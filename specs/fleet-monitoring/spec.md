@@ -488,6 +488,8 @@ under the `fleet:` prefix:
   machine, and the engine keeps its raised rule Alerts as they were. Its stale
   Alert is excepted, since freshness may still be read. A recovery during
   `metrics_off` is therefore posted when metrics return, never invented.
+  Danny kept this wait on 2026-11-25 rather than add an alerts-enabled flag to
+  the Fleet Report, a contract change.
 - An unreachable sparkDash says nothing of its metrics, alert notifications or
   shape; one whose responses changed shape says nothing of the first two; and
   with metrics off, notifications are unknown. Those Collector Alerts are held,
