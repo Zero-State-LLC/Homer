@@ -287,3 +287,9 @@ export type {
   FleetStatusOptions,
   FleetStatusSnapshot,
 } from "./fleet-status.js";
+export {
+  EVENTS_BACKLOG_ALERT_MS,
+  FLEET_ALERT_SCOPE,
+  projectFleetAlerts,
+  type FleetAlertRequest,
+} from "./fleet-alerts.js";

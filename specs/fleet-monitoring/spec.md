@@ -1,6 +1,6 @@
 # Fleet monitoring through sparkDash
 
-Version: 0.1.5
+Version: 0.1.6
 Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
 monitoring waits for the runner stream's machine list (#35) and controller
 protocol (#38); SSH monitoring is read-only on every machine, except for agentic
@@ -22,6 +22,8 @@ ahead of Homer's clock. See [Status view](#status-view).
 Amended in ZER-114 at Danny's request (2026-11-25): machine fleet and runner
 fleet are separate pages. See [Machine list](#machine-list) and
 [Status view](#status-view).
+Amended in ZER-82: how the fleet's Alerts are derived, and the reserved machine
+id `collector`. See [Alerts to Buzz](#alerts-to-buzz).
 
 Homer shows every machine the team can reach over SSH as up, down or stale,
 with its firing alerts, and sends alert changes to the Buzz `homer` channel.
@@ -162,6 +164,8 @@ run no CI runner:
 - The Collector's binding names only machines in this list; any other
   `machineId` is `409 unknown_machine`. Machines are never deleted, so the
   check at bind time holds for the binding's lifetime.
+- The machine id `collector` is reserved (ZER-82): the Fleet Collector's own
+  Alert Keys are `fleet:collector:*`, so no machine may take it.
 - Machines and runners are edited on separate admin pages (ZER-114, Danny,
   2026-11-25). **Machine fleet setup**, `/v1/admin/machines`, adds and
   describes every machine, and keeps a runner machine's runner settings when
@@ -452,6 +456,24 @@ that work (ZER-55) first.
 | `fleet:collector:<state>` | `unreachable`, `metrics_off`, `alerts_off` or `shape_changed` | One fixed sentence per state |
 | `fleet:collector:<code>` | A diagnostic in the latest report: `version_changed`, `events_backlog` (only after 10 minutes) or `queue_full`. It clears when a report no longer carries it | One fixed sentence per code. `version_changed` names the pinned and the seen release |
 | `fleet:collector:<code>:<since>` | A held diagnostic, `collector_gap` or `sparkdash_restarted`, the first time a report carries it. One Alert per occurrence; it does not clear | One fixed sentence per code, with the `since` time |
+
+As built in ZER-82, `projectFleetAlerts` in `@zs-home/projections` turns the
+latest snapshot, the runner fleet configuration and the time into the Alerts
+the fleet raises now, for the Buzz Alert engine (ZER-55) to post change-only
+under the `fleet:` prefix:
+
+- Machine Alerts follow the latest report's firing list, which the same
+  `machine.alert_fired` and `machine.alert_cleared` events produce. An alert
+  that fires and clears between two reports is in the Event Ledger but is not
+  posted.
+- A machine's stale Alert is judged against the report's own `collectedAt`.
+  While the whole fleet is stale, only `fleet:collector:stale` is added: each
+  machine's Alerts stay as the last report left them, neither cleared nor made
+  stale. Before the first report, nothing is raised.
+- A machine is named by its alias when the alias fits the Fleet Report's name
+  rule, and by its id otherwise.
+- The templates are `HOMER_ALERT_TEMPLATES` in `@zs-home/buzz-collector`. Where
+  the evaluation runs, and the key that signs the posts, are ADR 014's.
 
 ### Threat model
 

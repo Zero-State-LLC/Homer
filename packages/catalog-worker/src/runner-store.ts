@@ -36,6 +36,8 @@ export function isRunner(machine: ConfiguredMachine): machine is RunnerMachine {
   return Object.hasOwn(machine, "desiredState");
 }
 const MACHINE_KEYS = ["id", "alias", "kind", "os", "architecture"];
+/** No machine may take this id: fleet Alert Keys use it for the Fleet Collector itself. */
+export const RESERVED_MACHINE_ID = "collector";
 const RUNNER_KEYS = [...MACHINE_KEYS, "runnerId", "repository", "labels", "desiredState"];
 /** Which operating systems and architectures each kind admits. */
 function kindFits(kind: unknown, os: unknown, architecture: unknown, version: 1 | 2): boolean {
@@ -80,6 +82,8 @@ export function parseRunnerConfig(value: unknown): RunnerConfig {
     if (
       typeof m.id !== "string" ||
       !/^[a-z0-9][a-z0-9-]{0,63}$/.test(m.id) ||
+      // Reserved: the Fleet Collector's own Alerts are `fleet:collector:*`.
+      m.id === RESERVED_MACHINE_ID ||
       ids.has(m.id) ||
       typeof m.alias !== "string" ||
       m.alias.length < 1 ||
