@@ -5,6 +5,7 @@ export interface AccessConfig {
   ACCESS_READ_AUD: string;
   ACCESS_ADMIN_AUD: string;
   CATALOG_NAME: string;
+  RUNNER_CONTROLLER_AUD?: string;
 }
 const resolvers = new Map<string, JWTVerifyGetKey>();
 export function validateAccessConfig(config: AccessConfig): void {
@@ -22,8 +23,15 @@ export async function verifyAccessIdentity(
   config: AccessConfig,
   admin: boolean,
   key?: JWTVerifyGetKey,
+  controller = false,
 ): Promise<{ principal: string; kind: "human" | "workload" }> {
   validateAccessConfig(config);
+  if (
+    controller &&
+    (!config.RUNNER_CONTROLLER_AUD?.trim() ||
+      [config.ACCESS_READ_AUD, config.ACCESS_ADMIN_AUD].includes(config.RUNNER_CONTROLLER_AUD))
+  )
+    throw new Error("access_not_configured");
   let resolver = key ?? resolvers.get(config.ACCESS_ISSUER);
   if (!resolver) {
     resolver = createRemoteJWKSet(new URL(`${config.ACCESS_ISSUER}/cdn-cgi/access/certs`));
@@ -31,10 +39,23 @@ export async function verifyAccessIdentity(
   }
   const { payload } = await jwtVerify(token, resolver, {
     issuer: config.ACCESS_ISSUER,
-    audience: admin ? config.ACCESS_ADMIN_AUD : [config.ACCESS_READ_AUD, config.ACCESS_ADMIN_AUD],
+    audience: controller
+      ? (config.RUNNER_CONTROLLER_AUD as string)
+      : admin
+        ? config.ACCESS_ADMIN_AUD
+        : [config.ACCESS_READ_AUD, config.ACCESS_ADMIN_AUD],
     algorithms: ["RS256"],
     requiredClaims: ["sub", "exp", "iat"],
   });
+  if (controller) {
+    const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (
+      audiences.length !== 1 ||
+      audiences[0] !== config.RUNNER_CONTROLLER_AUD ||
+      payload.sub !== ""
+    )
+      throw new Error("invalid_controller_identity");
+  }
   if (typeof payload.iat !== "number" || payload.iat > Math.floor(Date.now() / 1000))
     throw new Error("invalid_issued_at");
   if (payload.type !== "app") throw new Error("invalid_token_type");

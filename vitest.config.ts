@@ -11,6 +11,7 @@ export default defineConfig({
             "packages/curator-host-docker/test/**/*.test.ts",
             "packages/buzz-collector/test/**/*.test.ts",
             "packages/work-request-emitter/test/**/*.test.ts",
+            "packages/runner-controller/test/**/*.test.ts",
             "packages/event-ledger/test/canonical.test.ts",
             "packages/projections/test/**/*.test.ts",
             "packages/github-sync/test/**/*.test.ts",

@@ -4,6 +4,10 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ## Unreleased
 
+- Accept Cloudflare singleton-array controller audiences while preserving exact workload scope (#41).
+
+- Add machine-scoped runner controller polling, durable host reports and a portable safe reconciliation core.
+
 - Add ADRs and operator surfaces for evidence-linked work calendars and revisioned PC/Mac runner fleet intent.
 
 ### Added

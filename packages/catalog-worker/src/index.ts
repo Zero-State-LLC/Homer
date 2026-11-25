@@ -1,3 +1,8 @@
+import {
+  controllerPaths,
+  handleControllerRequest,
+  type ControllerBindings,
+} from "./controller-http.js";
 import { calendarPaths, calendarResponse } from "./calendar.js";
 import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
 export { RunnerFleetObject } from "./runner-store.js";
@@ -14,7 +19,13 @@ import { directoryPaths, directoryPage } from "./directory-ui.js";
 export { MappingCatalogObject };
 import { credentialResponse, type DirectoryBindings } from "./credential-directory.js";
 export interface Env
-  extends CatalogBindings, AccessConfig, WebhookEnv, DirectoryBindings, RunnerBindings {}
+  extends
+    CatalogBindings,
+    AccessConfig,
+    WebhookEnv,
+    DirectoryBindings,
+    RunnerBindings,
+    ControllerBindings {}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
 export async function handleRequest(
   request: Request,
@@ -22,6 +33,7 @@ export async function handleRequest(
   key?: JWTVerifyGetKey,
 ): Promise<Response> {
   const url = new URL(request.url);
+  if (controllerPaths.has(url.pathname)) return handleControllerRequest(request, env, key);
   if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
   const calendarRoute = calendarPaths.has(url.pathname);
   if (url.pathname === "/v1/hooks/github") return handleGitHubWebhook(request, env);

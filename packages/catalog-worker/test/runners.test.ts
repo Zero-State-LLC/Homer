@@ -227,7 +227,7 @@ it("serves authenticated fleet assets with safe headers and explicit desired-sta
     expect(response.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
     if (!path) {
       const html = await response.text();
-      expect(html).toContain("Host controller unsupported");
+      expect(html).toContain("Host execution requires enrollment");
       expect(html).toContain("Observed status is unknown");
     }
   }
