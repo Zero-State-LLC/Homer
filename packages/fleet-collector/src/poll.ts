@@ -90,6 +90,14 @@ export interface PollResult {
 }
 
 type SparkdashState = FleetReport["sparkdash"]["state"];
+
+/**
+ * A machine-keyed lookup that sees only the record's own entries: a valid
+ * machineId such as `constructor` must never read Object's prototype.
+ */
+function own<T>(record: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
+}
 const MAX_FIRING = 32;
 
 /** A held diagnostic keeps its first `since` until a report that carries it is delivered. */
@@ -245,11 +253,12 @@ export function poll(input: PollInput): PollResult {
     state.names[m.machineId] = cleanName(unit.name, m.machineId);
     state.kinds[m.machineId] = unit.kind;
     const seen = unit.lastSuccessMs;
-    if (seen !== undefined && seen > (state.lastSeen[m.machineId] ?? -1)) {
+    if (seen !== undefined && seen > (own(state.lastSeen, m.machineId) ?? -1)) {
       state.lastSeen[m.machineId] = seen;
     }
   }
-  const nameOf = (machineId: string) => state.names[machineId] ?? cleanName(undefined, machineId);
+  const nameOf = (machineId: string) =>
+    own(state.names, machineId) ?? cleanName(undefined, machineId);
 
   let sparkdashState = reads.state;
   let events: ActivityEvent[] = [];
@@ -286,12 +295,12 @@ export function poll(input: PollInput): PollResult {
   const machines = config.machines.map((m): FleetMachine => {
     if ("sparkdashUnit" in m) {
       const unit = machinesRead ? reads.metrics?.get(m.sparkdashUnit) : undefined;
-      const seen = state.lastSeen[m.machineId];
+      const seen = own(state.lastSeen, m.machineId);
       return {
         machineId: m.machineId,
         name: nameOf(m.machineId),
         // Until sparkDash has described a unit, the generic kind.
-        kind: state.kinds[m.machineId] ?? "host",
+        kind: own(state.kinds, m.machineId) ?? "host",
         source: "sparkdash",
         state: unit ? (unit.up ? "up" : "down") : "unknown",
         lastSeenAt: seen === undefined ? null : iso(seen),

@@ -354,6 +354,24 @@ describe("each poll", () => {
     expect(changed.events[0]?.data?.["sparkdashVersion"]).toBe("2.92.0");
   });
 
+  it("reads machine-keyed state by its own entries only, for a machineId such as constructor", () => {
+    const odd = { ...config, machines: [{ machineId: "constructor", sparkdashUnit: "delphi" }] };
+    const first = run({ config: odd });
+    expect(first.snapshot.machines[0]).toMatchObject({
+      machineId: "constructor",
+      name: "Delphi",
+      kind: "spark",
+      lastSeenAt: "2026-11-24T18:00:00.000Z",
+    });
+    const unseen = run({ config: odd, read: read({ metrics: ok(metricsText([])) }) });
+    expect(unseen.snapshot.machines[0]).toMatchObject({
+      name: "constructor",
+      kind: "host",
+      state: "unknown",
+      lastSeenAt: null,
+    });
+  });
+
   it("passes the entries of a unit with no mapping without reporting them", () => {
     const skipped = run({
       read: read({
