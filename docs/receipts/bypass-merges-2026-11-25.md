@@ -26,6 +26,8 @@ browser journey included.
 | [#94](https://github.com/Zero-State-LLC/Homer/pull/94) | The runner fleet configuration lists monitored machines and the `spark` and `jetson` kinds; the Fleet Collector's binding names only configured machines (ZER-113) | `a35c5cc` | `41474b1` |
 | [#95](https://github.com/Zero-State-LLC/Homer/pull/95) | The fleet status Projection and view (ZER-81, fleet monitoring packet 5) | `1816959` | `c89cef8` |
 | [#97](https://github.com/Zero-State-LLC/Homer/pull/97) | Separate Machine fleet and Runner fleet pages (ZER-114), at Danny's request | `49ece2d` | `146f50a` |
+| [#99](https://github.com/Zero-State-LLC/Homer/pull/99) | The Alert engine for Buzz (ZER-55), three Codex fixes | `b6e1f45` | `3c83327` |
+| [#100](https://github.com/Zero-State-LLC/Homer/pull/100) | The fleet's Alerts (ZER-82), eight Codex fixes | `3e3fe42` | `c619eda` |
 
 Two contract changes, both written down where they belong:
 
@@ -40,6 +42,18 @@ Pull request #97 adds one admin page, `/v1/admin/machines`, on the same
 configuration endpoint, and renames the status view to Machine fleet. The
 configuration and its API are unchanged.
 
+**Docs-only.** [#101](https://github.com/Zero-State-LLC/Homer/pull/101)
+(`3a33da8`, squash `b6ade52`) is ADR 014, which records Danny's choice in chat
+on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
+Alerts and Buzz collection.
+
+Pull requests #99 and #100 build the Alert engine and the fleet's Alert rules
+as pure code. Nothing posts yet: that is ZER-115, blocked by the signing
+library (ZER-61) and Homer's key (ZER-48). Pull request #100 also adds a
+`fleet_held_diagnostics` table to the runner fleet Durable Object, created on
+start like the others, and reserves the machine id `collector` and the
+sparkDash rule id `stale`.
+
 ## Still owed
 
-None of the three has a Verdict. ZER-63 lists them with their full head SHAs.
+None of the five code pull requests has a Verdict. ZER-63 lists them with their full head SHAs.
