@@ -25,6 +25,26 @@ Pocock's engineering skills fit this order; they do not replace it. Install them
 - Fill in the PR template, including the exact test commands you ran and their results.
 - Squash merge only. Agents never merge.
 
+### Say how risky the change is
+
+Answer these in the PR's Summary, a line each, so a reviewer can see the risk
+without reading the diff:
+
+- **Blast radius:** what the change touches. One package or screen, or something
+  shared, such as a contract, the Event Ledger, a workflow, or anything near
+  credentials, permissions or stored data.
+- **Rollback cost:** a two-way door, which a revert undoes, or a one-way door,
+  such as a contract version, migrated or deleted data, or a sent message. Name
+  any one-way door.
+- **Error detection:** if it breaks in use, where the failure shows up: a failing
+  check, a refusal with a reason code, a receipt, or a log. Say so if nothing
+  would notice.
+- **Proof for a screen:** for a change to an operator screen, screenshots of the
+  journey you changed, from the head SHA.
+
+These answers help the review. They are not a Verdict, and they do not set a
+Work Request's risk tier, which comes from reviewed policy.
+
 ## Land the fix
 
 If you discover a wrong term, rule, date, or Activity Event, land the fix in the authoritative file. Do not leave it only in a chat or a draft.
