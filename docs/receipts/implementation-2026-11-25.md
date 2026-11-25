@@ -25,7 +25,7 @@ the Authority for each Task's state; this page only points.
 
 ## Waiting on Danny
 
-- Verdicts for 37 code and configuration pull requests (ZER-63).
+- Verdicts for 38 code and configuration pull requests (ZER-63).
 - The ruleset decisions (ZER-67, ZER-85) and the public-repository settings
   (ZER-84).
 - The pull requests from before the restart, #30, #42 and #56 (ZER-87).
