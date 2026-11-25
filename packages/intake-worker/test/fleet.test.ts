@@ -106,7 +106,37 @@ function binding(revision = 1, over: Record<string, unknown> = {}) {
     ...over,
   };
 }
+// A binding names only machines in the runner fleet configuration (ZER-113):
+// here a monitored DGX Spark and Mac, and a runner PC.
+const configuredMachines = [
+  { id: "delphi", alias: "Delphi", kind: "spark", os: "linux", architecture: "arm64" },
+  { id: "mac-studio", alias: "Mac Studio", kind: "mac", os: "macos", architecture: "arm64" },
+  {
+    id: "pc-one",
+    alias: "Build PC",
+    kind: "pc",
+    os: "linux",
+    architecture: "x64",
+    runnerId: null,
+    repository: "Zero-State-LLC/example",
+    labels: [],
+    desiredState: "enabled",
+  },
+];
+const configPath = "/v1/admin/runners/config";
+async function configure(e: FleetTestEnv) {
+  const current = await handleCatalogRequest(request(configPath, admin), e, key);
+  if ((await current.json<{ config: { revision: number } }>()).config.revision > 0) return;
+  const body = { version: 2, revision: 1, machines: configuredMachines };
+  const saved = await handleCatalogRequest(
+    request(configPath, admin, "PUT", body, { "If-Match": '"0"' }),
+    e,
+    key,
+  );
+  expect(saved.status).toBe(200);
+}
 async function bind(e: FleetTestEnv, over: Record<string, unknown> = {}, expected = 0) {
+  await configure(e);
   return handleCatalogRequest(
     request(bindingPath, admin, "PUT", binding(expected + 1, over), {
       "If-Match": `"${expected}"`,
@@ -378,4 +408,23 @@ it("binds the Collector with a revision precondition and an audit record", async
   expect(body.history.every((h) => /^[a-f0-9]{64}$/.test(h.operatorDigest))).toBe(true);
   // Neither a workload with the fleet audience nor any non-admin binds it.
   expect((await handleCatalogRequest(request(bindingPath, collector), e, key)).status).toBe(401);
+});
+
+it("binds the Collector only to machines in the runner fleet configuration", async () => {
+  const e = testEnv();
+  // Before any configuration, every machine is unknown.
+  const early = await handleCatalogRequest(
+    request(bindingPath, admin, "PUT", binding(), { "If-Match": '"0"' }),
+    e,
+    key,
+  );
+  expect(early.status).toBe(409);
+  expect(await early.json()).toEqual({ error: "unknown_machine" });
+  const ghost = await bind(e, { machineIds: ["delphi", "ghost"] });
+  expect(ghost.status).toBe(409);
+  expect(await ghost.json()).toEqual({ error: "unknown_machine" });
+  const read = await handleCatalogRequest(request(bindingPath, admin), e, key);
+  expect((await read.json<{ revision: number }>()).revision).toBe(0);
+  // Monitored machines and a runner machine may all be bound.
+  expect((await bind(e)).status).toBe(200);
 });

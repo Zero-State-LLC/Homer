@@ -1,20 +1,50 @@
 import { DurableObject } from "cloudflare:workers";
 export const MAX_RUNNER_BYTES = 64 * 1024;
-export interface RunnerMachine {
+/**
+ * A machine in the runner fleet configuration. A monitored machine has only
+ * these fields; it is watched by fleet monitoring and runs no CI runner.
+ */
+export interface ConfiguredMachine {
   id: string;
   alias: string;
-  kind: "pc" | "mac";
+  kind: "pc" | "mac" | "spark" | "jetson";
   os: "windows" | "linux" | "macos";
   architecture: "x64" | "arm64";
+}
+/** A machine that runs a CI runner, with its runner settings and desired mode. */
+export interface RunnerMachine extends ConfiguredMachine {
   runnerId: number | null;
   repository: string;
   labels: string[];
   desiredState: "enabled" | "maintenance";
 }
+/**
+ * Version 1 holds runner machines of kind `pc` or `mac` only. Version 2 adds
+ * monitored machines and the `spark` and `jetson` kinds (ZER-113). Both are
+ * read and accepted, so stored history and older clients keep working.
+ */
 export interface RunnerConfig {
-  version: 1;
+  version: 1 | 2;
   revision: number;
-  machines: RunnerMachine[];
+  machines: (ConfiguredMachine | RunnerMachine)[];
+}
+function emptyConfig(): RunnerConfig {
+  return { version: 1, revision: 0, machines: [] };
+}
+export function isRunner(machine: ConfiguredMachine): machine is RunnerMachine {
+  return Object.hasOwn(machine, "desiredState");
+}
+const MACHINE_KEYS = ["id", "alias", "kind", "os", "architecture"];
+const RUNNER_KEYS = [...MACHINE_KEYS, "runnerId", "repository", "labels", "desiredState"];
+/** Which operating systems and architectures each kind admits. */
+function kindFits(kind: unknown, os: unknown, architecture: unknown, version: 1 | 2): boolean {
+  if (!["x64", "arm64"].includes(architecture as string)) return false;
+  if (kind === "pc") return os === "windows" || os === "linux";
+  if (kind === "mac") return os === "macos";
+  // A DGX Spark and a Jetson are Linux on arm64; neither exists in version 1.
+  if (kind === "spark" || kind === "jetson")
+    return version === 2 && os === "linux" && architecture === "arm64";
+  return false;
 }
 function object(value: unknown, keys: string[]): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -27,27 +57,25 @@ function object(value: unknown, keys: string[]): Record<string, unknown> {
 export function parseRunnerConfig(value: unknown): RunnerConfig {
   const v = object(value, ["version", "revision", "machines"]);
   if (
-    v.version !== 1 ||
+    (v.version !== 1 && v.version !== 2) ||
     !Number.isSafeInteger(v.revision) ||
     (v.revision as number) < 0 ||
     !Array.isArray(v.machines) ||
     v.machines.length > 50
   )
     throw new Error("invalid_config");
+  const version: 1 | 2 = v.version === 2 ? 2 : 1;
   const ids = new Set<string>();
   const runnerIds = new Set<number>();
-  const machines = v.machines.map((value) => {
-    const m = object(value, [
-      "id",
-      "alias",
-      "kind",
-      "os",
-      "architecture",
-      "runnerId",
-      "repository",
-      "labels",
-      "desiredState",
-    ]);
+  const machines = (v.machines as unknown[]).map((value) => {
+    // A monitored machine has the five machine fields and nothing else.
+    const monitored =
+      version === 2 &&
+      !!value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === MACHINE_KEYS.length;
+    const m = object(value, monitored ? MACHINE_KEYS : RUNNER_KEYS);
     if (
       typeof m.id !== "string" ||
       !/^[a-z0-9][a-z0-9-]{0,63}$/.test(m.id) ||
@@ -59,11 +87,12 @@ export function parseRunnerConfig(value: unknown): RunnerConfig {
       [...m.alias].some(
         (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
       ) ||
-      !(
-        (m.kind === "pc" && (m.os === "windows" || m.os === "linux")) ||
-        (m.kind === "mac" && m.os === "macos")
-      ) ||
-      !["x64", "arm64"].includes(m.architecture as string) ||
+      !kindFits(m.kind, m.os, m.architecture, version)
+    )
+      throw new Error("invalid_config");
+    ids.add(m.id);
+    if (monitored) return m as unknown as ConfiguredMachine;
+    if (
       !(m.runnerId === null || (Number.isSafeInteger(m.runnerId) && (m.runnerId as number) > 0)) ||
       typeof m.repository !== "string" ||
       !/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9_.-]{1,100}$/.test(m.repository) ||
@@ -74,14 +103,13 @@ export function parseRunnerConfig(value: unknown): RunnerConfig {
       !["enabled", "maintenance"].includes(m.desiredState as string)
     )
       throw new Error("invalid_config");
-    ids.add(m.id);
     if (m.runnerId !== null) {
       if (runnerIds.has(m.runnerId as number)) throw new Error("invalid_config");
       runnerIds.add(m.runnerId as number);
     }
     return m as unknown as RunnerMachine;
   });
-  return { version: 1, revision: v.revision as number, machines };
+  return { version, revision: v.revision as number, machines };
 }
 export interface ControllerBinding {
   revision: number;
@@ -280,7 +308,9 @@ export class RunnerFleetObject extends DurableObject<unknown> {
   lifecycle(machineId: string, budgetMs: number | null) {
     const config = this.read().config;
     const machine = config.machines.find((m) => m.id === machineId);
-    if (!machine) return null;
+    if (!machine) return "unknown_machine";
+    // A monitored machine runs no runner, so it has no lifecycle.
+    if (!isRunner(machine)) return "not_a_runner";
     const binding = this.controllerBinding(machineId).binding;
     const rows = this.ctx.storage.sql
       .exec<{ operation: string }>(
@@ -332,7 +362,7 @@ export class RunnerFleetObject extends DurableObject<unknown> {
     if (!/^[a-f0-9]{64}$/.test(operatorDigest)) throw new Error("invalid_config");
     return this.ctx.storage.transactionSync(() => {
       const state = this.lifecycle(machineId, budgetMs);
-      if (!state) return "unknown_machine";
+      if (typeof state === "string") return state;
       if (
         request.configRevision !== state.configRevision ||
         request.bindingRevision !== state.bindingRevision ||
@@ -356,7 +386,7 @@ export class RunnerFleetObject extends DurableObject<unknown> {
         if (config.revision === Number.MAX_SAFE_INTEGER) return "revision_exhausted";
         config.revision += 1;
         config.machines = config.machines.map((m) =>
-          m.id === machineId ? { ...m, desiredState } : m,
+          m.id === machineId && isRunner(m) ? { ...m, desiredState } : m,
         );
         this.ctx.storage.sql.exec(
           "INSERT INTO runner_history VALUES (?,?,?,?,?)",
@@ -438,7 +468,9 @@ export class RunnerFleetObject extends DurableObject<unknown> {
     )
       throw new Error("invalid_config");
     return this.ctx.storage.transactionSync(() => {
-      if (!this.read().config.machines.some((m) => m.id === machineId)) return "unknown_machine";
+      const machine = this.read().config.machines.find((m) => m.id === machineId);
+      if (!machine) return "unknown_machine";
+      if (!isRunner(machine)) return "not_a_runner";
       if (this.controllerBinding(machineId).revision !== expected) return "revision_conflict";
       this.ctx.storage.sql.exec(
         "INSERT INTO controller_bindings VALUES (?,?,?,?,?)",
@@ -456,7 +488,7 @@ export class RunnerFleetObject extends DurableObject<unknown> {
     if (!binding?.enabled || binding.principalDigest !== principal) return null;
     const config = this.read().config;
     const machine = config.machines.find((m) => m.id === machineId);
-    return machine
+    return machine && isRunner(machine)
       ? {
           machineId,
           revision: config.revision,
@@ -545,7 +577,8 @@ export class RunnerFleetObject extends DurableObject<unknown> {
           ? "stale"
           : "fresh";
     const config = this.read().config;
-    const machine = config.machines.find((m) => m.id === machineId);
+    const configured = config.machines.find((m) => m.id === machineId);
+    const machine = configured && isRunner(configured) ? configured : undefined;
     const binding = this.controllerBinding(machineId).binding;
     let operationState = "unknown";
     if (latest && freshness === "fresh") {
@@ -612,6 +645,10 @@ export class RunnerFleetObject extends DurableObject<unknown> {
       throw new Error("invalid_config");
     return this.ctx.storage.transactionSync(() => {
       if (this.fleetCollectorBinding().revision !== expected) return "revision_conflict";
+      // Machines are never deleted from the configuration, so a check here
+      // holds for as long as the binding does.
+      const known = new Set(this.read().config.machines.map((m) => m.id));
+      if (binding.machineIds.some((id) => !known.has(id))) return "unknown_machine";
       this.ctx.storage.sql.exec(
         "INSERT INTO fleet_collector_bindings VALUES (?,?,?,?)",
         binding.revision,
@@ -761,9 +798,7 @@ export class RunnerFleetObject extends DurableObject<unknown> {
       }>("SELECT * FROM runner_history ORDER BY revision DESC LIMIT 1")
       .toArray()[0];
     return {
-      config: row
-        ? parseRunnerConfig(JSON.parse(row.config))
-        : { version: 1 as const, revision: 0, machines: [] },
+      config: row ? parseRunnerConfig(JSON.parse(row.config)) : emptyConfig(),
       observedState: "unknown",
       requestStatus: row ? "pending" : "none",
       audit: row
@@ -791,6 +826,14 @@ export class RunnerFleetObject extends DurableObject<unknown> {
       if (previous.revision !== expected) return "conflict";
       if (previous.machines.some((m) => !config.machines.some((n) => n.id === m.id)))
         return "deletion_forbidden";
+      // A runner keeps its runner settings: its controller binding and
+      // lifecycle would otherwise be left without a desired mode.
+      if (
+        previous.machines.some(
+          (m) => isRunner(m) && !config.machines.some((n) => n.id === m.id && isRunner(n)),
+        )
+      )
+        return "runner_removal_forbidden";
       this.ctx.storage.sql.exec(
         "INSERT INTO runner_history VALUES (?,?,?,?,?)",
         config.revision,

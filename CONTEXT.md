@@ -210,7 +210,7 @@ The Projection that shows each Project's Milestones, Planned versus Actual Dates
 ## Fleet
 
 **Machine**:
-A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down or unknown) and firing alerts, never its address, SSH user, port or key.
+A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down or unknown) and firing alerts, never its address, SSH user, port or key. A runner machine also runs a CI runner and has a desired mode; a monitored machine runs none and is only watched.
 
 **Fleet Collector**:
 The Collector on sparkDash's host that reads sparkDash and the Reachability Checks, and posts a Fleet Report to `homer-intake` every poll. It can change no machine.

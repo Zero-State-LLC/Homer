@@ -67,7 +67,7 @@ export async function handleEnrollmentRequest(
     if (request.method === "GET") {
       if (lifecycle) {
         const result = await store.lifecycle(machineId, budget);
-        return result ? json(result) : json({ error: "unknown_machine" }, 404);
+        return typeof result === "string" ? json({ error: result }, 404) : json(result);
       }
       if (binding) {
         const result = await store.controllerBinding(machineId);
@@ -105,7 +105,10 @@ export async function handleEnrollmentRequest(
         budget,
       );
       return typeof result === "string"
-        ? json({ error: result }, result === "unknown_machine" ? 404 : 409)
+        ? json(
+            { error: result },
+            result === "unknown_machine" || result === "not_a_runner" ? 404 : 409,
+          )
         : json(result);
     }
     if (binding) {
