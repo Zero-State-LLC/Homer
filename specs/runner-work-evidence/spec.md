@@ -18,7 +18,7 @@ GitHub is Authority for Repository Events and job execution facts. Homer is Auth
 3. Preserve the original verified delivery identity, fixed job identity and exact GitHub evidence URL. Ignore arbitrary webhook sender names, job steps, command arguments, environment variables and free-form private content.
 4. Accept `queued`, `in_progress` and `completed` as distinct states, not as interchangeable updates. A completed job requires completed-at evidence; no timestamp is invented.
 5. The webhook may not supply an authoritative `run_attempt`; leave it null until matching read-only run enrichment confirms it. Keep original and triggering provider actors as null until read-only GitHub data supplies their numeric IDs. Never infer they are the code author or operator.
-6. Read-only enrichment must match numeric repository ID, repository full name, workflow run ID, job ID and run attempt, plus original SHA and runner identity where already reported. Any conflicting source evidence is refused and sent to operator reconciliation rather than silently overwritten.
+6. Read-only enrichment must match numeric repository ID, repository full name, workflow run ID, job ID and run attempt, plus original SHA and runner identity where already reported. Any conflicting source evidence is refused and sent to operator reconciliation rather than silently overwritten. A rerun keeps its run ID and SHA, so when neither the webhook nor the job record names the attempt, enrichment is refused as `enrichment_attempt_unproven` rather than attaching the run's current attempt and triggering actor. GitHub's `0` for a runner or runner group not yet assigned is Unknown, in the webhook and in the job record; a negative ID is refused.
 7. Preserve the original source timestamps and raw observation as a separate evidence object. Enrichment can add verified run/actor information but must not overwrite an existing admitted Activity Event, revision or other Source System fact.
 
 ## Workflows
@@ -34,7 +34,7 @@ GitHub is Authority for Repository Events and job execution facts. Homer is Auth
 
 - Repository substitutions, incorrect job URL, unsafe IDs, malformed dates, invalid phase/conclusion, unauthorized context and contradictory job states refuse.
 - Original actor and rerun triggering actor remain distinct; a sender login or matching display name never creates an Identity Binding.
-- Missing run attempt and runner ID remain Unknown; mismatched run attempt and API runner identity refuse.
+- Missing run attempt and runner ID remain Unknown, and so does GitHub's `0` runner ID; mismatched run attempt and API runner identity refuse, and so does enrichment with no attempt evidence.
 - No secrets or raw job-step input are carried into output, no caller-owned webhook is mutated.
 - Pure tests exercise all three transitions, reruns, cross-repository/job mismatch, invalid source claims and late enrichment without timestamp overwrite.
 - Signed webhook tests prove default-disabled admission, HMAC refusal, exact Repository mapping, immutable original receipts across restart, concurrent duplicates, conflicting IDs/bodies, stale queued events, conflicting terminal evidence, and preservation of private step data outside receipts.
