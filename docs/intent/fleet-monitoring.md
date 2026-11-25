@@ -11,7 +11,8 @@ Next stage is `spec.md` (spec-kit specify). Do not skip to code.
 One committed intent per change stream. Live under `docs/intent/`.
 
 Danny accepted this intent on 2026-11-24 (#69), with the proposed defaults
-below and Cloudflare Access as the front door. It is not built. The next stage
+below, Cloudflare Access as the default front door, and Tailscale Serve as an
+allowed one. It is not built. The next stage
 is the spec in `specs/fleet-monitoring/`. Nothing here authorizes code, a
 contract change, a deploy, a new Cloudflare Access application, or a change on
 any machine before that spec is accepted.
@@ -104,9 +105,10 @@ Product-true locks (do not reopen in implement):
   own, from its host, to read metrics. A reachability check runs no command on
   the machine it checks. Homer's Cloudflare side never opens SSH at all.
 - **No public port.** sparkDash stays bound to loopback. Remote access goes
-  through a front door that authenticates every path, `/ws` included. TLS
-  alone is not enough. sparkDash's own remote-access document asks for the
-  same.
+  through a front door that authenticates every path, `/ws` included:
+  Cloudflare Access, or Tailscale Serve inside the tailnet. TLS alone is not
+  enough, and Tailscale Funnel, which is public, is never used. sparkDash's own
+  remote-access document asks for the same.
 - **Outbound only.** Runners are local and everything else is on Cloudflare
   (Danny, 2026-11-23). The Collector pushes to Homer; Homer never dials into the
   fleet's network.
@@ -170,7 +172,7 @@ Danny accepted these defaults on 2026-11-24 and chose the front door himself.
 | Which host runs sparkDash, and does it run anywhere already? | Delphi, with sparkDash's published Docker image. Delphi is read locally, and every other machine over SSH with a key |
 | Which machines count as "reachable over SSH", and where is that list kept? | Every machine the team can log in to over SSH today. The list is kept on the sparkDash host, in sparkDash's configuration for the kinds it reads and in the Collector's configuration for the rest, never in the repository |
 | How is a machine sparkDash cannot read checked? | A TCP connection to its SSH port that reads the SSH server's banner, with no login and no command. It shows the machine is up and listening, not that a login works |
-| Which front door reaches the sparkDash page from outside: Cloudflare Tunnel with Access, or Tailscale Serve (sparkDash's documented path)? | Cloudflare Tunnel with Access (Danny's choice) |
+| Which front door reaches the sparkDash page from outside: Cloudflare Tunnel with Access, or Tailscale Serve (sparkDash's documented path)? | Cloudflare Tunnel with Access by default (Danny's choice). Tailscale Serve is also allowed (Danny, 2026-11-24): tailnet only, never Tailscale Funnel. Homer's own status view stays behind Access |
 | Where does the Collector run? | On the sparkDash host, reading loopback, so sparkDash needs no token and no extra exposure |
 | Which sparkDash alerts go to Buzz? | Its critical and warning alerts (machine offline, thermal or hardware throttle, storage at 90 %, LLM unavailable, Xid or out-of-memory), their clears, and a reachability check that fails twice in a row |
 | What freshness budget makes a machine stale? | Two minutes without a successful read |
