@@ -1,5 +1,3 @@
-import { lstat, readFile } from "node:fs/promises";
-import { join } from "node:path";
 import {
   readGitHubIssue,
   readLinearIssue,
@@ -8,13 +6,15 @@ import {
   type WorkRequestResult,
   type WorkRequestSource,
 } from "@zs-home/shared-contracts";
+import { DEFAULT_REVIEWED_REF, readReviewedFile } from "./reviewed.js";
 import type { Runner } from "./run.js";
 
 /**
  * Read one source object from where it lives, then hand the raw response to
  * the builder's reader. Linear is read with a read-only API key, GitHub with
  * the machine's own `gh` authentication, and a manual request from the
- * checkout. A failure to reach a source says which source, never a credential.
+ * reviewed ref of the checkout (see `reviewed.ts`), never its working tree.
+ * A failure to reach a source says which source, never a credential.
  */
 
 export class SourceUnreachableError extends Error {
@@ -48,6 +48,8 @@ export interface SourceReaders {
   linearApiKey: () => Promise<string>;
   /** The checkout whose `docs/work-requests/` holds manual requests. */
   repositoryRoot: string;
+  /** The reviewed ref manual requests are read from. Default `origin/main`. */
+  reviewedRef?: string;
 }
 
 /** Read the source a `source` string names. An unknown form is refused. */
@@ -69,8 +71,16 @@ export async function readSource(
   const manual = MANUAL_SOURCE.exec(source);
   if (manual !== null) {
     const slug = manual[1] ?? "";
-    const raw = await readManualFile(readers.repositoryRoot, slug);
-    return raw === undefined ? notFound() : readManualRequest(slug, raw);
+    const ref = readers.reviewedRef ?? DEFAULT_REVIEWED_REF;
+    const raw = await readManualFile(readers.run, readers.repositoryRoot, ref, slug);
+    return raw === undefined
+      ? {
+          ok: false,
+          code: "source_not_found",
+          field: "source",
+          detail: `docs/work-requests/${slug}.json is not on ${ref}.`,
+        }
+      : readManualRequest(slug, raw);
   }
   return {
     ok: false,
@@ -133,23 +143,19 @@ async function fetchGitHubIssue(
   }
 }
 
-async function readManualFile(root: string, slug: string): Promise<unknown> {
-  const path = join(root, "docs", "work-requests", `${slug}.json`);
+async function readManualFile(
+  run: Runner,
+  repositoryRoot: string,
+  ref: string,
+  slug: string,
+): Promise<unknown> {
+  const path = `docs/work-requests/${slug}.json`;
+  const text = await readReviewedFile(run, repositoryRoot, ref, path);
+  if (text === undefined) return undefined;
   try {
-    if (!(await lstat(path)).isFile()) return undefined;
-    return JSON.parse(await readFile(path, "utf8")) as unknown;
-  } catch (error) {
-    if (
-      typeof error === "object" &&
-      error !== null &&
-      (error as { code?: unknown }).code === "ENOENT"
-    ) {
-      return undefined;
-    }
-    throw new SourceUnreachableError(
-      "manual request",
-      `docs/work-requests/${slug}.json is not readable JSON.`,
-    );
+    return JSON.parse(text) as unknown;
+  } catch {
+    throw new SourceUnreachableError("manual request", `${path} on ${ref} is not JSON.`);
   }
 }
 

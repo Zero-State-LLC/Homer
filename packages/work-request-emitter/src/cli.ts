@@ -1,19 +1,30 @@
-import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { askJevForRiskTier, readWorkRequestPolicy, type JevFetch } from "@zs-home/shared-contracts";
 import { emitWorkRequest } from "./emit.js";
 import { nodeRunner, type Runner } from "./run.js";
+import {
+  checkReviewedRef,
+  DEFAULT_REVIEWED_REF,
+  readReviewedFile,
+  ReviewedRefUnreadableError,
+} from "./reviewed.js";
 import { readSecret, SecretUnavailableError } from "./secrets.js";
 import { readSource, SourceUnreachableError } from "./sources.js";
 import { RequestStore, StoreUnavailableError } from "./store.js";
 
 /**
- * `npm run work-request -- <source> [--requester agent:<name>] [--store <dir>]
- * [--repo <dir>] [--policy <file>]`
+ * `npm --silent run work-request -- <source> [--requester agent:<name>]
+ * [--store <dir>] [--repo <dir>] [--ref <branch>]`
  *
  * Prints the Work Request JSON on standard output, and what happened on
- * standard error. Exit 0: emitted, or a Duplicate that printed the recorded
+ * standard error. Use `--silent`: without it npm prints its own banner on
+ * standard output, and `> request.json` would not hold JSON. Or run
+ * `node packages/work-request-emitter/dist/cli.js <source>` after a build.
+ *
+ * The policy file and manual requests are read from `--ref` (default
+ * `origin/main`) of the `--repo` checkout, never from its working tree: fetch
+ * first. Exit 0: emitted, or a Duplicate that printed the recorded
  * request. Exit 1: refused with a reason code. Exit 2: usage or configuration,
  * such as a missing store or credential.
  *
@@ -37,9 +48,9 @@ export interface CliOutput {
 }
 
 const USAGE =
-  "usage: npm run work-request -- <linear:ZER-<n> | github:<owner>/<repo>#<n> | manual:<slug>> [--requester agent:<name>] [--store <dir>] [--repo <dir>] [--policy <file>]\n";
+  "usage: npm --silent run work-request -- <linear:ZER-<n> | github:<owner>/<repo>#<n> | manual:<slug>> [--requester agent:<name>] [--store <dir>] [--repo <dir>] [--ref <branch>]\n";
 const REQUESTER = /^agent:[A-Za-z0-9._-]+$/;
-const FLAGS = new Set(["--requester", "--store", "--repo", "--policy"]);
+const FLAGS = new Set(["--requester", "--store", "--repo", "--ref"]);
 
 export async function runCli(
   argv: readonly string[],
@@ -70,14 +81,22 @@ export async function runCli(
     return 2;
   }
 
+  const reviewedRef = parsed.flags["--ref"] ?? DEFAULT_REVIEWED_REF;
+
   try {
-    // The store is checked before anything is read or derived.
+    // The ref and the store are checked before anything is read or derived.
+    checkReviewedRef(reviewedRef);
     const store = await RequestStore.open(resolve(host.cwd, storeDirectory));
-    const policyPath = resolve(
-      host.cwd,
-      parsed.flags["--policy"] ?? join(repositoryRoot, "docs", "work-requests", "policy.json"),
+    const policy = readWorkRequestPolicy(
+      parseJson(
+        await readReviewedFile(
+          host.run,
+          repositoryRoot,
+          reviewedRef,
+          "docs/work-requests/policy.json",
+        ),
+      ),
     );
-    const policy = readWorkRequestPolicy(await readPolicy(policyPath));
     if (!policy.ok) {
       out.stderr(`refused: ${policy.code} at ${policy.field}: ${policy.detail}\n`);
       return 1;
@@ -89,6 +108,7 @@ export async function runCli(
           run: host.run,
           linearApiKey: () => readSecret("HOMER_LINEAR_API_KEY", host.env, host.run),
           repositoryRoot,
+          reviewedRef,
         }),
       askJev: async (state, model) =>
         askJevForRiskTier({
@@ -121,6 +141,7 @@ export async function runCli(
     if (
       error instanceof StoreUnavailableError ||
       error instanceof SourceUnreachableError ||
+      error instanceof ReviewedRefUnreadableError ||
       error instanceof SecretUnavailableError
     ) {
       // These messages are built to name the failing part and never a credential.
@@ -154,9 +175,11 @@ function parseArguments(
   return positional.length === 1 && source !== undefined ? { source, flags } : undefined;
 }
 
-async function readPolicy(path: string): Promise<unknown> {
+/** Missing or broken JSON is `undefined`, which the policy reader refuses. */
+function parseJson(text: string | undefined): unknown {
+  if (text === undefined) return undefined;
   try {
-    return JSON.parse(await readFile(path, "utf8")) as unknown;
+    return JSON.parse(text) as unknown;
   } catch {
     return undefined;
   }
