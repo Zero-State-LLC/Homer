@@ -218,6 +218,15 @@ it("raises held occurrences the intake kept after the report that carried them w
   ).toEqual(expected);
 });
 
+it("raises a held occurrence from the snapshot only within a day of the report", () => {
+  const since = iso(T0 - 5 * 60_000);
+  const old = snapshot({ diagnostics: [{ code: "sparkdash_restarted", since }] });
+  const day = 24 * 60 * 60_000;
+  expect(alerts(old, T0 + day - 2_000)).toHaveLength(2);
+  // A Collector silent for a day: only its stale Alert, never the old occurrence again.
+  expect(alerts(old, T0 + 1_000 + day).map((a) => a.key)).toEqual(["fleet:collector:stale"]);
+});
+
 it("raises one Alert per held diagnostic occurrence, keyed by its since", () => {
   const since = iso(T0 - 5 * 60_000);
   expect(

@@ -472,7 +472,8 @@ under the `fleet:` prefix:
   acknowledged post, so the intake keeps each occurrence apart from the
   snapshot, for a week, and offers those received in the last day to the
   rules. Each is one one-shot Alert, whether or not the latest report still
-  carries it.
+  carries it. A snapshot's own held diagnostics count only within a day of
+  its receipt, so a Collector silent for a week cannot repeat an old one.
 - A machine's stale Alert is judged against the report's own `collectedAt`.
   While the whole fleet is stale, only `fleet:collector:stale` is added: each
   machine's Alerts stay as the last report left them, neither cleared nor made

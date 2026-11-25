@@ -290,6 +290,7 @@ export type {
 export {
   EVENTS_BACKLOG_ALERT_MS,
   FLEET_ALERT_SCOPE,
+  HELD_OCCURRENCE_WINDOW_MS,
   projectFleetAlerts,
   type FleetAlertOptions,
   type FleetAlertPlan,

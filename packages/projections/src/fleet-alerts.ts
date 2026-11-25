@@ -13,6 +13,11 @@ import {
 
 /** The Alert Key prefix the fleet owns. */
 export const FLEET_ALERT_SCOPE = "fleet:";
+/**
+ * A held diagnostic occurrence is raised only within a day of the report that carried it,
+ * as the intake offers them, so a Collector silent for a week cannot repeat an old one.
+ */
+export const HELD_OCCURRENCE_WINDOW_MS = 24 * 60 * 60_000;
 /** `events_backlog` is raised only once it has lasted this long. */
 export const EVENTS_BACKLOG_ALERT_MS = 10 * 60_000;
 /** sparkDash's model-concurrency notice is not an Alert. */
@@ -117,7 +122,14 @@ export function projectFleetAlerts(
       params: { state: snapshot.sparkdash.state },
     });
   const occurrences = new Map<string, FleetHeldOccurrence>();
-  for (const diagnostic of [...snapshot.diagnostics, ...(options.held ?? [])]) {
+  const recent = options.now - Date.parse(snapshot.receivedAt) < HELD_OCCURRENCE_WINDOW_MS;
+  const diagnostics = [
+    ...snapshot.diagnostics.filter(
+      (d) => recent || (d.code !== "collector_gap" && d.code !== "sparkdash_restarted"),
+    ),
+    ...(options.held ?? []),
+  ];
+  for (const diagnostic of diagnostics) {
     const code = diagnostic.code;
     if (code === "version_changed")
       alerts.push({
