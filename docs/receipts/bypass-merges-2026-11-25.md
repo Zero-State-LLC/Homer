@@ -48,19 +48,22 @@ on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
 Alerts and Buzz collection.
 
 Later the same day, after Danny's "Continue" at 13:01 Pacific time, three more
-pull requests followed: two docs-only, one config.
+pull requests followed: two docs-only, and #107, which changes configuration
+and CI and so owes a Verdict like the code pull requests.
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
 | [#105](https://github.com/Zero-State-LLC/Homer/pull/105) | Docs-only: the docs-only CI receipt (ZER-66) | `82c30be` | `82f300a` |
 | [#106](https://github.com/Zero-State-LLC/Homer/pull/106) | Docs-only: docs hygiene after the 2026-11-24 audit (ZER-89, part 1), with ADR 007 accepted as Danny ruled in chat | `d1f96bb` | `b891b71` |
-| [#107](https://github.com/Zero-State-LLC/Homer/pull/107) | Config: `engines` in every package, `.nvmrc`, and a 10 s first retry wait for the `links` check (ZER-89, part 2) | `ef7841f` | `2380f60` |
+| [#107](https://github.com/Zero-State-LLC/Homer/pull/107) | Config: `engines` in every package, `.nvmrc`, and `--retry-wait-time 10` on the `links` check (ZER-89, part 2) | `ef7841f` | `2380f60` |
 
 Codex reviewed #106 at `09e7706`. The merge tool then brought the branch up to
 date with `main`, which added only #105's two files, so `main` after #106 equals
 `09e7706` plus #105. CI passed on `d1f96bb` and on `main`. Pull request #107
-adds a wait between the `links` check's retries; it accepts and excludes nothing
-new.
+passes `--retry-wait-time 10` to the `links` check and accepts and excludes
+nothing new. It did not do what its description said: a `502` from github.com
+failed the check on #109 within 15 s, too soon for even three 10 s waits, and
+passed on re-run. ZER-89 stays open on that item.
 
 Pull requests #99 and #100 build the Alert engine and the fleet's Alert rules
 as pure code. Nothing posts yet: that is ZER-115, blocked by the signing
@@ -71,4 +74,5 @@ sparkDash rule id `stale`.
 
 ## Still owed
 
-None of the five code pull requests has a Verdict. ZER-63 lists them with their full head SHAs.
+None of the five code pull requests, nor #107, has a Verdict. ZER-63 lists
+them with their full head SHAs.
