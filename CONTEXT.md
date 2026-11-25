@@ -207,6 +207,17 @@ The IANA zone a viewer reads the Activity Calendar in. Storage is UTC; bucketing
 **Project Timeline**:
 The Projection that shows each Project's Milestones, Planned versus Actual Dates, dependencies, owners, Blockers, Release Gates and Source Freshness over time.
 
+## Fleet
+
+**Machine**:
+A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down or unknown) and firing alerts, never its address, SSH user, port or key.
+
+**Fleet Collector**:
+The Collector on sparkDash's host that reads sparkDash and the Reachability Checks, and posts a Fleet Report to `homer-intake` every poll. It can change no machine.
+
+**Fleet Report**:
+The Fleet Collector's report for one poll (`home.fleet-report/v1`): every configured Machine, sparkDash's state, the Collector's own diagnostics, and the oldest machine alert events waiting to be delivered.
+
 ## Access
 
 **Scope**:
