@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Agent instructions for Buzz, `docs/agents/buzz.md` (ZER-49, Buzz packet 7), linked from `AGENTS.md`: how an agent asks a teammate in a Task's thread, flags missing or wrong knowledge, and runs through `buzz-acp` with its own key. It says which steps are not yet confirmed against the hosted relay.
+
 - The fleet's Alerts (ZER-82, fleet monitoring packet 6): `projectFleetAlerts` in `@zs-home/projections` turns the latest Fleet Report, the runner fleet configuration and the time into the Alerts to post: each firing sparkDash alert but `concurrency`, a machine whose last read is over 2 minutes old, a Collector silent for 2 minutes, sparkDash not read, the present diagnostics (`events_backlog` after 10 minutes), and one Alert per held diagnostic occurrence. While the fleet is stale, machine Alerts are held as the last report left them. The machine id `collector` is now reserved in the runner fleet configuration.
 
 - The Alert engine for Buzz (ZER-55, Buzz packet 6), in `@zs-home/buzz-collector`. A monitor passes the Alerts it raises now under its own key prefix; Homer queues a message only when an Alert's message changes, clears one the monitor no longer raises, and posts a one-shot Alert once. Messages come from fixed templates whose parameters are checked ids, names, times, rule ids, versions, counts or fixed codes; anything else is refused. At most 30 messages an hour, the last free slot carrying one summary of how many are held; failed posts back off from 30 s to 600 s and are never dropped. `HOMER_ALERT_TEMPLATES` holds the fleet templates and the summary. Signing and posting are not built yet.

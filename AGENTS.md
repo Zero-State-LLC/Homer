@@ -76,6 +76,7 @@ Pull `--ff-only` before trusting a local copy. Homer pins the files it consumes 
 Name only skills that already exist. Do not invent skills or bots.
 Defaults: `anti-slop-code`, `production-systems`, `google-developer-style`, plus `zero-state-context` from agent-context.
 Pocock's engineering skills (`mattpocock-skills`) are installed per machine as a plugin; never copy them into Homer.
+To ask a teammate or flag knowledge in Buzz, follow `docs/agents/buzz.md`.
 
 ## Agent skills
 
