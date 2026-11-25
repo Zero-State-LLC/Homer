@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BUILD_VERSION } from "@zs-home/shared-contracts/workers";
 import { mapMergedPullRequest } from "../src/index.js";
 import { comparisonDigest } from "../../event-ledger/src/canonical.js";
 
@@ -36,6 +37,27 @@ describe("GitHub merged PR mapping", () => {
     expect(result.event.eventKey).toBe(`github:pull_request.merged:123/456/${"a".repeat(40)}`);
     expect(result.event.projectId).toBe("project:example");
     expect(JSON.stringify(result.event)).not.toMatch(/SECRET|author|forged/);
+  });
+  it("records the Build Version it was built from as the Collector version", () => {
+    const result = mapMergedPullRequest(fixture(), context);
+    if (result.outcome !== "mapped") throw new Error("mapping refused");
+    expect(result.event.provenance.collector).toBe("homer-github-merged-pr");
+    expect(result.event.provenance.collectorVersion).toBe(BUILD_VERSION);
+    expect(BUILD_VERSION).toMatch(
+      /^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?\+([0-9a-f]{7}(\.dirty)?|unknown)$/,
+    );
+  });
+  it("is a Duplicate, not a Conflict, when collected again after a version change", () => {
+    // The same pull request, collected by this build and by a later release.
+    const a = mapMergedPullRequest(fixture(), context);
+    const b = mapMergedPullRequest(fixture(), { ...context, collectedAt: "2026-12-01T00:00:00Z" });
+    if (a.outcome !== "mapped" || b.outcome !== "mapped") throw new Error("mapping refused");
+    const later = {
+      ...b.event,
+      provenance: { ...b.event.provenance, collectorVersion: "0.2.0+bbbbbbb" },
+    };
+    expect(later.provenance.collectorVersion).not.toBe(a.event.provenance.collectorVersion);
+    expect(comparisonDigest(later)).toBe(comparisonDigest(a.event));
   });
   it("keeps the ledger comparison digest stable across collection retries and title edits", () => {
     const a = mapMergedPullRequest(fixture(), context);

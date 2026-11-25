@@ -27,3 +27,6 @@ export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
   errors.push(...activityEventSemanticErrors(input));
   return errors.length ? { ok: false, errors } : { ok: true, value: input as ActivityEvent };
 }
+
+/** The product version, commit and Build Version this code was built from (versioning spec). */
+export { BUILD_COMMIT, BUILD_VERSION, PRODUCT_VERSION } from "./generated/build-info.js";

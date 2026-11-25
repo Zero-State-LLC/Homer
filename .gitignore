@@ -8,3 +8,5 @@ coverage/
 *.log
 .DS_Store
 .wrangler/
+# Written by scripts/build-info.mjs on every build.
+packages/shared-contracts/src/generated/

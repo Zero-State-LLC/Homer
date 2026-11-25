@@ -3,6 +3,10 @@
 // package.json holds it; every workspace package, every dependency on a
 // workspace package, and package-lock.json must name the same one.
 //
+// It also refuses a hand-typed Collector version in any package's src: every
+// Collector writes BUILD_VERSION from @zs-home/shared-contracts, which the
+// build makes from this version and the commit (scripts/build-info.mjs).
+//
 // This file reads files only and imports nothing outside Node, so CI runs it
 // before Node setup and for docs-only pull requests too. scripts/version.mjs is
 // the only way to change the version; it imports the helpers below.
@@ -199,6 +203,49 @@ export function checkWorkspace({ root, packages, lock }) {
   return errors;
 }
 
+// `collectorVersion: "1.0.0"`, `COLLECTOR_VERSION = '1.0.0'`, or a type that
+// pins one, as in `collectorVersion: "0.1.0";`. A type such as
+// `collectorVersion: string` or a value such as BUILD_VERSION is fine.
+const VERSION_LITERAL = /\bcollector_?version\b\??\s*[:=]\s*["'`]/i;
+const SOURCE_FILE = /\.(?:[cm]?[jt]s|tsx|jsx)$/;
+
+function sourceFiles(rootDir, dir) {
+  let entries;
+  try {
+    entries = readdirSync(join(rootDir, dir), { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const files = [];
+  for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    const path = `${dir}/${entry.name}`;
+    if (entry.isDirectory() && entry.name !== "node_modules") {
+      files.push(...sourceFiles(rootDir, path));
+    } else if (entry.isFile() && SOURCE_FILE.test(entry.name)) {
+      files.push(path);
+    }
+  }
+  return files;
+}
+
+/** Every hand-typed Collector version in a workspace package's src, as "file:line: message". */
+export function checkSources(rootDir, { packages }) {
+  const errors = [];
+  for (const pkg of packages) {
+    for (const path of sourceFiles(rootDir, `${pkg.dir}/src`)) {
+      const lines = readFileSync(join(rootDir, path), "utf8").split(/\r?\n/);
+      lines.forEach((line, i) => {
+        if (VERSION_LITERAL.test(line)) {
+          errors.push(
+            `${path}:${i + 1}: a hand-typed Collector version; use BUILD_VERSION from @zs-home/shared-contracts`,
+          );
+        }
+      });
+    }
+  }
+  return errors;
+}
+
 export function repositoryRoot() {
   return fileURLToPath(new URL("..", import.meta.url));
 }
@@ -217,14 +264,14 @@ if (isMain()) {
   let workspace;
   try {
     workspace = loadWorkspace(repositoryRoot());
-    errors = checkWorkspace(workspace);
+    errors = [...checkWorkspace(workspace), ...checkSources(repositoryRoot(), workspace)];
   } catch (error) {
     errors = [error.message];
   }
   if (errors.length > 0) {
-    console.error("The product version disagrees:");
+    console.error("Version check failed:");
     for (const error of errors) console.error(`  ${error}`);
-    console.error("Change it only with: node scripts/version.mjs <version>");
+    console.error("Change the product version only with: node scripts/version.mjs <version>.");
     process.exit(1);
   }
   console.log(

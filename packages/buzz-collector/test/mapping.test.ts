@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { BUILD_VERSION } from "@zs-home/shared-contracts/workers";
 import {
   MAX_CONTENT_CHARS,
   MAX_TAG_ITEM_CHARS,
@@ -88,7 +89,7 @@ describe("mapping a Buzz event", () => {
         sourceObjectId: event.id,
         sourceUrl: `buzz://message?channel=${channel}&id=${event.id}`,
         collector: "homer-buzz",
-        collectorVersion: "1.0.0",
+        collectorVersion: BUILD_VERSION,
         collectedAt: "2026-11-23T15:05:00Z",
       },
     });

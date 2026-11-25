@@ -1,4 +1,8 @@
-import { validateActivityEvent, type ActivityEvent } from "@zs-home/shared-contracts/workers";
+import {
+  BUILD_VERSION,
+  validateActivityEvent,
+  type ActivityEvent,
+} from "@zs-home/shared-contracts/workers";
 
 export interface GitHubCollectionContext {
   repositoryId: number;
@@ -76,7 +80,7 @@ export function mapMergedPullRequest(
       sourceObjectId: String(pr.id),
       sourceUrl: url,
       collector: "homer-github-merged-pr",
-      collectorVersion: "1.0.0",
+      collectorVersion: BUILD_VERSION,
       collectedAt: context.collectedAt,
     },
     evidence: [{ label: "Merged pull request", url }],

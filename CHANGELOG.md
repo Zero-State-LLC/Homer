@@ -81,6 +81,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Changed
 
+- Every Collector writes the Build Version as Provenance's `collectorVersion` (ZER-92): the product version plus the commit, as in `0.1.0+a1b2c3d`, marked `.dirty` for a changed working tree and `+unknown` without git. The build writes it to `@zs-home/shared-contracts` (`BUILD_VERSION`, `BUILD_COMMIT`, `PRODUCT_VERSION`) from `scripts/build-info.mjs`. The hand-typed `1.0.0` and `0.1.0` are gone, and `scripts/check-versions.mjs` refuses a new one in any package's `src`. A source event collected again after a release stays a Duplicate in the Event Ledger. `@zs-home/buzz-collector` no longer exports `COLLECTOR_VERSION`.
+
 - A docs-only pull request, as `AGENTS.md` defines it, skips the workspace steps of the CI `check` job; every other change, and any change CI cannot classify, runs them all (ADR 009, `scripts/ci-changes.sh` and its test).
 
 - CI and `npm run check` build the workspace once instead of four and three times, and check formatting first (ADR 008).
