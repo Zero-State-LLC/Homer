@@ -16,6 +16,8 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
+  checkChangelog,
+  checkContractsTable,
   checkSources,
   checkWorkspace,
   compareVersions,
@@ -24,6 +26,7 @@ import {
   workspaceDirectories,
 } from "./check-versions.mjs";
 import { VersionRefused, planVersion, writePlan } from "./version.mjs";
+import { releaseNotes } from "./release-notes.mjs";
 
 const repo = repositoryRoot();
 
@@ -60,7 +63,13 @@ function copyRepository(dir) {
       // not a workspace package
     }
   }
-  for (const file of [...files, "scripts/check-versions.mjs", "scripts/version.mjs"]) {
+  for (const file of [
+    ...files,
+    "CHANGELOG.md",
+    "scripts/check-versions.mjs",
+    "scripts/version.mjs",
+    "scripts/release-notes.mjs",
+  ]) {
     mkdirSync(dirname(join(dir, file)), { recursive: true });
     cpSync(join(repo, file), join(dir, file));
   }
@@ -381,6 +390,184 @@ test("the repository's sources type no Collector version by hand", () => {
   assert.deepEqual(checkSources(repo, loadWorkspace(repo)), []);
 });
 
+const CHANGELOG_OK = [
+  "# Changelog",
+  "",
+  "Intro.",
+  "",
+  "## Unreleased",
+  "",
+  "### Added",
+  "",
+  "- Something new.",
+  "",
+  "## [0.2.0] - 2026-12-01",
+  "",
+  "### Added",
+  "",
+  "- Notes for 0.2.0.",
+  "",
+  "```md",
+  "## Not a heading inside a fence",
+  "```",
+  "",
+  "### Fixed",
+  "",
+  "- A fix.",
+  "",
+  "## [0.1.0] - 2026-11-24",
+  "",
+  "### Security",
+  "",
+  "- Notes for 0.1.0.",
+  "",
+  "[0.2.0]: https://github.com/Zero-State-LLC/Homer/compare/v0.1.0...v0.2.0",
+  "[0.1.0]: https://github.com/Zero-State-LLC/Homer/releases/tag/v0.1.0",
+  "",
+].join("\n");
+
+test("the repository's CHANGELOG and contracts table pass", () => {
+  const { root } = loadWorkspace(repo);
+  assert.deepEqual(
+    checkChangelog(readFileSync(join(repo, "CHANGELOG.md"), "utf8"), root.json.version),
+    [],
+  );
+  assert.deepEqual(checkContractsTable(repo), []);
+});
+
+test("a well-formed CHANGELOG passes at each of its versions and at a release candidate", () => {
+  for (const version of ["0.0.0", "0.1.0", "0.2.0", "0.3.0-rc.1"]) {
+    assert.deepEqual(checkChangelog(CHANGELOG_OK, version), [], version);
+  }
+});
+
+test("check-versions names each CHANGELOG problem by line", async (t) => {
+  const cases = [
+    [
+      "a release with no section",
+      CHANGELOG_OK,
+      "0.3.0",
+      'CHANGELOG.md:1: the product version is 0.3.0, but there is no "## [0.3.0] - YYYY-MM-DD" section',
+    ],
+    [
+      "an entry directly under Unreleased",
+      CHANGELOG_OK.replace("## Unreleased\n", "## Unreleased\n\n- Loose.\n"),
+      "0.0.0",
+      'CHANGELOG.md:7: an entry outside a subsection of "## Unreleased"',
+    ],
+    [
+      "a subsection Keep a Changelog does not have",
+      CHANGELOG_OK.replace("### Fixed", "### Fixes"),
+      "0.0.0",
+      'CHANGELOG.md:21: "### Fixes" is not one of "### Added", "### Changed", "### Deprecated", "### Removed", "### Fixed", "### Security"',
+    ],
+    [
+      "a subsection twice in one section",
+      CHANGELOG_OK.replace("### Fixed", "### Added"),
+      "0.0.0",
+      'CHANGELOG.md:21: a second "### Added" in "## [0.2.0] - 2026-12-01"',
+    ],
+    [
+      "releases out of order",
+      CHANGELOG_OK.replace("## [0.2.0] - 2026-12-01", "## [0.0.9] - 2026-12-01"),
+      "0.0.0",
+      "CHANGELOG.md:25: 0.1.0 must come after 0.0.9: newest release first",
+    ],
+    [
+      "a release listed twice",
+      CHANGELOG_OK.replace("## [0.2.0] - 2026-12-01", "## [0.1.0] - 2026-12-01"),
+      "0.0.0",
+      "CHANGELOG.md:25: 0.1.0 already has a section at line 11",
+    ],
+    [
+      "a date that does not exist",
+      CHANGELOG_OK.replace("2026-12-01", "2026-02-30"),
+      "0.0.0",
+      'CHANGELOG.md:11: "2026-02-30" is not a date',
+    ],
+    [
+      "a heading in another form",
+      CHANGELOG_OK.replace("## [0.1.0] - 2026-11-24", "## 0.1.0 (2026-11-24)"),
+      "0.0.0",
+      'CHANGELOG.md:25: "## 0.1.0 (2026-11-24)" is neither "## Unreleased" nor "## [X.Y.Z] - YYYY-MM-DD"',
+    ],
+    [
+      "Unreleased not first",
+      CHANGELOG_OK.replace("## Unreleased\n\n### Added\n\n- Something new.\n\n", ""),
+      "0.0.0",
+      'CHANGELOG.md:5: the first "## " section must be "## Unreleased"',
+    ],
+    [
+      "a version with a v",
+      CHANGELOG_OK.replace("## [0.1.0]", "## [v0.1.0]"),
+      "0.0.0",
+      'CHANGELOG.md:25: "v0.1.0" is not a product version',
+    ],
+    [
+      "a heading below ###",
+      CHANGELOG_OK.replace("- A fix.", "#### Detail"),
+      "0.0.0",
+      "CHANGELOG.md:23: headings below ### are not used",
+    ],
+  ];
+  for (const [name, text, version, error] of cases) {
+    await t.test(name, () => {
+      const errors = checkChangelog(text, version);
+      assert.ok(errors.includes(error), `${error}\n  got: ${errors.join("\n  ")}`);
+    });
+  }
+});
+
+test("release-notes prints exactly one section's body", () => {
+  assert.equal(releaseNotes(CHANGELOG_OK, "v0.1.0"), "### Security\n\n- Notes for 0.1.0.\n");
+  assert.equal(releaseNotes(CHANGELOG_OK, "0.1.0"), "### Security\n\n- Notes for 0.1.0.\n");
+  assert.equal(
+    releaseNotes(CHANGELOG_OK, "v0.2.0"),
+    "### Added\n\n- Notes for 0.2.0.\n\n```md\n## Not a heading inside a fence\n```\n\n### Fixed\n\n- A fix.\n",
+  );
+  assert.equal(releaseNotes(CHANGELOG_OK, "Unreleased"), "### Added\n\n- Something new.\n");
+  assert.throws(() => releaseNotes(CHANGELOG_OK, "v0.3.0"), /no section for 0\.3\.0/);
+  assert.throws(() => releaseNotes(CHANGELOG_OK, "banana"), /not a release tag/);
+  assert.throws(
+    () =>
+      releaseNotes(
+        CHANGELOG_OK.replace("- Notes for 0.1.0.\n", "").replace("### Security\n", ""),
+        "v0.1.0",
+      ),
+    /is empty/,
+  );
+});
+
+test("the contracts table must list every schema file", (t) => {
+  const dir = temporary(t);
+  const table = (rows) =>
+    [
+      "# Contracts",
+      "",
+      "| Contract id | Schema file | First shipped |",
+      "| --- | --- | --- |",
+      ...rows,
+      "",
+    ].join("\n");
+  mkdirSync(join(dir, "specs/integration-contracts"), { recursive: true });
+  writeFileSync(join(dir, "specs/integration-contracts/a.v1.schema.json"), "{}");
+  writeFileSync(join(dir, "specs/integration-contracts/b.v1.schema.json"), "{}");
+  const readme = join(dir, "specs/integration-contracts/README.md");
+  writeFileSync(
+    readme,
+    table([
+      "| `home.a/v1` | `a.v1.schema.json` | v0.1.0 |",
+      "| `home.b/v1` | `b.v1.schema.json` | Unreleased |",
+    ]),
+  );
+  assert.deepEqual(checkContractsTable(dir), []);
+  writeFileSync(readme, table(["| `home.a/v1` | `a.v1.schema.json` | 0.1.0 |"]));
+  assert.deepEqual(checkContractsTable(dir), [
+    'specs/integration-contracts/README.md: `a.v1.schema.json` first shipped in "0.1.0"; use vX.Y.Z or Unreleased',
+    "specs/integration-contracts/README.md: the contracts table has no row for `b.v1.schema.json`",
+  ]);
+});
+
 test("workspace patterns other than a directory or dir/* are refused", (t) => {
   const dir = temporary(t);
   fixture(dir);
@@ -441,7 +628,22 @@ test("the CLIs change the copy, refuse bad input and fail on disagreement", (t) 
   const bumped = run("version.mjs", next);
   assert.equal(bumped.status, 0, bumped.stderr);
   assert.ok(bumped.stdout.startsWith(`Homer is now ${next} (was `), bumped.stdout);
-  assert.equal(run("check-versions.mjs").status, 0);
+  // A release needs its CHANGELOG section: the release pull request turns
+  // Unreleased into it and opens a new, empty Unreleased.
+  const missing = run("check-versions.mjs");
+  assert.equal(missing.status, 1);
+  assert.ok(missing.stderr.includes(`no "## [${next}] - YYYY-MM-DD" section`), missing.stderr);
+  const changelog = readFileSync(join(dir, "CHANGELOG.md"), "utf8");
+  const unreleased = releaseNotes(changelog, "Unreleased");
+  writeFileSync(
+    join(dir, "CHANGELOG.md"),
+    changelog.replace("## Unreleased\n", `## Unreleased\n\n## [${next}] - 2026-11-24\n`),
+  );
+  assert.equal(run("check-versions.mjs").status, 0, run("check-versions.mjs").stderr);
+  const notes = run("release-notes.mjs", `v${next}`);
+  assert.equal(notes.status, 0, notes.stderr);
+  assert.equal(notes.stdout, unreleased);
+  assert.notEqual(run("release-notes.mjs", "v99.0.0").status, 0);
 
   const pkg = read(dir, "packages/shared-contracts/package.json");
   write(dir, "packages/shared-contracts/package.json", { ...pkg, version: "0.0.0" });
