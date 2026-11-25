@@ -28,15 +28,17 @@ create a release: every workflow has `contents: read`.
    today's date in UTC, and add a new, empty `## Unreleased` above it. Preview
    the notes: `node scripts/release-notes.mjs vX.Y.Z`.
 5. In `specs/integration-contracts/README.md`, change each `Unreleased` in the
-   contracts table to `vX.Y.Z`.
+   contracts table to `vX.Y.Z`. A release candidate leaves them `Unreleased`:
+   the table records the release that first shipped a contract, and
+   `check-versions.mjs` accepts only `vX.Y.Z` or `Unreleased` there.
 6. Run `npm run check`. `scripts/check-versions.mjs` fails until the versions,
    the CHANGELOG section and the contracts table all agree.
 7. Open the pull request `release: vX.Y.Z`. Its body has the release notes and
    the [Release Gate](#the-release-gate) items still open: the Verdicts owed for
    code in this release (ZER-63 lists them), and the deploy receipts to come.
 
-A release candidate, `vX.Y.Z-rc.N`, is prepared the same way. It gets its own
-section, `## [X.Y.Z-rc.N] - YYYY-MM-DD`. When `X.Y.Z` follows its candidates, its
+A release candidate, `vX.Y.Z-rc.N`, is prepared the same way, except for the
+contracts table (step 5). It gets its own section, `## [X.Y.Z-rc.N] - YYYY-MM-DD`. When `X.Y.Z` follows its candidates, its
 section lists what changed since the last candidate.
 
 ## Cut a release
