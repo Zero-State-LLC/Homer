@@ -168,6 +168,10 @@ An Alert is a change-only message from Homer to the `homer` channel.
 
 Homer posts only Alerts. Anything else needs a human yes.
 
+Alerts and collection run in the `homer-buzz` Worker, the only one holding
+Homer's key ([ADR 014](../adr/014-homer-buzz-worker.md), accepted by Danny on
+2026-11-25).
+
 ### Homer's Buzz identity
 
 Homer has one Buzz key, as the Agent `homer`.
