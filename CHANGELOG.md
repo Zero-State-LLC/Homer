@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- The catalog Worker answers `GET /v1/version` behind Access with the read audience (ZER-94): the product version, the Build Version, and Cloudflare's version id and upload tag, nothing else. Every deployable Wrangler file binds `version_metadata` as `CF_VERSION_METADATA`. The Event Ledger and recovery Workers have no HTTP surface and get none for this; their deploy receipt takes the version from Wrangler's output.
+
 - Release notes from the CHANGELOG (ZER-93): `node scripts/release-notes.mjs vX.Y.Z` prints that version's section. `scripts/check-versions.mjs` now also fails when Unreleased is not first, a section holds anything but the six Keep a Changelog subsections, releases are out of order, or the product version has no section of its own. The contracts README lists each contract with the product version that first shipped it.
 
 - One lockstep product version (ZER-91): `node scripts/version.mjs <version>` sets the root, every workspace package, every internal dependency and the lock file, and refuses a version that is not SemVer or not above the current one. `scripts/check-versions.mjs` fails when any of them disagree, as its own Versions step in CI and in `npm run check`. The root package is renamed `homer`; the version stays `0.0.0` until the first release.
@@ -80,6 +82,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - CI: docs lint, link check, gitleaks secret scan, Dependabot for GitHub Actions.
 
 ### Changed
+
+- The Event Ledger Worker is renamed `homer-event-ledger` before its first deploy, so every Worker is `homer-*`. Durable Object class names and migration tags are unchanged.
 
 - Context Pin moves to agent-context `8cf82d5`, which adds the Zero State versioning rule (`templates/versioning.md`): one SemVer version per repository, a CHANGELOG section for every version, release candidates included, and human-only tags. The pin now covers that file; the versioning spec names it as the rule it follows.
 

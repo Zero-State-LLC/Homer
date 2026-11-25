@@ -1,11 +1,13 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "home-event-ledger",
+  "name": "homer-event-ledger",
   "main": "src/ledger-object.ts",
   "compatibility_date": "2026-11-18",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,
+  // The Worker version id and upload tag (versioning spec, "Worker version").
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "durable_objects": {
     "bindings": [{ "name": "EVENT_LEDGER", "class_name": "EventLedgerObject" }],
   },
