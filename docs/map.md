@@ -8,10 +8,11 @@ Homer is the Zero State engineering headquarters. It observes work in GitHub, Li
 
 ## What matters now
 
-Two accepted specs are being built, one Linear Task per work packet in the Homer project (team ZER):
+Three accepted specs are being built, one Linear Task per work packet in the Homer project (team ZER):
 
 - Buzz as a Source System and alert channel: [`specs/buzz/spec.md`](../specs/buzz/spec.md).
 - The knowledge loop (Knowledge Flags, the Curator, Curator Profiles): [`specs/knowledge-loop/spec.md`](../specs/knowledge-loop/spec.md).
+- CI feedback time (build once; docs-only pull requests skip the workspace steps): [`specs/ci-feedback/spec.md`](../specs/ci-feedback/spec.md).
 
 Hosting (Danny, 2026-11-23): runners are local, and Cloudflare handles everything else. No code merges until Homer emits Work Requests (ZER-62), because the merge contract needs a Verdict and the judge grades a Work Packet built from one; docs-only pull requests merge on Danny's acceptance. The state of the work, the open pull requests, and the next Tasks are in the latest handoff, [`docs/receipts/implementation-2026-11-23.md`](receipts/implementation-2026-11-23.md). The foundation intent, [`docs/intent/home-foundation.md`](intent/home-foundation.md), still governs the Event Ledger and Projections (ZER-9). Do not invent a Milestone date; an Unknown Date is a valid answer.
 
