@@ -120,3 +120,51 @@ files.
 with their full head SHAs. ZER-34 and ZER-36 stay open for live enrollment and
 the remaining job evidence work, as their pull requests say. The backup
 branches can be deleted once Danny is satisfied with the rebase.
+
+## The evening
+
+Under the same grant, eleven more pull requests merged between 19:44 and 21:41
+Pacific time. Each merged on its exact head, with all seven checks green and a
+completed Codex review with no unresolved thread. After each merge, `main`'s
+tree matched the reviewed head. After the last one, all seven checks passed on
+`main` at `83827cf`.
+
+**Docs-only.** These change only Markdown, so under `AGENTS.md` they stand on
+Danny's acceptance, CI and clean Codex reviews:
+
+| PR | Change | Merged head | Squash commit on `main` |
+| --- | --- | --- | --- |
+| [#72](https://github.com/Zero-State-LLC/Homer/pull/72) | This receipt's runner-stack section | `518c1a8` | `586fe8b` |
+| [#73](https://github.com/Zero-State-LLC/Homer/pull/73) | Audit of `main` for design gaps, security and hygiene | `38a781e` | `4b03a8a` |
+| [#74](https://github.com/Zero-State-LLC/Homer/pull/74) | Versioning and releases intent, accepted | `2642b9e` | `bd4a785` |
+| [#75](https://github.com/Zero-State-LLC/Homer/pull/75) | Versioning spec and ADR 012, accepted, with two Codex fixes | `764ef44` | `f46b2b0` |
+
+**Configuration and code.** These owe the merge contract's Verdict and
+reproduce check. #80 changes `agent-context.pin.json`, so it is configuration,
+not docs-only. The rest are the versioning stream, ZER-91 to ZER-95.
+
+| PR | Change | Merged head | Squash commit on `main` |
+| --- | --- | --- | --- |
+| [#80](https://github.com/Zero-State-LLC/Homer/pull/80) | Context Pin moves to the Zero State versioning rule | `55e4e97` | `8979176` |
+| [#76](https://github.com/Zero-State-LLC/Homer/pull/76) | One lockstep product version (ZER-91), one Codex fix | `5de6a2e` | `d5f6e65` |
+| [#77](https://github.com/Zero-State-LLC/Homer/pull/77) | Build Version on every Activity Event (ZER-92) | `c9a2737` | `0c9be45` |
+| [#78](https://github.com/Zero-State-LLC/Homer/pull/78) | CHANGELOG check and release notes (ZER-93), three Codex fixes | `0a0790d` | `be08e6e` |
+| [#79](https://github.com/Zero-State-LLC/Homer/pull/79) | A release candidate needs its own CHANGELOG section | `19c610b` | `14cf106` |
+| [#81](https://github.com/Zero-State-LLC/Homer/pull/81) | The catalog Worker's `GET /v1/version` (ZER-94) | `4250174` | `9f0b0e5` |
+| [#82](https://github.com/Zero-State-LLC/Homer/pull/82) | Release runbook and deploy check (ZER-95), one Codex fix | `92d7510` | `83827cf` |
+
+Danny made four rulings during these merges, each recorded where it applies:
+
+- the versioning spec's defaults (#75);
+- a release candidate gets its own CHANGELOG section, and this is the
+  versioning rule for every Zero State repository (#79, agent-context #12);
+- only the catalog Worker serves `GET /v1/version` (#81);
+- rule 5 of the cross-repository rule: a repository may name a human owner
+  other than Danny to push tags.
+
+agent-context #12 has no branch protection, so it merged on Danny's acceptance
+without the bypass.
+
+**Still owed:** the seven configuration and code pull requests above have no
+Verdict. ZER-63 lists them with their full head SHAs. ZER-95 stays open for the staging deploy
+receipts, which need Danny's yes for staging.
