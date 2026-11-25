@@ -67,7 +67,7 @@ export function parseRunnerConfig(value: unknown): RunnerConfig {
   const version: 1 | 2 = v.version === 2 ? 2 : 1;
   const ids = new Set<string>();
   const runnerIds = new Set<number>();
-  const machines = v.machines.map((value) => {
+  const machines = (v.machines as unknown[]).map((value) => {
     // A monitored machine has the five machine fields and nothing else.
     const monitored =
       version === 2 &&
