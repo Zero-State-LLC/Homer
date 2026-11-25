@@ -20,8 +20,11 @@ export const FLEET_ALERT_SCOPE = "fleet:";
 export const HELD_OCCURRENCE_WINDOW_MS = 24 * 60 * 60_000;
 /** `events_backlog` is raised only once it has lasted this long. */
 export const EVENTS_BACKLOG_ALERT_MS = 10 * 60_000;
-/** sparkDash's model-concurrency notice is not an Alert. */
-const NOT_SENT = new Set(["concurrency"]);
+/**
+ * sparkDash's model-concurrency notice is not an Alert, and `stale` is the machine's own
+ * freshness Alert Key, which the Collector refuses as a sparkDash rule id.
+ */
+const NOT_SENT = new Set(["concurrency", "stale"]);
 const DISPLAY_NAME = /^[A-Za-z0-9 ._-]{1,40}$/;
 
 /** One Alert for the engine: a key, a template id and its parameters. */

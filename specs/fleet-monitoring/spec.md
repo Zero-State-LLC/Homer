@@ -165,7 +165,9 @@ run no CI runner:
   `machineId` is `409 unknown_machine`. Machines are never deleted, so the
   check at bind time holds for the binding's lifetime.
 - The machine id `collector` is reserved (ZER-82): the Fleet Collector's own
-  Alert Keys are `fleet:collector:*`, so no machine may take it.
+  Alert Keys are `fleet:collector:*`, so no machine may take it. For the same
+  reason the Collector refuses a sparkDash rule id `stale`, as it refuses
+  `reachability`: `fleet:<machineId>:stale` is the machine's freshness Alert.
 - Machines and runners are edited on separate admin pages (ZER-114, Danny,
   2026-11-25). **Machine fleet setup**, `/v1/admin/machines`, adds and
   describes every machine, and keeps a runner machine's runner settings when
