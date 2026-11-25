@@ -105,7 +105,17 @@ _Avoid_: deadline (unless the source calls it one), phase
 The source's target date, and the instant of the Activity Event that verifiably completed the Milestone. An Actual Date needs evidence; a status flip alone is not completion.
 
 **Release Gate**:
-A condition a release must pass: CI green, a passing software-factory Verdict, a human merge yes, a deploy receipt.
+A condition a Release must pass in an environment: CI green on the tagged commit, passing software-factory Verdicts for the code in it, Danny's merge and tag, and a Deploy Receipt for each Worker deployed there.
+
+**Release**:
+A tagged product version: `vX.Y.Z`, or a release candidate `vX.Y.Z-rc.N`. Danny tags the merge commit of its release pull request; Agents never push a tag.
+_Avoid_: build, drop, ship (as a noun)
+
+**Build Version**:
+The product version plus the commit the code was built from, as in `0.1.0+a1b2c3d`. `.dirty` marks a build with a changed working tree, and `+unknown` one without git; neither may be deployed. Every Collector writes it as Provenance's `collectorVersion`.
+
+**Deploy Receipt**:
+The file in `docs/receipts/` recording one deploy of one Worker to one environment: tag and commit, Cloudflare version id, migration tags, time, the version the Worker reports, and who deployed.
 
 ## software-factory
 

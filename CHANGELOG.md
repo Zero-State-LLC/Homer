@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- The release runbook, `docs/deployment/releases.md` (ZER-95): preparing a release pull request, Danny's tag and GitHub Release, deploying a Worker from a clean clone of the tag, the deploy receipt format, and the Release Gate. `node scripts/deploy-check.mjs vX.Y.Z` refuses a deploy unless HEAD is the annotated tag's commit, the tree is clean, the version and CHANGELOG section match the tag, and the build is that commit's, not `.dirty` or `+unknown`. `CONTEXT.md` defines Release, Build Version and Deploy Receipt, and its Release Gate names the four checks.
+
 - The catalog Worker answers `GET /v1/version` behind Access with the read audience (ZER-94): the product version, the Build Version, and Cloudflare's version id and upload tag, nothing else. Every deployable Wrangler file binds `version_metadata` as `CF_VERSION_METADATA`. The Event Ledger and recovery Workers have no HTTP surface and get none for this; their deploy receipt takes the version from Wrangler's output.
 
 - Release notes from the CHANGELOG (ZER-93): `node scripts/release-notes.mjs vX.Y.Z` prints that version's section. `scripts/check-versions.mjs` now also fails when Unreleased is not first, a section holds anything but the six Keep a Changelog subsections, releases are out of order, or the product version has no section of its own. The contracts README lists each contract with the product version that first shipped it.
