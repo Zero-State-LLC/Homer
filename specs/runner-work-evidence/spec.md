@@ -1,6 +1,7 @@
 # Runner Work evidence mapping and gated admission (v0.2.0)
 
-Status: partial repository implementation, not activated. Task: [ZER-36](https://linear.app/zer0state/issue/ZER-36).
+Status: accepted by Danny on 2026-11-22 with ADR 003's design direction; partly
+implemented (#45, #46) and not activated. Task: [ZER-36](https://linear.app/zer0state/issue/ZER-36).
 Intent: [calendar runners](../../docs/intent/calendar-runners.md) (accepted).
 Design: [ADR 003](../adr/003-runner-operations-telemetry.md).
 Related: [runner scheduling spec](../runner-scheduling/spec.md), [PR #44](https://github.com/Zero-State-LLC/Homer/pull/44).

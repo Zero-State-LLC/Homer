@@ -2,7 +2,7 @@
 
 Author: Claude (Claude Code) for Danny (scrimshawlife-ctrl)
 Date: 2026-11-24
-Status: accepted
+Status: accepted by Danny on 2026-11-24 (#62).
 Product: Homer (`Zero-State-LLC/Homer`)
 
 Danny accepted this intent on 2026-11-24 (#62), with the spec's defaults. The

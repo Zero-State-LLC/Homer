@@ -2,7 +2,7 @@
 
 Author: Grok Bot for Danny (scrimshawlife-ctrl)
 Date: 2026-11-20
-Status: draft
+Status: draft, written on 2026-11-20 and not accepted.
 Product: Homer (`Zero-State-LLC/Homer`)
 
 This file is a proto-spec. It comes **before** specify.

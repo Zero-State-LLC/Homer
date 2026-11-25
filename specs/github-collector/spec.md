@@ -1,7 +1,7 @@
 # GitHub merged pull request mapping
 
-Status: implementation slice of the accepted foundation intent and Control Room
-migration sequence, step 2. No live collection or deployment is enabled.
+Status: accepted with the foundation intent (Danny, 2026-11-19), as step 2 of the
+Control Room migration sequence. No live collection or deployment is enabled.
 
 ## Contract
 

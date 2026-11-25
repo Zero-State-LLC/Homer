@@ -1,6 +1,6 @@
 # Machine connection and runner lifecycle
 
-Status: accepted repository scope from Daniel's November 22, 2026 PT continuation.
+Status: accepted by Danny on 2026-11-22, by his continuation, as repository scope.
 Extends docs/intent/calendar-runners.md, ADR 002 and specs/runner-controller/spec.md.
 Task scope: admin lifecycle controls and audited safe transitions. Actual native
 installation and automated credential provisioning remain separate live gates.

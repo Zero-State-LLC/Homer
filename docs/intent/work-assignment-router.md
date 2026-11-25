@@ -2,7 +2,7 @@
 
 Author: Hermes (Yes And) for Danny (scrimshawlife-ctrl)
 Date: 2026-11-23
-Status: accepted
+Status: accepted by Danny on 2026-11-23 (#60).
 Product: Homer (`Zero-State-LLC/Homer`)
 
 Danny accepted this intent on 2026-11-23 (#60). The next stage is the spec in

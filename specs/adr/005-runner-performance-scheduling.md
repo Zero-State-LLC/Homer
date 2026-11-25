@@ -1,6 +1,6 @@
 # ADR 005: measured runner performance and advisory scheduling
 
-Status: accepted design direction for offline, read-only measurement and advice specification by Daniel's November 22, 2026 PT continuation. No live dispatch, host activation, paid provider, merge or deployment authorization.
+Status: accepted by Danny on 2026-11-22, by his continuation, as design direction for an offline, read-only measurement and advice specification. No live dispatch, host activation, paid provider, merge or deployment authorization.
 Intent: [runner performance and scheduling](../../docs/intent/runner-performance-scheduling.md) (accepted for offline scope).
 Dependencies: [ADR 002](002-pc-mac-runners.md), [ADR 003](003-runner-operations-telemetry.md), [scoped controller](../runner-controller/spec.md), [lifecycle](../runner-lifecycle/spec.md). The underlying PRs #35, #38 and #39 are stacked and unmerged as of this drafting.
 

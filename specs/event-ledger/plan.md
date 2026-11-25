@@ -4,7 +4,7 @@ Status: revised by FORGE (PROMETHEUS) on 2026-11-18 PT. Grok Build re-authored i
 
 - Specification: [Event Ledger spec](spec.md) (accepted 2026-11-19 UTC, 2026-11-18 PT)
 - Planning handoff: [handoff.md](handoff.md)
-- Task: [ZER-9](https://linear.app/zer0state/issue/ZER-9/implement-control-room-activity-calendar-and-project-timelines)
+- Task: [ZER-9](https://linear.app/zer0state/issue/ZER-9)
 - Work Packets: [work-packets/](work-packets/), one JSON file for each slice
 
 This plan answers the [decisions for FORGE](handoff.md#decisions-for-forge). It adds no code. Terms follow [CONTEXT.md](../../CONTEXT.md).
