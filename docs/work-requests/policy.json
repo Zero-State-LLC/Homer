@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "linearProjects": { "Homer": "Zero-State-LLC/Homer" },
+  "riskDecider": { "model": "typesafe/jev", "minConfidence": 0.8 },
+  "repositories": {
+    "Zero-State-LLC/Homer": {
+      "riskFloor": "low",
+      "budgetUsd": 5,
+      "testCommand": "bash -c 'npm ci --no-audit --no-fund && npm run check'"
+    }
+  }
+}

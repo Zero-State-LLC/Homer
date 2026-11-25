@@ -44,3 +44,7 @@ export {
   workRequestId,
   workRequestSlug,
 } from "./work-request-builder.js";
+
+export type { AskJevOptions, JevFetch } from "./jev.js";
+
+export { askJevForRiskTier, jevRiskRequest, readJevRiskAnswer } from "./jev.js";

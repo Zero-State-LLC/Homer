@@ -93,12 +93,24 @@ export interface PreparedWorkRequest {
 
 export const RISK_TIERS: readonly RiskTier[] = ["low", "medium", "high"];
 
-/** The one `choice` question Jev answers. The criteria are the upstream Work Packet schema's. */
+/**
+ * The one `choice` question Jev answers, in Jev's question format: the keys of
+ * `criteria` are the options. `high` is the upstream Work Packet schema's own
+ * definition; `low` and `medium` are Homer's, in the words of CONTRIBUTING.md's
+ * risk questions. Changing this text changes what Jev is asked, so it is
+ * reviewed like policy.
+ */
 export const RISK_TIER_QUESTION = {
   name: "risk_tier",
-  options: RISK_TIERS,
-  prompt:
-    "Which risk tier fits this change? high = touches auth, money, secrets, data deletion, or prod infra.",
+  type: "choice",
+  instructions:
+    "Which risk tier fits the change this request asks for? Judge the work described, not how it is written.",
+  criteria: {
+    low: "A contained change: one package or screen, undone by a revert, and none of the high-tier areas.",
+    medium:
+      "Touches something shared, such as a contract, a workflow, the Event Ledger or a stored data format, or is hard to undo, but none of the high-tier areas.",
+    high: "Touches auth, money, secrets, data deletion, or prod infra.",
+  },
 } as const;
 
 /** Jev's answer to the risk question, as the Jev client normalizes it. */
@@ -106,11 +118,15 @@ export interface JevChoiceAnswer {
   choice: string;
   confidence: number;
   probabilities?: Record<string, number>;
+  /** The Jev release that answered, as Jev reports it (`jev-1.13.0`). */
+  modelVersion?: string;
 }
 
 /** What is recorded beside the request as `<requestId>.risk.json`, minus the instant. */
 export interface RiskDecision {
   model: string;
+  /** The Jev release that answered, when Jev reported one. */
+  modelVersion?: string;
   choice: RiskTier;
   confidence: number;
   probabilities?: Record<string, number>;
@@ -669,6 +685,7 @@ export function decideRiskTier(
     );
   }
   const probabilities = numberRecord(answer["probabilities"]);
+  const modelVersion = nonEmptyString(answer["modelVersion"]);
   let tierIndex = RISK_TIERS.indexOf(choice);
   if (confidence < risk.minConfidence) {
     tierIndex = Math.min(tierIndex + 1, RISK_TIERS.length - 1);
@@ -677,6 +694,7 @@ export function decideRiskTier(
   const tier = RISK_TIERS[tierIndex] ?? "high";
   return ok({
     model: risk.model,
+    ...(modelVersion === undefined ? {} : { modelVersion }),
     choice,
     confidence,
     ...(probabilities === undefined ? {} : { probabilities }),
