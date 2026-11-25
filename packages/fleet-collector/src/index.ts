@@ -12,7 +12,13 @@ export {
   type SparkdashMachine,
   type SshMachine,
 } from "./config.js";
-export { continuity, cursorOf, type Continuity, type Cursor } from "./continuity.js";
+export {
+  baselineBefore,
+  continuity,
+  cursorOf,
+  type Continuity,
+  type Cursor,
+} from "./continuity.js";
 export { cleanName, iso, machineAlertEvent, type MachineAlert } from "./events.js";
 export {
   addHeld,

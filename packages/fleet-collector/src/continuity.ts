@@ -56,3 +56,14 @@ export function continuity(cursor: Cursor | null, recent: HistoryEntry[]): Conti
 export function cursorOf(entry: HistoryEntry): Cursor {
   return { id: entry.id, key: entry.key, status: entry.status, at: entry.at };
 }
+
+/**
+ * A cursor just before `id`, naming no entry: what the Collector keeps when it
+ * has a history to follow but turned nothing into events yet (a first poll or
+ * a restart with the queue full, or an empty history). The next poll is then
+ * contiguous from it, or a gap if sparkDash evicted entries in between, and
+ * never the same restart twice.
+ */
+export function baselineBefore(id: number): Cursor {
+  return { id: Math.max(id - 1, 0), key: "", status: "firing", at: 0 };
+}

@@ -1,6 +1,6 @@
 import type { ActivityEvent, FleetMachine, FleetReport } from "@zs-home/shared-contracts";
 import type { CollectorConfig } from "./config.js";
-import { continuity, cursorOf, type Cursor } from "./continuity.js";
+import { baselineBefore, continuity, cursorOf, type Cursor } from "./continuity.js";
 import { cleanName, iso, machineAlertEvent } from "./events.js";
 import {
   SHAPE_CHANGED,
@@ -170,9 +170,10 @@ function history(
     if (flow.gap) held = addHeld(held, "collector_gap", nowIso);
   }
   const events: ActivityEvent[] = [];
-  // After a restart the old cursor names nothing. If nothing new is queued, the
-  // next poll starts afresh, without reporting the same restart twice.
-  let cursor = flow.kind === "restart" ? null : state.cursor;
+  // On a first poll or after a restart, the old cursor names nothing: follow
+  // the history from just before its oldest entry until an entry is queued.
+  const fresh = flow.kind === "first" || flow.kind === "restart";
+  let cursor = fresh ? baselineBefore(alerts.recent[0]?.id ?? 1) : state.cursor;
   let queueFull = false;
   for (const entry of flow.entries) {
     const machineId = machineOf(entry.unitId);

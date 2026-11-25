@@ -251,6 +251,38 @@ describe("each poll", () => {
     expect(later.state.present.queue_full).toBeUndefined();
   });
 
+  it("keeps following sparkDash's history through a restart while the queue is full", () => {
+    const first = run({ read: read({ alerts: ok(alertsBody(range(51, 250))) }) });
+    const restarted = run({
+      state: first.state,
+      read: read({ alerts: ok(alertsBody(range(1, 4))) }),
+      queueRoom: 0,
+    });
+    expect(restarted.events).toEqual([]);
+    expect(codes(restarted.state)).toEqual(["sparkdash_restarted"]);
+    // sparkDash evicts ids 1 to 4 before the queue has room: a gap, not a silent loss.
+    const evicted = run({
+      state: restarted.state,
+      read: read({ alerts: ok(alertsBody(range(5, 204))) }),
+    });
+    expect(evicted.events).toHaveLength(200);
+    expect(codes(evicted.state)).toEqual(["sparkdash_restarted", "collector_gap"]);
+    // Had nothing been evicted, it would have been contiguous, and the restart is not reported twice.
+    const kept = run({
+      state: restarted.state,
+      read: read({ alerts: ok(alertsBody(range(1, 6))) }),
+    });
+    expect(kept.events).toHaveLength(6);
+    expect(codes(kept.state)).toEqual(["sparkdash_restarted"]);
+  });
+
+  it("is shape_changed for a metrics timestamp no date can hold, and still builds a snapshot", () => {
+    const text = metricsText().replace(/ 1795543200\n/, " 1e20\n");
+    const shaped = run({ read: read({ metrics: ok(text) }) });
+    expect(shaped.snapshot.sparkdash.state).toBe("shape_changed");
+    expect(shaped.snapshot.machines.map((m) => m.lastSeenAt)).toEqual([null, null, null]);
+  });
+
   it("holds a gap through a failed delivery, with its first since, until a report that carried it is answered", () => {
     const first = run({ read: read({ alerts: ok(alertsBody(range(1, 90))) }) });
     const gap = run({

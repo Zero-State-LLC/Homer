@@ -174,6 +174,8 @@ export function parseMetrics(text: string): Map<string, MetricsUnit> | ShapeChan
       if (!unit || !UNIT_ID.test(unit) || !s.labels.get("collector")) return SHAPE_CHANGED;
       if (!Number.isFinite(seconds) || seconds < 0) return SHAPE_CHANGED;
       const ms = Math.round(seconds * 1000);
+      // A time no date can hold does not match either.
+      if (!isMs(ms)) return SHAPE_CHANGED;
       success.set(unit, Math.max(success.get(unit) ?? 0, ms));
     }
   }
@@ -239,7 +241,7 @@ export function parseAlerts(body: string): AlertsRead | ShapeChanged {
     recent.push({
       id: id as number,
       at,
-      status: status as HistoryEntry["status"],
+      status,
       key: fields.key,
       ruleId: fields.ruleId,
       unitId: fields.unitId,
@@ -253,5 +255,5 @@ export function parseAlerts(body: string): AlertsRead | ShapeChanged {
     if ((recent[i] as HistoryEntry).id !== (recent[i - 1] as HistoryEntry).id + 1)
       return SHAPE_CHANGED;
   }
-  return { enabled: value["enabled"] as boolean, active, recent };
+  return { enabled: value["enabled"], active, recent };
 }
