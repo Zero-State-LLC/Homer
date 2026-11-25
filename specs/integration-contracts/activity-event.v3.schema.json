@@ -134,7 +134,31 @@
           "format": "date-time",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
         }
-      }
+      },
+      "allOf": [
+        {
+          "$comment": "A buzz://message link is allowed only for the buzz Source System; every other Source System uses https://. Stated here, inside Provenance, so a Correction's Provenance is checked by the same rule.",
+          "if": {
+            "type": "object",
+            "required": ["sourceSystem"],
+            "properties": {
+              "sourceSystem": {
+                "type": "string",
+                "const": "buzz"
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "sourceUrl": {
+                "type": "string",
+                "pattern": "^https://"
+              }
+            }
+          }
+        }
+      ]
     },
     "evidence": {
       "type": "array",
@@ -165,7 +189,7 @@
   },
   "allOf": [
     {
-      "$comment": "A buzz://message link is allowed only on a Buzz event; every other Source System uses https://.",
+      "$comment": "A buzz://message evidence link is allowed only on a Buzz event; every other Source System uses https://. Provenance states the same rule for its sourceUrl.",
       "if": {
         "type": "object",
         "required": ["provenance"],
@@ -185,15 +209,6 @@
       "else": {
         "type": "object",
         "properties": {
-          "provenance": {
-            "type": "object",
-            "properties": {
-              "sourceUrl": {
-                "type": "string",
-                "pattern": "^https://"
-              }
-            }
-          },
           "evidence": {
             "type": "array",
             "items": {

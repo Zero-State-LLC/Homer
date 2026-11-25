@@ -1,4 +1,4 @@
-import { validateActivityEvent } from "@zs-home/shared-contracts/workers";
+import { validateActivityEvent, validateProvenance } from "@zs-home/shared-contracts/workers";
 import type { ActivityEvent, Result } from "@zs-home/shared-contracts/workers";
 import { snapshot } from "./canonical.js";
 import type { Correction } from "./types.js";
@@ -49,20 +49,14 @@ export function validateCorrection(input: unknown): Result<Correction> {
       const replacement = validateEvent(v.replacement);
       if (!replacement.ok) return replacement;
     }
-    // Reuse the authoritative Provenance schema through an otherwise valid version 2 event,
-    // whose Kind and subject the Provenance's Source System admits.
-    const provenance = v.provenance as Record<string, unknown> | null;
-    const synthetic = syntheticFor(provenance?.sourceSystem);
-    const check = validateActivityEvent({
-      contract: "home.activity-event/v2",
-      eventKey: `${String(provenance?.sourceSystem)}:${synthetic.kind}:correction-validation`,
-      kind: synthetic.kind,
-      occurredAt: "2026-01-01T00:00:00Z",
-      actor: { sourceAccount: "synthetic" },
-      subject: synthetic.subject,
-      provenance,
-    });
-    if (!check.ok) return { ok: false, errors: check.errors };
+    // The authoritative Provenance schema, from the newest Activity Event contract, so a
+    // Correction can name any Source System an event comes from (sparkdash included).
+    const check = validateProvenance(v.provenance);
+    if (!check.ok) {
+      // Errors name paths inside the Provenance; give them the Correction's path.
+      const errors = check.errors.map((e) => `/provenance${e.startsWith("/ ") ? e.slice(1) : e}`);
+      return { ok: false, errors };
+    }
     return { ok: true, value: value as Correction };
   } catch {
     return {
@@ -70,13 +64,6 @@ export function validateCorrection(input: unknown): Result<Correction> {
       errors: ["Correction must have valid JSON, identity, action, reason and Provenance"],
     };
   }
-}
-function syntheticFor(sourceSystem: unknown): { kind: string; subject: string } {
-  if (sourceSystem === "buzz") return { kind: "message.posted", subject: "Buzz message" };
-  if (sourceSystem === "homer") {
-    return { kind: "curator.profile_switched", subject: "Correction validation" };
-  }
-  return { kind: "commit.pushed", subject: "Correction validation" };
 }
 export function correctionTargetErrors(
   c: Correction,

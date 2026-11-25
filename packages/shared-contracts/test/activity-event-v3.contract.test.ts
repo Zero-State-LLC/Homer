@@ -6,8 +6,10 @@ import {
   machineAlertObjectId,
   machineAlertSubject,
   validateActivityEvent,
+  validateProvenance,
   type ActivityEvent,
 } from "../src/index.js";
+import { validateProvenance as workerValidateProvenance } from "@zs-home/shared-contracts/workers";
 import { loadFixture } from "./fixture.js";
 
 // One event from every Source System, and each machine alert shape.
@@ -132,6 +134,27 @@ describe("Activity Event contract version 3", () => {
     expect(errorsOf("invalid/activity-event-v3-ipv6-in-subject.json")).toContain(
       "/subject must not carry an IP address",
     );
+  });
+});
+
+describe("Provenance on its own, for a Correction", () => {
+  it("accepts every Source System's Provenance, sparkdash included, and keeps buzz:// to Buzz", () => {
+    const sparkdash = accepted("valid/activity-event-v3-sparkdash-alert-fired.json").provenance;
+    const buzz = accepted("valid/activity-event-v3-buzz-message.json").provenance;
+    const cases: [unknown, boolean][] = [
+      [sparkdash, true],
+      [buzz, true],
+      [{ ...sparkdash, sourceUrl: buzz.sourceUrl }, false],
+      [{ ...sparkdash, sourceSystem: "unknown-system" }, false],
+      [{ ...sparkdash, extra: true }, false],
+      [null, false],
+    ];
+    for (const [value, ok] of cases) {
+      const result = validateProvenance(value);
+      expect(result.ok, JSON.stringify(value)).toBe(ok);
+      // The Event Ledger runs the Workers validator; it must answer the same.
+      expect(workerValidateProvenance(value)).toEqual(result);
+    }
   });
 });
 

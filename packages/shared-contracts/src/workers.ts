@@ -1,7 +1,7 @@
 import validators from "./activity-validator.cjs";
 import { activityEventSemanticErrors } from "./activity-semantics.js";
 import { fleetReportSemanticErrors } from "./fleet-report.js";
-import type { ActivityEvent, FleetReport, Result } from "./types.js";
+import type { ActivityEvent, FleetReport, Provenance, Result } from "./types.js";
 export type {
   ActivityEvent,
   ActivityEventContract,
@@ -46,6 +46,12 @@ export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
   const errors = errorsOf(validate, input);
   errors.push(...activityEventSemanticErrors(input));
   return errors.length ? { ok: false, errors } : { ok: true, value: input as ActivityEvent };
+}
+
+/** A Provenance on its own, as the Node validator checks it, for a Correction. */
+export function validateProvenance(input: unknown): Result<Provenance> {
+  const errors = errorsOf(validators.provenance, input);
+  return errors.length ? { ok: false, errors } : { ok: true, value: input as Provenance };
 }
 
 /** A Fleet Report, as the Node validator checks it, for `homer-intake`. */

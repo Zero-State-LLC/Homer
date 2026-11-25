@@ -17,6 +17,7 @@ export {
   validateActivityEvent,
   validateFactoryEvent,
   validateFleetReport,
+  validateProvenance,
   validateWorkRequest,
 } from "./validators.js";
 
