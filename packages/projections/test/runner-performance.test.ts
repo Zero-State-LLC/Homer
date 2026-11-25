@@ -269,3 +269,15 @@ it("does not count skipped, neutral or unknown outcomes as failures", () => {
     unknownOutcomeAttempts: 2,
   });
 });
+it("flags a conflicting attempt in every bucket it touches, whatever the input order", () => {
+  const a = sample({ runnerId: 5 });
+  const b = sample({ runnerId: 6 });
+  const forward = projectRunnerTimings([a, b], { ...options, minP50: 1, minP95: 1 });
+  const backward = projectRunnerTimings([b, a], { ...options, minP50: 1, minP95: 1 });
+  expect(forward).toEqual(backward);
+  expect(forward.map((summary) => summary.runnerId).sort()).toEqual([5, 6]);
+  for (const summary of forward) {
+    expect(summary).toMatchObject({ distinctAttempts: 0, successfulTimings: 0 });
+    expect(summary.warnings).toContain("conflicting_attempt_evidence");
+  }
+});

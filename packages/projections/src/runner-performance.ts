@@ -334,14 +334,20 @@ export function projectRunnerTimings(
   const minP95 = options.minP95 ?? 100;
   if (![minP50, minP95].every((n) => Number.isSafeInteger(n) && n > 0))
     throw new RangeError("invalid_minimum_samples");
-  const attempts = new Map<string, RunnerJobSample>();
-  const conflicting = new Set<string>();
+  // Every distinct version of each attempt, keyed by its canonical form. One
+  // version is the attempt; more than one is a conflict, and every bucket a
+  // version belongs to carries the warning, whatever order the input came in.
+  const attempts = new Map<string, Map<string, RunnerJobSample>>();
   for (const raw of input) {
     const s = parseRunnerJobSample(raw);
     const id = attemptId(s);
-    const prior = attempts.get(id);
-    if (prior && JSON.stringify(prior) !== JSON.stringify(s)) conflicting.add(id);
-    else if (!prior) attempts.set(id, s);
+    let versions = attempts.get(id);
+    if (!versions) {
+      versions = new Map();
+      attempts.set(id, versions);
+    }
+    const canonical = JSON.stringify(s);
+    if (!versions.has(canonical)) versions.set(canonical, s);
   }
   type Bucket = {
     sample: RunnerJobSample;
@@ -357,7 +363,7 @@ export function projectRunnerTimings(
     urls: Set<string>;
   };
   const groups = new Map<string, Bucket>();
-  for (const [id, s] of attempts) {
+  function count(s: RunnerJobSample, conflicting: boolean): void {
     const key = groupId(s);
     let b = groups.get(key);
     if (!b) {
@@ -377,38 +383,44 @@ export function projectRunnerTimings(
       groups.set(key, b);
     }
     b.urls.add(s.evidenceUrl);
-    if (conflicting.has(id)) {
+    if (conflicting) {
       b.warnings.add("conflicting_attempt_evidence");
-      continue;
+      return;
     }
     b.total++;
     if (s.status !== "completed") {
       b.pending++;
-      continue;
+      return;
     }
     // Only `failure` is a failure. Skipped and neutral jobs did not fail, and an
     // unknown outcome is not evidence of one (specs/runner-scheduling/spec.md).
     if (s.conclusion === "cancelled" || s.conclusion === "timed_out") {
       b.cancelled++;
-      continue;
+      return;
     }
     if (s.conclusion === "failure") {
       b.failed++;
-      continue;
+      return;
     }
     if (s.conclusion === "skipped" || s.conclusion === "neutral") {
       b.skippedOrNeutral++;
-      continue;
+      return;
     }
     if (s.conclusion !== "success") {
       b.unknownOutcome++;
-      continue;
+      return;
     }
     const timing = deriveRunnerJobTiming(s);
     // Warnings about creation time still count when the execution time is valid.
     timing.warnings.forEach((warning) => b.warnings.add(warning));
     if (timing.executionMs === null) b.missing++;
     else b.durations.push(timing.executionMs);
+  }
+  for (const versions of attempts.values()) {
+    const conflicting = versions.size > 1;
+    for (const s of versions.values()) {
+      count(s, conflicting);
+    }
   }
   const result: RunnerTimingSummary[] = [];
   for (const [key, b] of [...groups].sort(([a], [z]) => (a < z ? -1 : a > z ? 1 : 0))) {
