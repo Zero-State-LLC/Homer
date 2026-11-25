@@ -101,9 +101,16 @@ export function sparkdashClient(
   const doFetch = options.fetch ?? fetch;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
-  checkRequest("GET", `${origin}/api/health`, origin);
+  let base: string;
+  try {
+    // `http://127.0.0.1:3000/` and `http://127.0.0.1:3000` are the same origin.
+    base = new URL(origin).origin;
+  } catch {
+    throw new RefusedRequest("host");
+  }
+  checkRequest("GET", `${base}/api/health`, base);
   const request = async (method: string, url: string): Promise<HttpRead> => {
-    const target = checkRequest(method, url, origin);
+    const target = checkRequest(method, url, base);
     let response: Response;
     try {
       response = await doFetch(target, {
@@ -127,7 +134,6 @@ export function sparkdashClient(
   return {
     request,
     async readAll() {
-      const base = new URL(origin).origin;
       return {
         health: await request("GET", `${base}/api/health`),
         metrics: await request("GET", `${base}/metrics`),

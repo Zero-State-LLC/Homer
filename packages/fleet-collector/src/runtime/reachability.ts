@@ -18,7 +18,7 @@ export function checkSshBanner(
 ): Promise<CheckResult> {
   return new Promise((resolve) => {
     let settled = false;
-    let received = Buffer.alloc(0);
+    let received = new Uint8Array(0);
     const socket = connect({ host, port });
     const finish = (result: CheckResult) => {
       if (settled) return;
@@ -33,12 +33,15 @@ export function checkSshBanner(
       clearTimeout(timer);
       timer = setTimeout(() => finish("failure"), timeoutMs);
     });
-    socket.on("data", (chunk: Buffer) => {
-      received = Buffer.concat([received, chunk]).subarray(0, MAX_BYTES);
+    socket.on("data", (chunk: Uint8Array) => {
+      const joined = new Uint8Array(received.length + chunk.length);
+      joined.set(received);
+      joined.set(chunk, received.length);
+      received = joined.subarray(0, MAX_BYTES);
       const newline = received.indexOf(0x0a);
       if (newline === -1 && received.length < MAX_BYTES) return;
       const line = received.subarray(0, newline === -1 ? received.length : newline);
-      finish(line.toString("latin1").startsWith("SSH-2.0-") ? "up" : "failure");
+      finish(new TextDecoder("latin1").decode(line).startsWith("SSH-2.0-") ? "up" : "failure");
     });
     socket.once("error", () => finish("failure"));
     socket.once("end", () => finish("failure"));

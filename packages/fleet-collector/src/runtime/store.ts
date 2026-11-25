@@ -61,7 +61,7 @@ function checked(value: unknown): StoredState {
     !isRecord(value["delivery"])
   )
     throw new StateUnreadable();
-  const collector = { ...initialState(), ...value["collector"] } as CollectorState;
+  const collector: CollectorState = { ...initialState(), ...value["collector"] };
   return { ...(value as unknown as StoredState), collector };
 }
 

@@ -2,7 +2,7 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { RefusedRequest, checkRequest, sparkdashClient } from "../src/runtime/index.js";
-import { initialState, poll } from "../src/index.js";
+import { initialState, parseCollectorConfig, poll } from "../src/index.js";
 import { alertsBody, config, entry, metricsText } from "./fixture.js";
 
 let server: Server;
@@ -37,6 +37,13 @@ describe("the sparkDash client", () => {
     });
     expect(result.snapshot.sparkdash.state).toBe("ok");
     expect(result.events).toHaveLength(1);
+  });
+
+  it("reads the same origin whether or not it ends in a slash", async () => {
+    const read = await sparkdashClient(`${origin}/`).readAll();
+    expect(read.health).toMatchObject({ status: 200 });
+    const parsed = parseCollectorConfig({ ...config, sparkdashUrl: `${origin}/` });
+    expect(parsed.ok && parsed.value.sparkdashUrl).toBe(origin);
   });
 
   it("refuses a POST, a path outside the three, or a non-loopback host, before sending", async () => {

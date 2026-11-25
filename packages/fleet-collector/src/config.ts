@@ -162,7 +162,7 @@ export function parseCollectorConfig(input: unknown): ConfigResult {
   return {
     ok: true,
     value: {
-      sparkdashUrl: input["sparkdashUrl"] as string,
+      sparkdashUrl: (sparkdash as URL).origin,
       pinnedVersion: input["pinnedVersion"] as string,
       intakeUrl: input["intakeUrl"] as string,
       frontDoorOrigin: (frontDoor as URL).origin,
