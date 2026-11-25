@@ -4,17 +4,17 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ## Unreleased
 
-- Add reviewed machine enrollment and audited resume, drain, disconnect and revoke controls with separate controller and runner evidence.
-
-- Accept Cloudflare singleton-array controller audiences while preserving exact workload scope (#41).
-
-- Add machine-scoped runner controller polling, durable host reports and a portable safe reconciliation core.
-
-- Add ADRs and operator surfaces for evidence-linked work calendars and revisioned PC/Mac runner fleet intent.
-
 ### Added
 
+- Release notes from the CHANGELOG (ZER-93): `node scripts/release-notes.mjs vX.Y.Z` prints that version's section. `scripts/check-versions.mjs` now also fails when Unreleased is not first, a section holds anything but the six Keep a Changelog subsections, releases are out of order, or the product version has no section of its own. The contracts README lists each contract with the product version that first shipped it.
+
 - One lockstep product version (ZER-91): `node scripts/version.mjs <version>` sets the root, every workspace package, every internal dependency and the lock file, and refuses a version that is not SemVer or not above the current one. `scripts/check-versions.mjs` fails when any of them disagree, as its own Versions step in CI and in `npm run check`. The root package is renamed `homer`; the version stays `0.0.0` until the first release.
+
+- Reviewed machine enrollment, and audited resume, drain, disconnect and revoke controls, with separate controller and runner evidence.
+
+- Machine-scoped runner controller polling, durable host reports and a portable safe reconciliation core.
+
+- ADRs and operator surfaces for evidence-linked work calendars and revisioned PC/Mac runner fleet intent.
 
 - Accepted versioning and releases intent and spec (`specs/versioning/spec.md`) and ADR 012: one lockstep product version, a build version on every Activity Event, `GET /v1/version` on every Worker, release tags cut only by Danny, and a receipt for every deploy.
 
@@ -90,6 +90,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - Context Pin moves to agent-context `a4b7b7e`, whose `AGENTS.md` template checks Trail-code's `.trail/cache/` map and records Homer's Pocock exception. Only `templates/AGENTS.md.template` changes digest.
 
 ### Fixed
+
+- Runner controllers accept Cloudflare's singleton-array audiences while keeping the exact workload scope (#41).
 
 - The `## Code map` rule in `AGENTS.md` now checks for `.trail/cache/`, where Trail 0.30.5 keeps the map, instead of `graft/`, which a repository on Trail does not have.
 

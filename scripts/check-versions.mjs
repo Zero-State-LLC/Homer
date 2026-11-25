@@ -3,6 +3,13 @@
 // package.json holds it; every workspace package, every dependency on a
 // workspace package, and package-lock.json must name the same one.
 //
+// It also checks CHANGELOG.md: Unreleased first, then one `## [X.Y.Z] -
+// YYYY-MM-DD` section per release, newest first, each holding only the Keep a
+// Changelog subsections; and once the version is a release above 0.0.0, a
+// section for it.
+// It checks that the contracts table in specs/integration-contracts/README.md
+// lists every schema file there.
+//
 // It also refuses a hand-typed Collector version in any package's src: every
 // Collector writes BUILD_VERSION from @zs-home/shared-contracts, which the
 // build makes from this version and the commit (scripts/build-info.mjs).
@@ -203,6 +210,189 @@ export function checkWorkspace({ root, packages, lock }) {
   return errors;
 }
 
+export const CHANGELOG = "CHANGELOG.md";
+export const SUBSECTIONS = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"];
+const RELEASE_HEADING = /^## \[([^\]]+)\] - (\d{4}-\d{2}-\d{2})$/;
+const LINK_DEFINITION = /^ {0,3}\[([^\]]+)\]:\s*\S/;
+
+/**
+ * Returns a function that says, line by line, whether a line is code: inside a
+ * fence or a fence delimiter. As in CommonMark, a fence closes only with the
+ * same character, at least as many of them, and nothing after; an unclosed
+ * fence runs to the end.
+ */
+function codeFences() {
+  let open = null;
+  return (line) => {
+    const m = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (!open) {
+      if (!m || (m[1][0] === "`" && m[2].includes("`"))) return false;
+      open = { char: m[1][0], length: m[1].length };
+      return true;
+    }
+    if (m && m[1][0] === open.char && m[1].length >= open.length && m[2].trim() === "") {
+      open = null;
+    }
+    return true;
+  };
+}
+
+/** The label of a link reference definition, normalized as CommonMark matches it. */
+export function linkLabel(label) {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Every link reference definition outside code fences, by normalized label. */
+export function linkDefinitions(text) {
+  const isCode = codeFences();
+  const definitions = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    const m = isCode(line) ? null : LINK_DEFINITION.exec(line);
+    if (m && !definitions.has(linkLabel(m[1]))) definitions.set(linkLabel(m[1]), line.trim());
+  }
+  return definitions;
+}
+
+function realDate(date) {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date;
+}
+
+/**
+ * Splits CHANGELOG.md into its `## ` sections, ignoring headings inside code
+ * fences and leaving out link reference definitions (linkDefinitions has them). Each section keeps its body
+ * lines, its `### ` subsections, and any problem found, with line numbers.
+ */
+export function parseChangelog(text) {
+  const lines = text.split(/\r?\n/);
+  const sections = [];
+  const isCode = codeFences();
+  let current;
+  lines.forEach((line, i) => {
+    const fence = isCode(line);
+    if (!fence && line.startsWith("## ")) {
+      current = { heading: line, line: i + 1, body: [], subsections: [], deep: [] };
+      const release = RELEASE_HEADING.exec(line);
+      if (line === "## Unreleased") current.kind = "unreleased";
+      else if (release)
+        Object.assign(current, { kind: "release", version: release[1], date: release[2] });
+      else current.kind = "other";
+      sections.push(current);
+      return;
+    }
+    if (!current || (!fence && LINK_DEFINITION.test(line))) return;
+    current.body.push(line);
+    // Structure comes only from lines outside code fences.
+    const subsection = !fence && line.startsWith("### ");
+    if (subsection) current.subsections.push({ name: line.slice(4), line: i + 1 });
+    if (!fence && /^#{4,} /.test(line)) current.deep.push(i + 1);
+    if (current.subsections.length === 0 && current.loose === undefined && line.trim() !== "") {
+      current.loose = i + 1; // content before the first subsection
+    }
+  });
+  return sections;
+}
+
+/** Every problem with CHANGELOG.md's structure, as "CHANGELOG.md:line: message". */
+export function checkChangelog(text, version) {
+  const errors = [];
+  const at = (line, message) => errors.push(`${CHANGELOG}:${line}: ${message}`);
+  const sections = parseChangelog(text);
+  if (sections[0]?.kind !== "unreleased") {
+    at(sections[0]?.line ?? 1, 'the first "## " section must be "## Unreleased"');
+  }
+  const seen = new Map();
+  let previous;
+  for (const section of sections) {
+    if (section.kind === "other") {
+      at(
+        section.line,
+        `"${section.heading}" is neither "## Unreleased" nor "## [X.Y.Z] - YYYY-MM-DD"`,
+      );
+      continue;
+    }
+    if (section.kind === "unreleased" && section !== sections[0]) {
+      at(section.line, '"## Unreleased" must come first, and only once');
+    }
+    if (section.kind === "release") {
+      if (!SEMVER.test(section.version)) {
+        at(section.line, `"${section.version}" is not a product version`);
+      } else {
+        if (seen.has(section.version)) {
+          at(
+            section.line,
+            `${section.version} already has a section at line ${seen.get(section.version)}`,
+          );
+        }
+        seen.set(section.version, section.line);
+        if (previous && compareVersions(section.version, previous) > 0) {
+          at(section.line, `${section.version} must come after ${previous}: newest release first`);
+        }
+        previous = section.version;
+      }
+      if (!realDate(section.date)) at(section.line, `"${section.date}" is not a date`);
+    }
+    const names = new Set();
+    for (const sub of section.subsections) {
+      if (!SUBSECTIONS.includes(sub.name)) {
+        at(
+          sub.line,
+          `"### ${sub.name}" is not one of ${SUBSECTIONS.map((n) => `"### ${n}"`).join(", ")}`,
+        );
+      } else if (names.has(sub.name)) {
+        at(sub.line, `a second "### ${sub.name}" in "${section.heading}"`);
+      }
+      names.add(sub.name);
+    }
+    if (section.loose !== undefined) {
+      at(section.loose, `an entry outside a subsection of "${section.heading}"`);
+    }
+    for (const line of section.deep) at(line, "headings below ### are not used");
+  }
+  // A release candidate is tagged for staging with no GitHub Release, so it
+  // needs no section of its own; every release above 0.0.0 does.
+  const release = typeof version === "string" ? SEMVER.exec(version) : null;
+  if (release && release[4] === undefined && version !== "0.0.0" && !seen.has(version)) {
+    at(
+      1,
+      `the product version is ${version}, but there is no "## [${version}] - YYYY-MM-DD" section`,
+    );
+  }
+  return errors;
+}
+
+export const CONTRACTS_DIR = "specs/integration-contracts";
+
+/** Every schema file in the contracts folder must have a row in the README's contracts table. */
+export function checkContractsTable(rootDir) {
+  const readme = `${CONTRACTS_DIR}/README.md`;
+  let text;
+  let files;
+  try {
+    text = readFileSync(join(rootDir, readme), "utf8");
+    files = readdirSync(join(rootDir, CONTRACTS_DIR)).filter((f) => f.endsWith(".schema.json"));
+  } catch {
+    return [];
+  }
+  const rows = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    const cells = line.split("|").map((c) => c.trim());
+    const file = /^`([^`]+\.schema\.json)`$/.exec(cells[2] ?? "");
+    if (line.startsWith("|") && file) rows.set(file[1], cells[3]);
+  }
+  const errors = [];
+  for (const file of files.sort()) {
+    if (!rows.has(file)) {
+      errors.push(`${readme}: the contracts table has no row for \`${file}\``);
+    } else if (!/^(?:v\d+\.\d+\.\d+|Unreleased)$/.test(rows.get(file))) {
+      errors.push(
+        `${readme}: \`${file}\` first shipped in "${rows.get(file)}"; use vX.Y.Z or Unreleased`,
+      );
+    }
+  }
+  return errors;
+}
+
 // `collectorVersion: "1.0.0"`, `COLLECTOR_VERSION = '1.0.0'`, or a type that
 // pins one, as in `collectorVersion: "0.1.0";`. A type such as
 // `collectorVersion: string` or a value such as BUILD_VERSION is fine.
@@ -264,7 +454,13 @@ if (isMain()) {
   let workspace;
   try {
     workspace = loadWorkspace(repositoryRoot());
-    errors = [...checkWorkspace(workspace), ...checkSources(repositoryRoot(), workspace)];
+    const root = repositoryRoot();
+    errors = [
+      ...checkWorkspace(workspace),
+      ...checkSources(root, workspace),
+      ...checkChangelog(readFileSync(join(root, CHANGELOG), "utf8"), workspace.root.json.version),
+      ...checkContractsTable(root),
+    ];
   } catch (error) {
     errors = [error.message];
   }

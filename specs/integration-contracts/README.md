@@ -10,6 +10,25 @@ JSON Schema draft 2020-12 is the artifact. `@zs-home/shared-contracts` loads the
 - Work Request (`work-request.v1.schema.json`): Homer produces one. software-factory consumes it to start a Work Packet at intake. Homer never advances a packet past intake.
 - Factory Event (`factory-event.v1.schema.json`): software-factory produces one when a Work Packet stage changes or a Verdict is recorded. Homer consumes it.
 
+## Contracts by release
+
+Each contract, its schema file, and the product version that first shipped it. A
+new contract is listed as `Unreleased` until the release pull request names its
+version. A contract id already in the Event Ledger never changes, the `home.*`
+ids included. `scripts/check-versions.mjs` fails when a schema file here has no
+row.
+
+| Contract id | Schema file | First shipped |
+| --- | --- | --- |
+| `home.activity-event/v1` | `activity-event.v1.schema.json` | v0.1.0 |
+| `home.activity-event/v2` | `activity-event.v2.schema.json` | v0.1.0 |
+| `home.work-request/v1` | `work-request.v1.schema.json` | v0.1.0 |
+| `home.factory-event/v1` | `factory-event.v1.schema.json` | v0.1.0 |
+
+The Event Ledger's Correction, `home.correction/v1`, has no schema file here: the
+ledger defines and validates it (`packages/event-ledger/src/types.ts` and
+`validation.ts`). It also first shipped in v0.1.0.
+
 ## Upstream Work Packet
 
 `upstream/software-factory/work_packet.schema.json` is a pinned snapshot of software-factory's Work Packet schema, not code. `upstream/software-factory/PIN.json` stores its sha256. Do not edit the snapshot here. Refresh it with `scripts/check-factory-schema.sh` in a reviewed pull request.
