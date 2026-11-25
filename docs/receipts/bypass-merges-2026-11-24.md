@@ -129,8 +129,8 @@ completed Codex review with no unresolved thread. After each merge, `main`'s
 tree matched the reviewed head. After the last one, all seven checks passed on
 `main` at `83827cf`.
 
-**Docs and configuration.** These stand on Danny's acceptance, CI and clean
-Codex reviews:
+**Docs-only.** These change only Markdown, so under `AGENTS.md` they stand on
+Danny's acceptance, CI and clean Codex reviews:
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
@@ -138,12 +138,14 @@ Codex reviews:
 | [#73](https://github.com/Zero-State-LLC/Homer/pull/73) | Audit of `main` for design gaps, security and hygiene | `38a781e` | `4b03a8a` |
 | [#74](https://github.com/Zero-State-LLC/Homer/pull/74) | Versioning and releases intent, accepted | `2642b9e` | `bd4a785` |
 | [#75](https://github.com/Zero-State-LLC/Homer/pull/75) | Versioning spec and ADR 012, accepted, with two Codex fixes | `764ef44` | `f46b2b0` |
-| [#80](https://github.com/Zero-State-LLC/Homer/pull/80) | Context Pin moves to the Zero State versioning rule | `55e4e97` | `8979176` |
 
-**Code: the versioning stream, ZER-91 to ZER-95.**
+**Configuration and code.** These owe the merge contract's Verdict and
+reproduce check. #80 changes `agent-context.pin.json`, so it is configuration,
+not docs-only. The rest are the versioning stream, ZER-91 to ZER-95.
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
+| [#80](https://github.com/Zero-State-LLC/Homer/pull/80) | Context Pin moves to the Zero State versioning rule | `55e4e97` | `8979176` |
 | [#76](https://github.com/Zero-State-LLC/Homer/pull/76) | One lockstep product version (ZER-91), one Codex fix | `5de6a2e` | `d5f6e65` |
 | [#77](https://github.com/Zero-State-LLC/Homer/pull/77) | Build Version on every Activity Event (ZER-92) | `c9a2737` | `0c9be45` |
 | [#78](https://github.com/Zero-State-LLC/Homer/pull/78) | CHANGELOG check and release notes (ZER-93), three Codex fixes | `0a0790d` | `be08e6e` |
@@ -163,6 +165,6 @@ Danny made four rulings during these merges, each recorded where it applies:
 agent-context #12 has no branch protection, so it merged on Danny's acceptance
 without the bypass.
 
-**Still owed:** the six code pull requests above have no Verdict. ZER-63 lists
-them with their full head SHAs. ZER-95 stays open for the staging deploy
+**Still owed:** the seven configuration and code pull requests above have no
+Verdict. ZER-63 lists them with their full head SHAs. ZER-95 stays open for the staging deploy
 receipts, which need Danny's yes for staging.
