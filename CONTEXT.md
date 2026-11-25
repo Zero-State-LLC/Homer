@@ -218,6 +218,15 @@ The Collector on sparkDash's host that reads sparkDash and the Reachability Chec
 **Fleet Report**:
 The Fleet Collector's report for one poll (`home.fleet-report/v1`): every configured Machine, sparkDash's state, the Collector's own diagnostics, and the oldest machine alert events waiting to be delivered.
 
+## Alerts
+
+**Alert**:
+A change-only message from Homer to the Buzz `homer` channel, built from a fixed template and ids, never from source text. At most 30 are posted in any hour; past that, one summary says how many are held.
+_Avoid_: notification, page
+
+**Alert Key**:
+The stable id of one Alert, such as `fleet:delphi:thermal`. Homer posts again under a key only when its message changes; a one-shot key, such as one occurrence of a held diagnostic, is posted once and never cleared.
+
 ## Access
 
 **Scope**:
