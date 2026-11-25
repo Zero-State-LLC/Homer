@@ -47,6 +47,16 @@ export interface AlertTemplate {
 
 export type AlertTemplates = Readonly<Record<string, AlertTemplate>>;
 
+export interface AlertApplyOptions {
+  /**
+   * Key prefixes inside the scope whose raised Alerts stay as they are when not requested,
+   * because the monitor cannot see their source now.
+   */
+  readonly hold?: readonly string[];
+  /** Keys under a hold prefix that the monitor can still see, so they clear as usual. */
+  readonly holdExcept?: readonly string[];
+}
+
 /** An Alert a Projection or monitor raises now. */
 export interface AlertRequest {
   readonly key: string;
@@ -144,8 +154,10 @@ export function applyAlerts(
   requests: readonly AlertRequest[],
   templates: AlertTemplates,
   now: number,
+  options: AlertApplyOptions = {},
 ): { state: AlertState; refused: { key: string; reason: AlertRefusal }[] } {
   const state = structuredClone(previous);
+  const hold = (options.hold ?? []).filter((prefix) => prefix.startsWith(scope));
   const refused: { key: string; reason: AlertRefusal }[] = [];
   const seen = new Set<string>();
   for (const request of requests) {
@@ -204,6 +216,9 @@ export function applyAlerts(
   }
   for (const [key, record] of Object.entries(state.records)) {
     if (!key.startsWith(scope) || record.phase !== "raised" || seen.has(key)) continue;
+    // The monitor cannot see this Alert's source now: no news is not a recovery.
+    if (hold.some((prefix) => key.startsWith(prefix)) && !options.holdExcept?.includes(key))
+      continue;
     const template = Object.hasOwn(templates, record.template)
       ? templates[record.template]
       : undefined;

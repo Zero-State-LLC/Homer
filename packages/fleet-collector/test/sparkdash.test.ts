@@ -83,7 +83,7 @@ describe("the sparkDash parsers", () => {
   it("names an unknown rule id that fits the pattern, and refuses any other", () => {
     const named = parseAlerts(alertsBody([entry({ id: 1, status: "firing", ruleId: "new-rule" })]));
     expect(named === SHAPE_CHANGED ? undefined : named.recent[0]?.ruleId).toBe("new-rule");
-    for (const ruleId of ["New Rule", "rule!", "x".repeat(41), "reachability"]) {
+    for (const ruleId of ["New Rule", "rule!", "x".repeat(41), "reachability", "stale"]) {
       expect(parseAlerts(alertsBody([entry({ id: 1, status: "firing", ruleId })])), ruleId).toBe(
         SHAPE_CHANGED,
       );

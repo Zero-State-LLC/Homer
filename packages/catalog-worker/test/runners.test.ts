@@ -243,7 +243,7 @@ it("lists monitored machines and DGX Sparks in version 2 after version 1 history
   const promoted = machines.map((m) => (m.id === "delphi" ? { ...machine, ...spark } : m));
   expect((await put({ version: 2, revision: 3, machines: promoted }, 2)).status).toBe(200);
 });
-it("refuses a new kind in version 1, a misfit Spark or Jetson, and partial runner fields", async () => {
+it("refuses a new kind in version 1, a misfit Spark or Jetson, partial runner fields and the reserved id", async () => {
   const e = environment();
   for (const body of [
     { version: 1, revision: 1, machines: [spark] },
@@ -255,6 +255,8 @@ it("refuses a new kind in version 1, a misfit Spark or Jetson, and partial runne
     { version: 2, revision: 1, machines: [{ ...spark, repository: "Zero-State-LLC/example" }] },
     { version: 2, revision: 1, machines: [without(["desiredState"])] },
     { version: 2, revision: 1, machines: [spark, { ...machine, id: "delphi" }] },
+    { version: 2, revision: 1, machines: [{ ...spark, id: "collector" }] },
+    { version: 1, revision: 1, machines: [{ ...machine, id: "collector" }] },
   ]) {
     const response = await handleRunnerRequest(request("PUT", body, { "If-Match": '"0"' }), e, key);
     expect(response.status).toBe(400);

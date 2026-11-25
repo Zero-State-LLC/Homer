@@ -193,8 +193,10 @@ function alertFields(value: unknown): ActiveAlert | undefined {
   if (
     typeof ruleId !== "string" ||
     !FLEET_RULE_ID.test(ruleId) ||
-    // Homer's own rule; sparkDash has none of that name.
+    // Homer's own names: its Reachability Check's rule, and a machine's stale Alert
+    // (`fleet:<machineId>:stale`). sparkDash has no rule of either name.
     ruleId === "reachability" ||
+    ruleId === "stale" ||
     typeof unitId !== "string" ||
     !UNIT_ID.test(unitId) ||
     typeof key !== "string" ||

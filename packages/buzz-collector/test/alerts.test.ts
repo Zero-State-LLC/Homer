@@ -81,6 +81,25 @@ describe("change-only Alerts", () => {
     expect(next?.content).toMatch(/^GPU temperature on Delphi Spark\n/);
   });
 
+  it("holds raised Alerts under a hold prefix while their source cannot be seen", () => {
+    let { state } = apply(emptyAlertState(), [thermal()]);
+    ({ state } = deliverAll(state, T0));
+    const held = applyAlerts(state, "fleet:", [], templates, T0 + 30_000, {
+      hold: ["fleet:delphi:", "other:"],
+    });
+    expect(held.state.records).toEqual(state.records);
+    expect(dueAlerts(held.state, templates, T0 + 30_000)).toEqual([]);
+    // A key the monitor can still see clears under a hold prefix.
+    const except = applyAlerts(state, "fleet:", [], templates, T0 + 30_000, {
+      hold: ["fleet:delphi:"],
+      holdExcept: ["fleet:delphi:thermal"],
+    });
+    expect(dueAlerts(except.state, templates, T0 + 30_000)[0]?.content).toMatch(/cleared/);
+    // Seen again and gone: now it clears.
+    ({ state } = apply(held.state, [], T0 + 60_000));
+    expect(dueAlerts(state, templates, T0 + 60_000)[0]?.content).toMatch(/cleared/);
+  });
+
   it("clears only inside the monitor's own scope", () => {
     const other = applyAlerts(
       emptyAlertState(),
