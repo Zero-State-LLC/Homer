@@ -23,6 +23,7 @@ source migration plan. The live Control Room has not been cut over to Homer.
 | [catalog-worker](packages/catalog-worker/) | `homer-catalog`, for people: catalog API, durable mapping revisions, admin and fleet pages, enrollment; deployment configuration required |
 | [intake-worker](packages/intake-worker/) | `homer-intake`, for machines: signed GitHub webhook, job evidence and the runner controller protocol; deployment configuration required |
 | [buzz-collector](packages/buzz-collector/) | Pure mapping of signed Buzz channel messages and Knowledge Flags to Activity Events; signature verification is passed in, transport pending |
+| [fleet-collector](packages/fleet-collector/) | Pure core of the Fleet Collector: sparkDash's responses and Reachability Checks to Machines, machine alert events and a Fleet Report; runtime pending |
 | [github-sync](packages/github-sync/) | Runtime repository catalog and safe merged-PR mapping; live deployment and recovery pending |
 | [shared-contracts](packages/shared-contracts/) | Versioned Activity Event, Work Request and Factory Event validation; generated Workers-safe Activity Event validator |
 | [event-ledger](packages/event-ledger/) | Durable Object storage, atomic append, Duplicate/Conflict detection, Corrections, digest verification and replay |
