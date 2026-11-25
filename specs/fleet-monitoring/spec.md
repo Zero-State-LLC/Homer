@@ -1,7 +1,11 @@
 # Fleet monitoring through sparkDash
 
 Version: 0.1.0
-Status: draft, for Danny's acceptance
+Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
+monitoring waits for the runner stream's machine list (#35) and controller
+protocol (#38); SSH monitoring is read-only on every machine, except for agentic
+interaction; and sparkDash's deployment follows the research he asked for (see
+[Read-only machines](#read-only-machines)).
 Intent: [Remote fleet monitoring through sparkDash](../../docs/intent/fleet-monitoring.md)
 (accepted by Danny on 2026-11-24, #69)
 Decision: [ADR 011](../adr/011-fleet-monitoring-read-only-outbound.md)
@@ -11,7 +15,8 @@ with its firing alerts, and sends alert changes to the Buzz `homer` channel.
 sparkDash reads each machine whose kind it supports. A Reachability Check covers
 every other machine. A local Fleet Collector reads both and pushes one Fleet
 Report to Homer outbound, through Cloudflare Access. Homer never reaches into
-the fleet's network and never changes a machine.
+the fleet's network, and nothing in fleet monitoring can change a machine:
+every machine is read through an unprivileged monitoring account.
 
 ## Deployment facts
 
@@ -19,12 +24,62 @@ the fleet's network and never changes a machine.
 | --- | --- |
 | sparkDash release this spec targets | v2.91.0, commit `86f972e` (2026-11-22), Apache-2.0 [verified] |
 | sparkDash host | Delphi (intent decision). Whether sparkDash runs anywhere today is unknown |
-| sparkDash's published container | `privileged: true`, `network_mode: host`, `pid: host`, read-only `/proc` and `/sys` mounts [verified: `docker-compose.image.yml` at `86f972e`]. See Open choices |
+| sparkDash's published container | `privileged: true`, `network_mode: host`, `pid: host`, read-only `/proc` and `/sys` mounts [verified: `docker-compose.image.yml` at `86f972e`]. Not used as published: see [Read-only machines](#read-only-machines) |
 | Front door to the sparkDash page | Cloudflare Tunnel with Access by default; Tailscale Serve allowed; never Tailscale Funnel (Danny, 2026-11-24) |
-| Homer's intake hostname and Access application | Not created yet. Danny creates both (packet 7) |
+| Homer's intake | Not built. It extends the runner controller protocol from PR #38 (ZER-34), which is not on `main` |
+| Machine list | The runner fleet configuration from PR #35 (ZER-33), which is not on `main`. Both PRs were cut before `main` restarted and share no history with it, so they need a rebase before they can land |
 | Machines | The intent's [named machines](../../docs/intent/fleet-monitoring.md#the-named-machines). No inventory exists |
 
 ## Contract
+
+### Read-only machines
+
+Danny's rule (2026-11-24): SSH monitoring is read-only on every machine. The one
+exception is agentic interaction. SSH that an Agent uses to do work, such as a
+runner or the curator host, is governed by the runner specs (#38, #39) and uses
+its own accounts and keys. Monitoring never uses those, and they never use the
+monitoring account.
+
+Read-only is enforced on each machine, not only in Homer. sparkDash can shut
+machines down, cap their clocks and power, and run launcher scripts, and its
+API is open on its host. So every machine, sparkDash's own host included, is
+read over SSH through a **monitoring account** that cannot do any of that:
+
+| Machine | Monitoring account |
+| --- | --- |
+| Linux, including DGX Sparks | A dedicated user with no `sudo` entry, in no `sudo`, `wheel`, `docker`, `lxd` or `adm` group, and in `systemd-journal` only, so sparkDash can read kernel Xid and out-of-memory lines with `journalctl -k`. Key-only login |
+| macOS | A standard, non-admin user with Remote Login. Key-only login. No `sudo`, so `powermetrics` GPU power is not read |
+| Windows | A standard user with the OpenSSH server, never an Administrator. If a GPU counter needs a group, `Performance Monitor Users` only. Packet 7 checks which counters a standard user can read |
+
+Each machine's `authorized_keys` entry for the monitoring key is
+`restrict,port-forwarding,permitopen="127.0.0.1:<port>"`, with one `permitopen`
+per LLM port. That allows only the SSH tunnel sparkDash's LLM probe falls back to
+when a model server listens on loopback. The key lives in 1Password and is
+mounted read-only on sparkDash's host. It is used for nothing else.
+
+[verified at `86f972e`: remote collection runs `nvidia-smi`, `/proc`, `/sys`,
+`df` and `journalctl -k`, none of which needs root; `sudo -n` is used only for the
+optional Intel VRAM and Mac `powermetrics` reads; GPU clock and power caps need
+a `sudoers` entry, and shutdown needs root; `server/collectors/LlmProbe.js` opens
+an SSH tunnel after two direct failures]
+
+**sparkDash runs unprivileged** (recommended by Claude Code at Danny's request,
+2026-11-24, because it follows his read-only rule):
+
+- On Delphi, in its container **without** `privileged`, `pid: host`, or the
+  host `/proc`, `/sys` and NVIDIA library mounts. Host networking stays, so
+  sparkDash can bind loopback and open its LLM tunnels. Host networking adds no
+  root. If the image does not run this way, packet 7 runs sparkDash as a plain
+  Node service (`npm start`) under its own unprivileged system user.
+- No machine is added as **This host**. Delphi is read over SSH like every other
+  machine.
+
+What this gives up, by design: sparkDash's controls (shutdown, clock and power
+caps, launchers, and model discovery, which is local-only) fail on every
+machine. GPU power on Macs, Intel VRAM, and engine detection that needs the
+`docker` group are not read. Wake-on-LAN still works from the sparkDash page,
+because it is a packet from the host and not an SSH command. It stays a human
+action behind the front door.
 
 ### What the Collector reads from sparkDash
 
@@ -58,7 +113,7 @@ facts.
 
 | Field | Rule |
 | --- | --- |
-| `machineId` | `sparkdash:<unit id>` for a machine sparkDash reads, where the unit id matches sparkDash's own rule, `[A-Za-z0-9._-]{1,64}`. `ssh:<name>` for a reachability-only machine, `[a-z0-9-]{1,40}` |
+| `machineId` | The machine's id in the runner fleet configuration from #35, which holds aliases, operating systems and architectures but no addresses. A machine not in that configuration is not reported. The Collector's configuration maps each `machineId` to a sparkDash unit id or an SSH target |
 | `name` | Display text. Letters, digits, space, `.`, `_` and `-`, at most 40 characters. Anything else is replaced by the `machineId` |
 | `kind` | `spark`, `mac` or `host` from sparkDash's `kind` label; `ssh` for a reachability-only machine |
 | `source` | `sparkdash` or `reachability` |
@@ -126,13 +181,13 @@ Source System and two Kinds. Version 2 stays, as the versioning rule in
 | Field | `machine.alert_fired` or `machine.alert_cleared` |
 | --- | --- |
 | Source System | `sparkdash` for sparkDash's alerts. `homer` for a Reachability Check, rule `reachability` |
-| `eventKey` | `<source>:machine.alert_fired:<machine part>:<rule>:<startsAt in ms>`, and the same with `alert_cleared`. The machine part is the sparkDash unit id or the `ssh:` id. `startsAt` is when the condition began, so one occurrence has one pair of keys |
+| `eventKey` | `<source>:machine.alert_fired:<machine part>:<rule>:<startsAt in ms>`, and the same with `alert_cleared`. The machine part is the `machineId`. `startsAt` is when the condition began, so one occurrence has one pair of keys |
 | `occurredAt` | sparkDash's history `at` for the transition, or the Check's own time |
 | `actor` | `{ "sourceAccount": "sparkdash:alerts" }` or `{ "sourceAccount": "homer:fleet-collector" }`. Never an Actor: no Identity Binding applies |
 | `subject` | A fixed template: `<rule name> on <machine name>` or `<rule name> cleared on <machine name>`. The rule name comes from Homer's own catalogue below, never from sparkDash's text |
 | `data` | `machineId`, `rule`, `severity` (`warning` or `critical`), `startsAt`, `sparkdashVersion` |
 | `provenance.sourceUrl` | The front door's `https://` origin for the sparkDash page |
-| `provenance.sourceObjectId` | `<unit id>:<rule>@<startsAt in ms>` |
+| `provenance.sourceObjectId` | `<machineId>:<rule>@<startsAt in ms>` |
 
 Homer's rule catalogue maps sparkDash's rule ids to names: `offline` Unit
 offline, `throttle` GPU throttling, `disk` Storage, `llm` LLM unavailable,
@@ -152,13 +207,15 @@ The schema admits these Kinds only from `sparkdash` and `homer`, the way version
 
 Both live on the Collector's host, never in the repository.
 
-- Configuration, `fleet-collector.json`: the sparkDash URL (loopback only), the
-  reachability-only machines (`id`, `name`, `host`, `port`, default 22), the
-  Homer intake URL (`https://`), and the front door's origin for
-  `provenance.sourceUrl`.
-- Credentials: the Access service token's client id and secret, each by
-  1Password reference (`<NAME>_REF=op://...`) or in the environment, the way the
-  Work Request emitter reads its secrets. Never in the configuration file.
+- Configuration, `fleet-collector.json`: the sparkDash URL (loopback only); for
+  each `machineId`, its sparkDash unit id or its SSH target (`host`, `port`,
+  default 22); the Homer intake URL (`https://`); and the front door's origin
+  for `provenance.sourceUrl`.
+- Credentials: the Collector's workload credential under the #38 protocol (an
+  Access service token), by 1Password reference (`<NAME>_REF=op://...`) or in
+  the environment, the way the Work Request emitter reads its secrets. Never in
+  the configuration file. The monitoring key belongs to sparkDash, not the
+  Collector.
 - State: the cursor (the newest history `id` turned into events, and that
   entry's `key`, `status` and `at`), the alerts active at the last poll, the
   Reachability Check counters, the queue of events not yet delivered, and the
@@ -170,20 +227,26 @@ Both live on the Collector's host, never in the repository.
 
 The runbook in packet 7 covers each step. Nothing here is Homer code.
 
-1. On the sparkDash host, run sparkDash at the pinned release, bound to loopback.
-   Add every machine whose kind it reads: DGX Spark, Apple Silicon Mac, Linux
-   host with an NVIDIA GPU, or Windows PC. Remote machines use an SSH key mounted
-   read-only into the container.
-2. Turn on sparkDash's Prometheus metrics and alert notifications. Alerts need
+1. On every machine sparkDash reads, create the monitoring account described in
+   [Read-only machines](#read-only-machines), and prove it read-only: `sudo -n
+   true` fails, `id` lists none of the excluded groups, and the
+   `authorized_keys` entry carries `restrict`.
+2. On Delphi, run sparkDash at the pinned release, unprivileged and bound to
+   loopback. Add every machine whose kind it reads (DGX Spark, Apple Silicon
+   Mac, Linux host with an NVIDIA GPU, or Windows PC) as a remote unit through
+   its monitoring account, Delphi included. Mount the monitoring key read-only.
+3. Turn on sparkDash's Prometheus metrics and alert notifications. Alerts need
    no channel: Homer is the channel.
-3. Publish the sparkDash page through Cloudflare Tunnel with an Access policy for
+4. Publish the sparkDash page through Cloudflare Tunnel with an Access policy for
    Danny and Boof, listing the hostname in `SPARKDASH_ALLOWED_HOSTS`. Or use
    Tailscale Serve inside the tailnet. Never Tailscale Funnel, and never
    `BIND_HOST=0.0.0.0`.
-4. In Cloudflare, create Homer's fleet intake Access application and a service
-   token for it. Store the token in 1Password.
-5. Install the Fleet Collector as a service on the sparkDash host, and list the
-   machines sparkDash cannot read in its configuration.
+5. Enroll the Collector under the #38 protocol: create its Access service token,
+   store it in 1Password, and have an admin bind its principal digest to the
+   `machineId`s it may report on.
+6. Install the Fleet Collector as a service on Delphi under its own
+   unprivileged user, and map each `machineId` to a sparkDash unit or an SSH
+   target in its configuration.
 
 ### Each poll
 
@@ -242,12 +305,15 @@ server. It does not show that a login works, and the status view says so.
 
 1. Build the report from the current snapshot and the oldest 100 events in the
    queue. If more are waiting, add `events_backlog`.
-2. `POST <intake>/v1/fleet/report` with the Access service token headers.
+2. `POST` it to the fleet report route of the #38 protocol, with the Collector's
+   workload credential.
 3. On a `2xx`, remove exactly the events that report carried from the queue, and
    clear the held diagnostics it carried. The next report carries the next 100,
    without waiting for the next poll, until the queue is empty.
 4. On a failure, keep the queue and the held diagnostics, and try again with
-   backoff, at most every poll. Only the latest snapshot is sent, but it always
+   backoff, at most every poll. An identical retry of a report keeps its
+   `reportId`, so the intake answers with the original receipt, as #38 does for
+   runner reports. Only the latest snapshot is sent, but it always
    carries every held diagnostic. Event Keys make a resent event a Duplicate,
    never a second event.
 5. The queue holds at most 10,000 events. When it is full, the Collector stops
@@ -258,13 +324,28 @@ server. It does not show that a login works, and the status view says so.
 
 ### Intake (Homer Worker)
 
-1. Behind Access, which allows only the service token for this path.
-2. Validate the body as `home.fleet-report/v1`, with each event under Activity
-   Event version 3. Refuse a bad report with `400` and record nothing.
-3. Append each event through the Event Ledger binding. A Duplicate is success.
-4. Store the report as the fleet's latest snapshot, unless the stored one has a
+The intake is a second report type on the runner controller protocol from #38,
+not a new mechanism. It reuses that protocol's rules and adds one principal kind:
+
+1. A **fleet collector** principal, with its own audience, `FLEET_COLLECTOR_AUD`,
+   which differs from the runner controller, read and admin audiences. Human
+   subjects are refused.
+2. An admin binds the principal's digest to the `machineId`s it may report on,
+   with a revision precondition and an audit record, as #38 enrolls a machine.
+   A report that names any other machine is refused.
+3. The body must validate as `home.fleet-report/v1`, with each event under
+   Activity Event version 3. A bad report gets `400`, and nothing is recorded.
+4. Idempotency follows #38: an identical retry of a `reportId` returns the
+   original receipt, and changed content under the same `reportId` is a
+   conflict.
+5. Each event is appended through the Event Ledger binding. A Duplicate counts
+   as success.
+6. The report becomes the fleet's latest snapshot, unless the stored one has a
    later `collectedAt`.
-5. At most 6 reports a minute. Past that, `429`.
+7. At most 6 reports a minute. Past that, `429`.
+
+The runner principals from #38 keep their one-machine scope. A fleet collector reports
+observations only, and the intake returns no desired state to it.
 
 ### Status view
 
@@ -299,18 +380,23 @@ that work (ZER-55) first.
 
 ### Threat model
 
-- **sparkDash can change machines, and its API is open on loopback.** Anything
-  on its host can shut down or wake machines, cap clocks and run launchers. The
-  Collector's client is `GET`-only on three paths, and the Collector takes no
-  instructions from Homer, so Homer adds no new way in. Anyone with a shell on
-  the host already had that power.
-- **sparkDash's container is effectively root on its host** (privileged, host
-  network, host PID). It is third-party code. See Open choices.
-- **A stolen intake token can forge reports.** It shows machines as up or down
-  and raises or clears Alerts. It cannot change a machine, because nothing in
-  Homer acts on a report. Mitigations: the token sits in 1Password, the Access
-  application admits only it and only on one path, intake is rate limited, and
-  rotation is in the runbook.
+- **sparkDash's API is open on loopback and has controls.** Anything on its
+  host can call shutdown, clock caps or launchers. Through the monitoring
+  accounts those calls fail on every machine, because no account can do them.
+  The Collector's client is `GET`-only on three paths and takes no instructions
+  from Homer. Wake-on-LAN still works; it is a packet from the host, and only
+  humans behind the front door can send it.
+- **sparkDash is third-party code.** It runs unprivileged, without host PID or
+  host mounts. The worst it can do with a monitoring key is read what that
+  account reads, and open tunnels to the listed LLM ports.
+- **A stolen monitoring key** gives the same read-only access, from wherever it
+  is used. It lives in 1Password and on the sparkDash host only, and rotation is
+  in the runbook.
+- **A stolen Collector credential can forge reports**, only for its bound
+  machines. It can show them up or down, and raise or clear Alerts. It cannot
+  change a machine, because nothing in Homer acts on a report. Mitigations: the
+  credential is in 1Password, it has its own audience and binding, intake is
+  rate limited, and an admin can revoke the binding as #38 allows.
 - **Untrusted text.** Machine names are operator text, so they are cleaned.
   sparkDash's `label` and `summary` never leave the host, and subjects and
   Alerts use fixed templates.
@@ -356,6 +442,12 @@ and the new contracts' fixtures, like any other package.
 | An unknown rule id, `new-rule` | named `sparkDash rule new-rule` |
 | An unknown rule id with other characters | `shape_changed` |
 | Intake gets a report with an invalid event | `400`; nothing appended or stored |
+| Intake gets a report naming a machine outside the Collector's binding | refused; nothing appended or stored |
+| Intake gets an identical retry of a `reportId` | the original receipt |
+| Intake gets changed content under a `reportId` it has seen | a conflict |
+| A runner controller credential, or a human, posts a Fleet Report | refused: wrong audience or a human subject |
+| On a monitoring account: `sudo -n true`, a sparkDash shutdown, a clock cap | each fails on the machine, and nothing changes (runbook proof, packet 7) |
+| A tunnel through the monitoring key to a port not in `permitopen` | refused by the machine's SSH server (runbook proof, packet 7) |
 | Intake gets the same report twice | the events are Duplicates; the snapshot is unchanged |
 | Intake gets an older report after a newer one | the snapshot stays the newer one |
 | No report for 2 minutes | every machine stale; `fleet:collector:stale` |
@@ -366,7 +458,9 @@ and the new contracts' fixtures, like any other package.
 
 ## Acceptance and implementation plan
 
-One Linear Task per packet in the Homer project:
+One Linear Task per packet in the Homer project. By Danny's ruling, fleet
+monitoring waits for #35 and #38 to land on `main`, so every packet is blocked
+by ZER-33 and ZER-34. Both PRs first need a rebase onto `main`.
 
 1. **Contracts.** `activity-event.v3.schema.json` and
    `fleet-report.v1.schema.json`, with validators and fixtures, and the
@@ -377,25 +471,33 @@ One Linear Task per packet in the Homer project:
 3. **Collector runtime**: the `GET`-only client, the Reachability Check, state,
    the poll loop, and delivery with retries. Credentials by 1Password
    reference.
-4. **Intake**: the Worker route, validation, ledger append, the snapshot store,
-   and the rate limit.
+4. **Intake** on the #38 protocol: the fleet collector principal, its audience
+   and binding, the report route, validation, ledger append, the snapshot store,
+   and the rate limit. The amendment to `specs/runner-controller/spec.md` lands
+   in the same pull request.
 5. **Fleet status Projection and view**, with stale and unknown states.
 6. **Fleet Alerts to Buzz**, after ZER-55.
-7. **Runbook and live receipt** (needs a human): sparkDash on its host, the
-   front door, the intake Access application and token, the Collector service,
-   and the first report from every machine.
+7. **Runbook and live receipt** (needs a human): the monitoring account on every
+   machine, proved read-only; sparkDash unprivileged on Delphi; the front door;
+   the Collector's enrollment and credential; the Collector service; and the
+   first report from every machine.
 
 Done for the stream: every machine reachable over SSH shows in the status view
 with a state, and one real alert has gone from sparkDash to the Buzz `homer`
 channel.
 
+## Decisions
+
+| Choice | Decision |
+| --- | --- |
+| How sparkDash runs | Unprivileged on Delphi, every machine read over SSH through a monitoring account ([Read-only machines](#read-only-machines)). Recommended at Danny's request; it follows his read-only rule |
+| How reports reach Homer | A second report type on the #38 runner controller protocol (Danny, 2026-11-24) |
+| One machine list | The runner fleet configuration from #35 (Danny, 2026-11-24) |
+
 ## Open choices with defaults
 
 | Choice | Default | Alternative |
 | --- | --- | --- |
-| How sparkDash runs | sparkDash's published container on Delphi, accepting that it is privileged on that host. It is sparkDash's documented deployment, and Delphi's own metrics come from local collectors | Run sparkDash unprivileged, as a plain Node service (`npm start`) on a non-Spark host, with every machine read over SSH. That costs the local collectors, and sparkDash calls this path untested on x86 |
-| How reports reach Homer | A fleet intake route behind Access with a service token | The runner-controller protocol in PR #38, once it lands. The sparkDash host would enroll as a machine and report through it |
-| One machine list | The Collector's configuration plus sparkDash's own | The PC and Mac runner configuration in PR #35, once it lands, so one list serves the runners and the fleet |
 | Reachability Check | Read the SSH banner, no login | Log in with a key whose `authorized_keys` entry forces a no-op command. That proves logins work, but it puts a key on every machine |
 | `provenance.sourceUrl` | The front door's origin for the sparkDash page | Homer's own fleet view, which also works for reachability-only machines |
 | Release pin | The exact release, and the image digest in the runbook | Follow `latest` and rely on the schema check alone |

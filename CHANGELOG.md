@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Accepted fleet monitoring intent and spec (`specs/fleet-monitoring/spec.md`) and ADR 011: every machine reachable over SSH, read-only, through sparkDash and an SSH reachability check.
+
 - `@zs-home/work-request-emitter` and `npm --silent run work-request -- <source>` (ZER-73): reads a Linear Task, GitHub issue or manual request, records each Work Request once in an append-only store, prints the recorded bytes on a retry without asking Jev again, and reads credentials from 1Password by reference. The policy file and manual requests come from `origin/main` (or `--ref`), never the working tree.
 
 - Homer's Work Request policy (`docs/work-requests/policy.json`) and the Jev risk-tier client in `@zs-home/shared-contracts` (ZER-72), which asks Jev through Cloudflare Workers AI and never repeats a credential.
