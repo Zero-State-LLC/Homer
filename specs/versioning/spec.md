@@ -8,6 +8,9 @@ versioning rule for every Zero-State repository.
 Intent: [Versioning and releases](../../docs/intent/versioning-and-releases.md)
 (accepted by Danny on 2026-11-24, #74)
 Decision: [ADR 012](../adr/012-one-product-version.md)
+Org rule: the Zero State versioning rule, `templates/versioning.md` in
+`Zero-State-LLC/agent-context` (`8cf82d5`, in the Context Pin). This spec is its
+worked example.
 
 Homer gets one product version. Every Activity Event names the exact code that
 made it, every Worker can say which release it runs, and a release is a tag
