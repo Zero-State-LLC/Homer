@@ -157,7 +157,6 @@ interface History {
   cursor: Cursor | null;
   held: CollectorState["held"];
   active: CollectorState["active"];
-  queueFull: boolean;
 }
 
 /** Steps 4 to 6 of each poll: continuity, events oldest first, and active alerts that vanished. */
@@ -182,13 +181,11 @@ function history(
   // the history from just before its oldest entry until an entry is queued.
   const fresh = flow.kind === "first" || flow.kind === "restart";
   let cursor = fresh ? baselineBefore(alerts.recent[0]?.id ?? 1) : state.cursor;
-  let queueFull = false;
   for (const entry of flow.entries) {
     const machineId = machineOf(entry.unitId);
     if (machineId !== undefined) {
       if (events.length >= input.queueRoom) {
-        // The cursor stops here; sparkDash's history keeps the rest.
-        queueFull = true;
+        // The queue is full: the cursor stops here; sparkDash's history keeps the rest.
         break;
       }
       const event = machineAlertEvent({
@@ -223,7 +220,7 @@ function history(
     }
   }
   const active = alerts.active.map((a) => ({ key: a.key, startsAt: a.startsAt }));
-  return { events, cursor, held, active, queueFull };
+  return { events, cursor, held, active };
 }
 
 /**
@@ -278,9 +275,10 @@ export function poll(input: PollInput): PollResult {
       state.cursor = built.cursor;
       state.held = built.held;
       state.active = built.active;
-      state.present = setPresent(state.present, "queue_full", built.queueFull, nowIso);
     }
   }
+  // Full when this poll's events take the last of the room, whatever sparkDash answered.
+  state.present = setPresent(state.present, "queue_full", events.length >= input.queueRoom, nowIso);
 
   // The snapshot: while sparkDash is not read, or not trusted, every sparkDash Machine is unknown.
   const machinesRead = sparkdashState === "ok" || sparkdashState === "alerts_off";
