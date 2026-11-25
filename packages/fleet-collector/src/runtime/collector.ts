@@ -54,11 +54,20 @@ const PLACEHOLDER_ID = "00000000-0000-8000-8000-000000000000";
 export class FleetCollector {
   private chain: Promise<unknown> = Promise.resolve();
   private snapshot: Snapshot | undefined;
+  private readonly pending = new Map<"poll" | "check", Promise<void>>();
 
   constructor(private readonly deps: CollectorDeps) {}
 
-  private serialize<T>(task: () => Promise<T>): Promise<T> {
-    const run = this.chain.then(task, task);
+  /**
+   * Runs one task at a time, and coalesces: a poll or a Check asked for while
+   * one of its kind is still waiting or running joins that one, so a slow
+   * sparkDash or intake never piles up work.
+   */
+  private serialize(kind: "poll" | "check", task: () => Promise<void>): Promise<void> {
+    const waiting = this.pending.get(kind);
+    if (waiting) return waiting;
+    const run = this.chain.then(task, task).finally(() => this.pending.delete(kind));
+    this.pending.set(kind, run);
     this.chain = run.catch(() => undefined);
     return run;
   }
@@ -74,7 +83,7 @@ export class FleetCollector {
 
   /** Every 30 seconds: read sparkDash, queue new events, then deliver. */
   pollOnce(): Promise<void> {
-    return this.serialize(async () => {
+    return this.serialize("poll", async () => {
       const { config, store, now, log } = this.deps;
       const stored = await store.load();
       const read = await this.deps.sparkdash.readAll();
@@ -106,7 +115,7 @@ export class FleetCollector {
 
   /** Every 60 seconds: check every reachability-only machine's SSH banner. */
   checkOnce(): Promise<void> {
-    return this.serialize(async () => {
+    return this.serialize("check", async () => {
       const { config, store, now, log } = this.deps;
       const machines = config.machines.filter((m): m is SshMachine => "ssh" in m);
       const results = await Promise.all(

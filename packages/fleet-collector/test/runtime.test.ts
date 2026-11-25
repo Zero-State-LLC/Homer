@@ -200,6 +200,38 @@ describe("the Collector runtime", () => {
     expect(delivered[0]!.collectedAt).toBe(new Date(START + 20 * 30_000 + 300_000).toISOString());
   });
 
+  it("coalesces a poll asked for while one is still running", async () => {
+    let reads = 0;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const store = memoryStore();
+    const { intake } = stubIntake();
+    const collector = new FleetCollector({
+      config,
+      store,
+      sparkdash: {
+        request: () => Promise.reject(new Error("not used")),
+        readAll: async () => {
+          reads++;
+          await gate;
+          return read();
+        },
+      },
+      check: () => Promise.resolve("up"),
+      intake,
+      now: () => START,
+      log: () => undefined,
+    });
+    const first = collector.pollOnce();
+    const second = collector.pollOnce();
+    const third = collector.pollOnce();
+    release();
+    await Promise.all([first, second, third]);
+    expect(reads).toBe(1);
+    await collector.pollOnce();
+    expect(reads).toBe(2);
+  });
+
   it("keeps a report's id on an identical retry, and gives changed content another", () => {
     const report = { contract: "home.fleet-report/v1", reportId: "x" } as unknown as FleetReport;
     const id = reportIdFor(report);

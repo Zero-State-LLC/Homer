@@ -90,13 +90,28 @@ async function startCollector(collector: FleetCollector, once: boolean): Promise
   await collector.pollOnce();
   if (once) return;
   await new Promise<void>((resolve) => {
+    let stopped = false;
     const report = (error: unknown) =>
       process.stderr.write(`${error instanceof Error ? error.name : "error"} in a scheduled run\n`);
-    const polls = setInterval(() => void collector.pollOnce().catch(report), POLL_MS);
-    const checks = setInterval(() => void collector.checkOnce().catch(report), CHECK_MS);
+    // Each run is scheduled after the last one finishes, never on a fixed tick,
+    // so a slow sparkDash or intake cannot pile up runs.
+    const every = (task: () => Promise<void>, ms: number) => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const run = async () => {
+        const started = Date.now();
+        await task().catch(report);
+        if (!stopped)
+          timer = setTimeout(() => void run(), Math.max(0, ms - (Date.now() - started)));
+      };
+      timer = setTimeout(() => void run(), ms);
+      return () => clearTimeout(timer);
+    };
+    const stopPolls = every(() => collector.pollOnce(), POLL_MS);
+    const stopChecks = every(() => collector.checkOnce(), CHECK_MS);
     const stop = () => {
-      clearInterval(polls);
-      clearInterval(checks);
+      stopped = true;
+      stopPolls();
+      stopChecks();
       resolve();
     };
     process.once("SIGTERM", stop);
