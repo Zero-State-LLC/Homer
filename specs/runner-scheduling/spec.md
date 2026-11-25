@@ -1,6 +1,7 @@
 # Runner measurements and advisory scheduling (v0.1.0)
 
-Status: accepted specification direction, implementation and qualification incomplete.
+Status: accepted by Danny on 2026-11-22 as specification direction, with its intent;
+implementation and qualification incomplete.
 Intent: [runner performance](../../docs/intent/runner-performance-scheduling.md) (accepted for offline/read-only work).
 Decision: [ADR 005](../adr/005-runner-performance-scheduling.md); extends [ADR 002](../adr/002-pc-mac-runners.md), [ADR 003](../adr/003-runner-operations-telemetry.md), [controller](../runner-controller/spec.md) and [lifecycle](../runner-lifecycle/spec.md).
 Version: 0.1.0, new proposed read-only measurement family. No published endpoint, deployed Collector or live workflow change is claimed.

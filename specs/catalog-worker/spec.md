@@ -1,7 +1,8 @@
 # Cloudflare runtime catalog
 
-Status: implementation under Daniel's 2026-11-20 Cloudflare hosting direction,
-the accepted foundation intent and the migration plan's authenticated adapter step.
+Status: accepted by Danny on 2026-11-20, by his Cloudflare hosting direction,
+under the accepted foundation intent and the migration plan's authenticated
+adapter step.
 
 ## Architecture and contracts
 

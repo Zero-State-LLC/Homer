@@ -8,16 +8,22 @@ Homer is the Zero State engineering headquarters. It observes work in GitHub, Li
 
 ## What matters now
 
-Six accepted specs are being built, one Linear Task per work packet in the Homer project (team ZER):
+The latest handoff is [`docs/receipts/implementation-2026-11-25.md`](receipts/implementation-2026-11-25.md): where each stream stands, what waits on Danny, and the next Tasks. Linear (team ZER, project Homer) holds each Task's state.
 
-- Buzz as a Source System and alert channel: [`specs/buzz/spec.md`](../specs/buzz/spec.md).
+Accepted specs, one Linear Task per work packet:
+
+- The Event Ledger and Projections, under the foundation intent: [`specs/event-ledger/spec.md`](../specs/event-ledger/spec.md), [`specs/projections/spec.md`](../specs/projections/spec.md), [`specs/github-collector/spec.md`](../specs/github-collector/spec.md), [`specs/github-webhook/spec.md`](../specs/github-webhook/spec.md) and the runtime catalog, [`specs/catalog-worker/spec.md`](../specs/catalog-worker/spec.md).
+- The runner stream (work calendar, PC and Mac runners, controllers, lifecycle, scheduling and job evidence): [`specs/runner-controller/spec.md`](../specs/runner-controller/spec.md), [`specs/runner-lifecycle/spec.md`](../specs/runner-lifecycle/spec.md), [`specs/runner-scheduling/spec.md`](../specs/runner-scheduling/spec.md), [`specs/runner-work-evidence/spec.md`](../specs/runner-work-evidence/spec.md), and ADRs 001 to 005.
+- Buzz as a Source System and alert channel: [`specs/buzz/spec.md`](../specs/buzz/spec.md), with [ADR 014](../specs/adr/014-homer-buzz-worker.md).
 - The knowledge loop (Knowledge Flags, the Curator, Curator Profiles): [`specs/knowledge-loop/spec.md`](../specs/knowledge-loop/spec.md).
-- CI feedback time (build once; docs-only pull requests skip the workspace steps): [`specs/ci-feedback/spec.md`](../specs/ci-feedback/spec.md). Both steps landed on 2026-11-24.
-- Work Request emission (ZER-62): [`specs/work-requests/spec.md`](../specs/work-requests/spec.md). The builder, policy, Jev client and emitter CLI landed on 2026-11-24; the runbook (ZER-74) and delivery to GAP (ZER-75) remain.
-- Fleet monitoring through sparkDash (ZER-76): [`specs/fleet-monitoring/spec.md`](../specs/fleet-monitoring/spec.md). Every machine reachable over SSH, read-only. It builds on the runner stream's fleet configuration and controller protocol, which landed on 2026-11-24. Its intake goes in `homer-intake`, the Worker for machines ([ADR 013](../specs/adr/013-catalog-worker-boundary.md), split in ZER-96; deployment in [`docs/deployment/intake.md`](deployment/intake.md)).
-- Versioning and releases (ZER-90): [`specs/versioning/spec.md`](../specs/versioning/spec.md) and [ADR 012](../specs/adr/012-one-product-version.md). One lockstep product version, build versions on every Activity Event, and release tags cut only by Danny. All five packets landed on 2026-11-24; the staging deploy receipts for `v0.1.0-rc.1` remain (ZER-95). Runbook: [`docs/deployment/releases.md`](deployment/releases.md).
+- CI feedback time: [`specs/ci-feedback/spec.md`](../specs/ci-feedback/spec.md), ADRs 008 to 010.
+- Work Request emission (ZER-62): [`specs/work-requests/spec.md`](../specs/work-requests/spec.md), ADR 006.
+- Fleet monitoring through sparkDash (ZER-76): [`specs/fleet-monitoring/spec.md`](../specs/fleet-monitoring/spec.md), ADR 011. Its intake is in `homer-intake`, the Worker for machines ([ADR 013](../specs/adr/013-catalog-worker-boundary.md); deployment in [`docs/deployment/intake.md`](deployment/intake.md)).
+- Versioning and releases (ZER-90): [`specs/versioning/spec.md`](../specs/versioning/spec.md), [ADR 012](../specs/adr/012-one-product-version.md). Runbook: [`docs/deployment/releases.md`](deployment/releases.md).
 
-Hosting (Danny, 2026-11-23): runners are local, and Cloudflare handles everything else. The merge contract needs a Verdict, and the judge grades a Work Packet built from a Work Request; docs-only pull requests merge on Danny's acceptance. On 2026-11-24 Danny granted an admin bypass. The pull requests merged under it, among them the runner stack (#31 to #46) after a rebase onto `main` and the versioning stream (#76 to #82), are listed in its receipt. The code among them owes after-the-fact Verdicts (ZER-63); see [`docs/receipts/bypass-merges-2026-11-24.md`](receipts/bypass-merges-2026-11-24.md) and, for the merges after midnight UTC, [`docs/receipts/bypass-merges-2026-11-25.md`](receipts/bypass-merges-2026-11-25.md). The state of the work, the open pull requests, and the next Tasks are in the latest handoff, [`docs/receipts/implementation-2026-11-23.md`](receipts/implementation-2026-11-23.md). The foundation intent, [`docs/intent/home-foundation.md`](intent/home-foundation.md), still governs the Event Ledger and Projections (ZER-9). Do not invent a Milestone date; an Unknown Date is a valid answer.
+Accepted without a spec yet: the Work Assignment Router, [`docs/intent/work-assignment-router.md`](intent/work-assignment-router.md) and [ADR 007](../specs/adr/007-work-assignment-router-trust.md). Still a draft: credential administration, [`specs/credential-admin/spec.md`](../specs/credential-admin/spec.md), whose first slice is built (ZER-86).
+
+Hosting (Danny, 2026-11-23): runners are local, and Cloudflare handles everything else. The merge contract needs a Verdict, and the judge grades a Work Packet built from a Work Request; docs-only pull requests merge on Danny's acceptance. On 2026-11-24 Danny granted an admin bypass. The pull requests merged under it, among them the runner stack (#31 to #46) after a rebase onto `main` and the versioning stream (#76 to #82), are listed in its receipt. The code among them owes after-the-fact Verdicts (ZER-63); see [`docs/receipts/bypass-merges-2026-11-24.md`](receipts/bypass-merges-2026-11-24.md) and, for the merges after midnight UTC, [`docs/receipts/bypass-merges-2026-11-25.md`](receipts/bypass-merges-2026-11-25.md). The foundation intent, [`docs/intent/home-foundation.md`](intent/home-foundation.md), still governs the Event Ledger and Projections (ZER-9). Do not invent a Milestone date; an Unknown Date is a valid answer.
 
 ## Authority / source order
 
@@ -49,7 +55,7 @@ Route work into the right path, not into a chat.
 | --- | --- |
 | A new or changed term | `CONTEXT.md` |
 | Stage-zero intent | `docs/intent/` |
-| Evidence, discovery, or implementation receipt | `docs/receipts/` |
+| Evidence, discovery, or implementation receipt | `docs/receipts/`, named `<topic>-<YYYY-MM-DD>.md` (a release's by its version) |
 | A release or a Worker deploy | the runbook, [`docs/deployment/releases.md`](deployment/releases.md); each deploy leaves a Deploy Receipt in `docs/receipts/` |
 | A Verdict for a pull request | the runbook, [`docs/deployment/work-requests.md`](deployment/work-requests.md), on the judge's machine |
 | Integration contract | `specs/integration-contracts/` (named in `CONTRIBUTING.md`; the folder arrives with the contracts work) |

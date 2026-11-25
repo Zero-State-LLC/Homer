@@ -1,6 +1,7 @@
 # Homer credentials administration
 
-Status: draft specification. Requested by Daniel on November 21, 2026 PT.
+Status: draft, requested by Danny on 2026-11-21. Its first slice merged with #32 on
+2026-11-24 under his admin bypass; the spec itself has no recorded acceptance.
 No live credentials, permissions or provider settings are changed by this proposal.
 
 ## Intent

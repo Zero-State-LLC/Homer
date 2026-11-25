@@ -2,7 +2,7 @@
 
 Author: Claude Code for Danny (scrimshawlife-ctrl)
 Date: 2026-11-24
-Status: accepted
+Status: accepted by Danny on 2026-11-24 (#74).
 Product: Homer (`Zero-State-LLC/Homer`)
 
 This file is a proto-spec. It comes **before** specify.
