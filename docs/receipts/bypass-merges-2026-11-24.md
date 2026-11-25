@@ -194,7 +194,7 @@ One check moved from code to the deployment in #86. The catalog refused a
 holds neither, so `docs/deployment/intake.md` gives the controller paths their
 own Access application on intake's own hostname.
 
-#88 and #89 are fleet monitoring packets 1 and 2. #88 also changes how the
+Pull requests #88 and #89 are fleet monitoring packets 1 and 2. #88 also changes how the
 Event Ledger checks a Correction's Provenance, against Activity Event version 3,
 so a sparkDash event can be corrected.
 
