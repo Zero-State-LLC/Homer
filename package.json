@@ -25,7 +25,8 @@
     "smoke:workers": "node scripts/ledger-smoke.mjs",
     "work-request": "node packages/work-request-emitter/dist/cli.js",
     "work-packet": "node packages/work-request-emitter/dist/packet-cli.js packet",
-    "verdict-comment": "node packages/work-request-emitter/dist/packet-cli.js comment"
+    "verdict-comment": "node packages/work-request-emitter/dist/packet-cli.js comment",
+    "fleet-collector": "node packages/fleet-collector/dist/cli.js"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.5",
