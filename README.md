@@ -47,10 +47,11 @@ npm ci --no-audit --no-fund
 npm run check
 ```
 
-Development needs Node 22.13+, Node 24, or Node 26+. Tests use local workerd and synthetic
-fixtures. They need no Cloudflare account, deployed resources or paid model calls.
-`npm run check` builds packages, checks formatting and types, runs Node and Workers
-tests, and exercises plain local Wrangler to catch runtime incompatibilities.
+Development needs Node 22.13+, Node 24, or Node 26+; `.nvmrc` names Node 22, which CI
+uses. Tests use local workerd and synthetic fixtures. They need no Cloudflare account,
+deployed resources or paid model calls. `npm run check` builds packages, checks
+formatting and types, runs Node and Workers tests, and exercises plain local Wrangler to
+catch runtime incompatibilities.
 
 ## Data and access boundaries
 
