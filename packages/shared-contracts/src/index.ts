@@ -51,3 +51,5 @@ export { askJevForRiskTier, jevRiskRequest, readJevRiskAnswer } from "./jev.js";
 
 /** The product version, commit and Build Version this code was built from (versioning spec). */
 export { BUILD_COMMIT, BUILD_VERSION, PRODUCT_VERSION } from "./generated/build-info.js";
+
+export { workerVersion, type WorkerVersion } from "./worker-version.js";

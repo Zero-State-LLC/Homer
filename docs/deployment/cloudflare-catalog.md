@@ -19,10 +19,11 @@ source or chat logs:
 | `CATALOG_NAME` | Stable Durable Object name for this environment |
 | `MAPPING_CATALOG` | Durable Object namespace bound to MappingCatalogObject |
 | `EVENT_LEDGER` | Cross-Worker binding to the existing EventLedgerObject namespace, required for webhooks |
+| `CF_VERSION_METADATA` | Cloudflare's version metadata binding, committed in `wrangler.jsonc`; `GET /v1/version` reads it |
 | `GITHUB_WEBHOOK_SECRET` | High-entropy webhook secret installed as a Workers secret, required for webhooks |
 
-Create a read Access application for the selected host's `/v1/catalog` path and
-an admin application for `/v1/admin/catalog`. Use least-privilege policies and
+Create a read Access application for the selected host's `/v1/catalog` and
+`/v1/version` paths, and an admin application for `/v1/admin/catalog`. Use least-privilege policies and
 separate permitted service tokens. A read application must not issue the admin
 audience. Restrict admin access to approved operators and agents. Do not use
 Bypass policies. The Worker requires application tokens, not global session
@@ -65,7 +66,8 @@ inside the Worker, including when reached through another hostname.
 Provision the Event Ledger with its existing deployment configuration first. In
 the environment-specific catalog Wrangler configuration, add an EVENT_LEDGER
 Durable Object binding with class_name `EventLedgerObject` and script_name set to
-that environment's deployed ledger Worker. Do not add this class to the catalog's
+that environment's deployed ledger Worker (`homer-event-ledger` in the committed
+configuration). Do not add this class to the catalog's
 migrations or export it from the catalog production entry point. The established
 ledger object name `event-ledger` is a storage identity, not repository inventory;
 changing it would silently select empty storage. Confirm the expected ledger head
@@ -123,8 +125,13 @@ After deployment authorization and selection of account/domain, deploy the exact
 reviewed commit with environment-specific bindings. Keep workers.dev and preview
 URLs disabled. Verify the configured route is covered by the intended Access
 application. Record Worker version, source SHA and binding/migration version.
+Read `GET /v1/version` with a read token: its `buildVersion` names the deployed
+commit and its `workerVersionId` the deployed Worker version. Record that answer
+in the deploy receipt (versioning spec, "The deploy receipt").
 
 - No token, forged token, expired token, wrong issuer and wrong audience fail.
+- `GET /v1/version` answers only its four fields, and only with a read or admin
+  token.
 - A reader can list mappings but cannot replace them.
 - An authorized admin can add, remap, disable and remove a synthetic entry.
 - Two updates at one revision produce one success and one 409, without lost data.

@@ -1,10 +1,11 @@
 # Versioning and releases
 
-Version: 0.1.1
+Version: 0.1.2
 Status: accepted by Danny on 2026-11-24 (#75), with the defaults in
 [Open choices with defaults](#open-choices-with-defaults). Amended by Danny the
 same day: a release candidate has its own CHANGELOG section, and this is the
-versioning rule for every Zero-State repository.
+versioning rule for every Zero-State repository; and only the catalog Worker
+serves `GET /v1/version` (see [Worker version](#worker-version)).
 Intent: [Versioning and releases](../../docs/intent/versioning-and-releases.md)
 (accepted by Danny on 2026-11-24, #74)
 Decision: [ADR 012](../adr/012-one-product-version.md)
@@ -78,9 +79,13 @@ file. That is a choice for later, not this spec.
 
 - Every Worker's Wrangler file binds `version_metadata` as
   `CF_VERSION_METADATA`.
-- `GET /v1/version`, behind Access with the read audience, answers
-  `{ productVersion, buildVersion, workerVersionId, workerVersionTag }`. It
+- The catalog Worker, `homer-catalog`, serves `GET /v1/version`, behind Access
+  with the read audience. It answers
+  `{ productVersion, buildVersion, workerVersionId, workerVersionTag }` and
   never carries an account id, a hostname or a binding name.
+- The Event Ledger Worker and the two recovery Workers have no HTTP surface
+  with Access, and get none for this (Danny, 2026-11-24). Their deploy receipt
+  takes the version id and tag from Wrangler's deploy output instead.
 - The ledger Worker is renamed `homer-event-ledger` before its first deploy.
   Durable Object class names and migration tags do not change.
 
@@ -135,7 +140,8 @@ way, with its own CHANGELOG section and no GitHub Release.
 1. Check out the tag. The build refuses to deploy a `.dirty` or `unknown` build.
 2. Upload the Worker version with the tag as its version tag and the commit as
    its message, then deploy it.
-3. Read `GET /v1/version` through Access, and write the deploy receipt.
+3. Read `GET /v1/version` through Access for the catalog Worker, or Wrangler's
+   deploy output for the others, and write the deploy receipt.
 
 ### The deploy receipt
 
@@ -148,7 +154,8 @@ naming:
 - the Cloudflare version id;
 - the Durable Object migration tags;
 - the time;
-- the `GET /v1/version` answer;
+- the `GET /v1/version` answer, or Wrangler's version id and tag for a Worker
+  without one;
 - who deployed.
 
 It carries no account id, hostname or token. The Release Gate for an
@@ -218,8 +225,8 @@ a Verdict under the merge contract:
 2. **Build version.** `build-info.ts` generation, and every Collector and
    Emitter on `BUILD_VERSION`, with the literal check on.
 3. **Worker version.** `version_metadata` in every Wrangler file, `GET
-   /v1/version`, and the ledger Worker renamed `homer-event-ledger`, with the
-   deployment guides updated.
+   /v1/version` on the catalog Worker, and the ledger Worker renamed
+   `homer-event-ledger`, with the deployment guides updated.
 4. **CHANGELOG and contracts.** The CHANGELOG restructured to the allowed
    subsections, `release-notes.mjs`, and the contracts table.
 5. **Release runbook.** `docs/deployment/releases.md`, the deploy receipt

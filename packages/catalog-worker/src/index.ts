@@ -13,6 +13,7 @@ import { parseMappingSnapshot } from "@zs-home/github-sync";
 import { verifyAccessIdentity, validateAccessConfig, type AccessConfig } from "./access.js";
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
 import { json, readBytes } from "./http.js";
+import { workerVersion } from "@zs-home/shared-contracts/workers";
 import { handleGitHubWebhook, type WebhookEnv } from "./webhook.js";
 import { editorPaths, editorResponse } from "./editor.js";
 import { adminPaths, adminAsset, overviewResponse } from "./admin.js";
@@ -26,7 +27,10 @@ export interface Env
     WebhookEnv,
     DirectoryBindings,
     RunnerBindings,
-    ControllerBindings {}
+    ControllerBindings {
+  /** Cloudflare's `version_metadata` binding (versioning spec, "Worker version"). */
+  CF_VERSION_METADATA?: { id: string; tag: string; timestamp: string };
+}
 /** Optional key resolver is a trusted test seam, never supplied from requests or bindings. */
 export async function handleRequest(
   request: Request,
@@ -47,8 +51,10 @@ export async function handleRequest(
     url.pathname === "/v1/my-setup";
   const directoryUIRoute = directoryPaths.has(url.pathname);
   const snapshotRoute = url.pathname === "/v1/admin/catalog/snapshot";
+  const versionRoute = url.pathname === "/v1/version";
   if (
     url.pathname !== "/v1/catalog" &&
+    !versionRoute &&
     url.pathname !== "/v1/admin/catalog" &&
     !archiveRoute &&
     !editorRoute &&
@@ -61,6 +67,7 @@ export async function handleRequest(
     return json({ error: "not_found" }, 404);
   if (
     ((url.pathname === "/v1/catalog" ||
+      versionRoute ||
       archiveRoute ||
       editorRoute ||
       snapshotRoute ||
@@ -95,6 +102,7 @@ export async function handleRequest(
   } catch {
     return json({ error: "unauthorized" }, 401);
   }
+  if (versionRoute) return json(workerVersion(env.CF_VERSION_METADATA));
   if (calendarRoute) return calendarResponse(url, env);
   if (directoryUIRoute) return directoryPage(url.pathname);
   if (credentialRoute) return credentialResponse(url, env, principal, principalKind);
