@@ -22,18 +22,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Build workspace dependencies
-        run: npm run build
+      # Build once (ADR 008). Format reads no build output, so it goes first.
+      # --ignore-scripts skips the pretypecheck and pretest builds, which would
+      # repeat this one, and still runs typecheck and test themselves.
       - name: Format
         run: npm run format:check
+      - name: Build
+        run: npm run build
       - name: Lint
         run: npm run lint
       - name: Typecheck
-        run: npm run typecheck
+        run: npm run --ignore-scripts typecheck
       - name: Test
-        run: npm test
-      - name: Build
-        run: npm run build
+        run: npm test --ignore-scripts
       - name: Plain Workers runtime smoke
         run: npm run smoke:workers
   audit:
