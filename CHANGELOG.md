@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- The runbook from a Task to a Verdict, `docs/deployment/work-requests.md` (ZER-74): emit the Work Request, build the judge's packet, run `factory judge run --reproduce` and `factory judge gate`, and post the Verdict on the pull request, with every credential named by its 1Password reference. Two commands support it. `npm --silent run work-packet -- <request.json> --author-model <provider/model>` prints `toWorkPacket`'s packet plus the author model, as ASCII JSON; the packet stays at intake. `npm --silent run verdict-comment -- <verdict.json> <gate.json>` prints the pull request comment for a Verdict and the gate's answer.
+
 - The release runbook, `docs/deployment/releases.md` (ZER-95): preparing a release pull request, Danny's tag and GitHub Release, deploying a Worker from a clean clone of the tag, the deploy receipt format, and the Release Gate. `node scripts/deploy-check.mjs vX.Y.Z` refuses a deploy unless HEAD is the annotated tag's commit, the tree is clean, the version and CHANGELOG section match the tag, and the build is that commit's, not `.dirty` or `+unknown`. `CONTEXT.md` defines Release, Build Version and Deploy Receipt, and its Release Gate names the four checks.
 
 - The catalog Worker answers `GET /v1/version` behind Access with the read audience (ZER-94): the product version, the Build Version, and Cloudflare's version id and upload tag, nothing else. Every deployable Wrangler file binds `version_metadata` as `CF_VERSION_METADATA`. The Event Ledger and recovery Workers have no HTTP surface and get none for this; their deploy receipt takes the version from Wrangler's output.

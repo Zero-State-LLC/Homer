@@ -51,6 +51,7 @@ Route work into the right path, not into a chat.
 | Stage-zero intent | `docs/intent/` |
 | Evidence, discovery, or implementation receipt | `docs/receipts/` |
 | A release or a Worker deploy | the runbook, [`docs/deployment/releases.md`](deployment/releases.md); each deploy leaves a Deploy Receipt in `docs/receipts/` |
+| A Verdict for a pull request | the runbook, [`docs/deployment/work-requests.md`](deployment/work-requests.md), on the judge's machine |
 | Integration contract | `specs/integration-contracts/` (named in `CONTRIBUTING.md`; the folder arrives with the contracts work) |
 | Activity Event from a Source System | the Event Ledger, via a Collector |
 | Team HANDOFF, STATUS, DECISIONS, or skills | `Zero-State-LLC/agent-context`, consumed through the Context Pin |

@@ -15,3 +15,5 @@ export {
 export { readSecret, SecretUnavailableError } from "./secrets.js";
 export { readSource, SourceUnreachableError, type SourceReaders } from "./sources.js";
 export { RequestStore, StoreUnavailableError, type StoredRecord } from "./store.js";
+export { asciiJson, judgePacket, PacketRefusedError, verdictComment } from "./packet.js";
+export { runPacketCli, type PacketCliOutput } from "./packet-cli.js";
