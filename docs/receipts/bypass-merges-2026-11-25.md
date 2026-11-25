@@ -47,9 +47,10 @@ configuration and its API are unchanged.
 on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
 Alerts and Buzz collection.
 
-Later the same day, after Danny's "Continue" at 13:01 Pacific time, four more
-pull requests followed: three docs-only, and #107, which changes configuration
-and CI and so owes a Verdict like the code pull requests.
+Later the same day, after Danny's "Continue" at 13:01 Pacific time and his
+answers to the grilling at 14:32, six more pull requests followed: four
+docs-only, and #107 and #113, which change configuration or CI and so owe a
+Verdict like the code pull requests.
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
@@ -57,6 +58,8 @@ and CI and so owes a Verdict like the code pull requests.
 | [#106](https://github.com/Zero-State-LLC/Homer/pull/106) | Docs-only: docs hygiene after the 2026-11-24 audit (ZER-89, part 1), with ADR 007 accepted as Danny ruled in chat | `d1f96bb` | `b891b71` |
 | [#107](https://github.com/Zero-State-LLC/Homer/pull/107) | Config: `engines` in every package, `.nvmrc`, and `--retry-wait-time 10` on the `links` check (ZER-89, part 2) | `ef7841f` | `2380f60` |
 | [#110](https://github.com/Zero-State-LLC/Homer/pull/110) | Docs-only: agent instructions for Buzz, `docs/agents/buzz.md`, linked from `AGENTS.md` in one line as the Buzz spec says (ZER-49) | `b96ee3c` | `cefc4f2` |
+| [#112](https://github.com/Zero-State-LLC/Homer/pull/112) | Docs-only: Danny's six answers from the grilling (`grill-2026-11-25.md`), with the accepted `CONTEXT.md` terms | `b97b7a1` | `0124c26` |
+| [#113](https://github.com/Zero-State-LLC/Homer/pull/113) | CI: the `links` check runs lychee a second time when the first run fails (ZER-89), at Danny's choice | `4c6c47e` | `a3d4ac7` |
 
 Codex reviewed #106 at `09e7706`. The merge tool then brought the branch up to
 date with `main`, which added only #105's two files, so `main` after #106 equals
@@ -64,7 +67,10 @@ date with `main`, which added only #105's two files, so `main` after #106 equals
 passes `--retry-wait-time 10` to the `links` check and accepts and excludes
 nothing new. It did not do what its description said: a `502` from github.com
 failed the check on #109 within 15 s, too soon for even three 10 s waits, and
-passed on re-run. ZER-89 stays open on that item.
+passed on re-run. #113 replaced it with a second
+lychee run, proved on the branch with a throwaway dead link: both runs failed,
+and so did the job. Codex reviewed #113 at `05a5753`; the merge tool then
+brought it up to date with #112, and `main` equals that head plus #112 exactly.
 
 Pull requests #99 and #100 build the Alert engine and the fleet's Alert rules
 as pure code. Nothing posts yet: that is ZER-115, blocked by the signing
@@ -75,5 +81,5 @@ sparkDash rule id `stale`.
 
 ## Still owed
 
-None of the five code pull requests, nor #107, has a Verdict. ZER-63 lists
-them with their full head SHAs.
+None of the five code pull requests, nor #107 or #113, has a Verdict. ZER-63
+lists them with their full head SHAs.
