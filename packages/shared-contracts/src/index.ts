@@ -48,3 +48,6 @@ export {
 export type { AskJevOptions, JevFetch } from "./jev.js";
 
 export { askJevForRiskTier, jevRiskRequest, readJevRiskAnswer } from "./jev.js";
+
+/** The product version, commit and Build Version this code was built from (versioning spec). */
+export { BUILD_COMMIT, BUILD_VERSION, PRODUCT_VERSION } from "./generated/build-info.js";

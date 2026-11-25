@@ -61,6 +61,25 @@ describe("Durable Event Ledger", () => {
       "conflict",
     );
   });
+  it("keeps a source event collected before and after a release as one Duplicate", async () => {
+    // Collectors write the Build Version as collectorVersion (versioning spec),
+    // so every release changes it. The ledger must not see that as a Conflict.
+    const l = ledger();
+    const before = event("release");
+    before.provenance = { ...before.provenance, collectorVersion: "0.1.0+a1b2c3d" };
+    const first = await l.appendActivityEvent(before);
+    expect(first.outcome).toBe("appended");
+    const after = event("release");
+    after.provenance = {
+      ...after.provenance,
+      collectorVersion: "0.2.0+e4f5a6b.dirty",
+      collectedAt: "2026-12-01T00:00:00Z",
+    };
+    expect(await l.appendActivityEvent(after)).toEqual({ ...first, outcome: "duplicate" });
+    const history = await l.readHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0]!.payload.provenance.collectorVersion).toBe("0.1.0+a1b2c3d");
+  });
   it("stores version 1 and version 2 events side by side", async () => {
     const l = ledger();
     expect((await l.appendActivityEvent(event())).outcome).toBe("appended");

@@ -16,6 +16,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import {
+  checkSources,
   checkWorkspace,
   compareVersions,
   loadWorkspace,
@@ -333,6 +334,51 @@ test("check-versions names the file that disagrees", async (t) => {
       assert.ok(check(dir).includes(c.error), `${c.error}\n  got: ${check(dir).join("\n  ")}`);
     });
   }
+});
+
+test("a hand-typed Collector version in src fails, naming the file and line", (t) => {
+  const dir = temporary(t);
+  fixture(dir);
+  const file = (path, text) => {
+    mkdirSync(dirname(join(dir, path)), { recursive: true });
+    writeFileSync(join(dir, path), text);
+  };
+  file(
+    "packages/a/src/mapper.ts",
+    [
+      'import { BUILD_VERSION } from "@zs-home/shared-contracts/workers";',
+      "export const provenance = {",
+      '  collector: "homer-a",',
+      "  collectorVersion: BUILD_VERSION,",
+      "};",
+      "export interface P {",
+      "  collectorVersion: string;",
+      "  collectorVersion?: string;",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  file("packages/a/test/mapper.test.ts", 'const expected = { collectorVersion: "1.0.0" };\n');
+  file("packages/a/src/node_modules/x/index.js", 'export const collectorVersion = "1.0.0";\n');
+  file("packages/b/README.md", 'collectorVersion: "1.0.0"\n');
+  assert.deepEqual(checkSources(dir, loadWorkspace(dir)), []);
+
+  file("packages/a/src/deep/old.ts", 'export const x = 1;\n    collectorVersion: "1.0.0",\n');
+  file("packages/b/src/constants.mjs", "export const COLLECTOR_VERSION = '0.1.0';\n");
+  file("packages/b/src/types.ts", 'export type T = { collectorVersion?: "0.1.0" };\n');
+  file("packages/b/src/template.js", "export const v = { collectorVersion: `1.${0}` };\n");
+  const message =
+    "a hand-typed Collector version; use BUILD_VERSION from @zs-home/shared-contracts";
+  assert.deepEqual(checkSources(dir, loadWorkspace(dir)), [
+    `packages/a/src/deep/old.ts:2: ${message}`,
+    `packages/b/src/constants.mjs:1: ${message}`,
+    `packages/b/src/template.js:1: ${message}`,
+    `packages/b/src/types.ts:1: ${message}`,
+  ]);
+});
+
+test("the repository's sources type no Collector version by hand", () => {
+  assert.deepEqual(checkSources(repo, loadWorkspace(repo)), []);
 });
 
 test("workspace patterns other than a directory or dir/* are refused", (t) => {

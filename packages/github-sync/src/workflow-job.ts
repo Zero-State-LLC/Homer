@@ -3,6 +3,8 @@
  * The caller MUST authenticate the original webhook bytes before calling this.
  * No effects, API calls, Actor Identity Bindings, or runner assignments occur here.
  */
+import { BUILD_VERSION } from "@zs-home/shared-contracts/workers";
+
 export interface GitHubJobContext {
   repositoryId: number;
   repository: string;
@@ -40,7 +42,8 @@ export interface GitHubJobObservation {
     sourceObjectId: string;
     sourceUrl: string;
     collector: "homer-github-workflow-job";
-    collectorVersion: "0.1.0";
+    /** The Build Version of the code that mapped the job. */
+    collectorVersion: string;
     collectedAt: string;
     deliveryId: string;
   };
@@ -201,7 +204,7 @@ export function mapWorkflowJobWebhook(
         sourceObjectId: String(job.id),
         sourceUrl: evidenceUrl,
         collector: "homer-github-workflow-job",
-        collectorVersion: "0.1.0",
+        collectorVersion: BUILD_VERSION,
         collectedAt: context.collectedAt,
         deliveryId: context.deliveryId,
       },

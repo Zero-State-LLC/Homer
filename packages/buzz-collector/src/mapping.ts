@@ -4,7 +4,11 @@
  * Only metadata and a link leave this function; message text, names, attachments, mentions and
  * the raw event never do.
  */
-import { validateActivityEvent, type ActivityEvent } from "@zs-home/shared-contracts/workers";
+import {
+  BUILD_VERSION,
+  validateActivityEvent,
+  type ActivityEvent,
+} from "@zs-home/shared-contracts/workers";
 import { createHash } from "node:crypto";
 
 /** Reviewed configuration. Nothing else in the catalog may affect a mapped event. */
@@ -44,7 +48,6 @@ export type BuzzMappingResult =
   | { readonly outcome: "refused"; readonly reason: BuzzRefusal };
 
 export const COLLECTOR = "homer-buzz";
-export const COLLECTOR_VERSION = "1.0.0";
 /** Kind 9: a channel message. */
 export const CHANNEL_MESSAGE_KIND = 9;
 /** An author sets `created_at`, so a time this far past collection is refused. */
@@ -235,7 +238,7 @@ export function createBuzzMapper(verify: SchnorrVerify) {
         sourceObjectId: id,
         sourceUrl: link,
         collector: COLLECTOR,
-        collectorVersion: COLLECTOR_VERSION,
+        collectorVersion: BUILD_VERSION,
         collectedAt: context.collectedAt,
       },
       ...(root.kind === "root" && root.id !== id

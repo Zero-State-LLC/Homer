@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { BUILD_VERSION } from "@zs-home/shared-contracts/workers";
 import {
   enrichWorkflowJob,
   mapWorkflowJobWebhook,
@@ -85,6 +86,8 @@ it("maps the exact job to a bounded evidence link and does not trust the sender"
     provenance: {
       sourceSystem: "github",
       sourceObjectId: "101",
+      collector: "homer-github-workflow-job",
+      collectorVersion: BUILD_VERSION,
       deliveryId: "synthetic-delivery",
     },
   });
