@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Accepted ADR 013 (ZER-88): split the catalog Worker by who calls it. `homer-catalog` keeps the routes people reach through Access with the read or admin audience. A new `homer-intake` takes the GitHub webhook and job evidence, the runner controller protocol and fleet intake, with workload audiences only. Durable Object bindings point one way, from intake to the catalog. Not built yet.
+
 - The runbook from a Task to a Verdict, `docs/deployment/work-requests.md` (ZER-74): emit the Work Request, build the judge's packet, run `factory judge run --reproduce` and `factory judge gate`, and post the Verdict on the pull request, with every credential named by its 1Password reference. Two commands support it. `npm --silent run work-packet -- <request.json> --author-model <provider/model>` prints `toWorkPacket`'s packet plus the author model, as ASCII JSON; the packet stays at intake. `npm --silent run verdict-comment -- <verdict.json> <gate.json>` prints the pull request comment for a Verdict and the gate's answer.
 
 - The release runbook, `docs/deployment/releases.md` (ZER-95): preparing a release pull request, Danny's tag and GitHub Release, deploying a Worker from a clean clone of the tag, the deploy receipt format, and the Release Gate. `node scripts/deploy-check.mjs vX.Y.Z` refuses a deploy unless HEAD is the annotated tag's commit, the tree is clean, the version and CHANGELOG section match the tag, and the build is that commit's, not `.dirty` or `+unknown`. `CONTEXT.md` defines Release, Build Version and Deploy Receipt, and its Release Gate names the four checks.

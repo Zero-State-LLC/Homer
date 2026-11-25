@@ -1,6 +1,6 @@
 # ADR 013: split the catalog Worker by who calls it
 
-Status: proposed, for Danny's acceptance before fleet intake (ZER-80) starts.
+Status: accepted by Danny on 2026-11-24 (#85), before fleet intake (ZER-80) starts.
 Task: ZER-88. Audit: [`docs/receipts/main-audit-2026-11-24.md`](../../docs/receipts/main-audit-2026-11-24.md),
 finding M4.
 
