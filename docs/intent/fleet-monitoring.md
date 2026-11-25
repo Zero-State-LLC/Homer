@@ -59,7 +59,7 @@ current features.
   off. Installing and configuring it is an operator step on our machine that a
   Homer runbook describes. It is not Homer code.
 - **A machine sparkDash cannot read still gets a reachability check.** The
-  spec decides the check (see Open questions). Its state is reachable or
+  spec decides the check (see Decisions). Its state is reachable or
   unreachable, with no telemetry. The status view says the telemetry is
   unknown, never that it is fine.
 - **A local Homer runner, the Fleet Collector**, reads sparkDash only through a
