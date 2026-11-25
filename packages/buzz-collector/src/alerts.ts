@@ -54,14 +54,15 @@ export interface AlertRequest {
   readonly params: Readonly<Record<string, string>>;
 }
 
-const REFUSALS = [
+/** Why a request was refused. */
+export const ALERT_REFUSALS = [
   "invalid_key",
   "outside_scope",
   "duplicate_key",
   "unknown_template",
   "invalid_params",
 ] as const;
-export type AlertRefusal = (typeof REFUSALS)[number];
+export type AlertRefusal = (typeof ALERT_REFUSALS)[number];
 
 interface Pending {
   content: string;

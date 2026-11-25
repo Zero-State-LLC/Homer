@@ -34,9 +34,10 @@ function deliverAll(state: AlertState, now: number): { state: AlertState; posted
 
 describe("change-only Alerts", () => {
   it("posts a raised Alert once, and its clearing once", () => {
-    let { state, refused } = apply(emptyAlertState(), [thermal()]);
-    expect(refused).toEqual([]);
-    let round = deliverAll(state, T0);
+    const first = apply(emptyAlertState(), [thermal()]);
+    expect(first.refused).toEqual([]);
+    let round = deliverAll(first.state, T0);
+    let state: AlertState;
     expect(round.posted).toEqual([
       "GPU temperature on Delphi\n\nAlert key: fleet:delphi:thermal\nRunbook: https://github.com/Zero-State-LLC/Homer/blob/main/specs/fleet-monitoring/spec.md#alerts-to-buzz",
     ]);
