@@ -2,7 +2,7 @@
 
 Author: Claude Code for Danny (scrimshawlife-ctrl)
 Date: 2026-11-24
-Status: draft
+Status: accepted
 Product: Homer (`Zero-State-LLC/Homer`)
 
 This file is a proto-spec. It comes **before** specify.
@@ -10,9 +10,11 @@ Next stage is `spec.md` (spec-kit specify). Do not skip to code.
 
 One committed intent per change stream. Live under `docs/intent/`.
 
-This intent is **proposed, not accepted, and not built**. Nothing in it
-authorizes code, a contract change, a deploy, a new Cloudflare Access
-application, or a change on any machine.
+Danny accepted this intent on 2026-11-24 (#69), with the proposed defaults
+below and Cloudflare Access as the front door. It is not built. The next stage
+is the spec in `specs/fleet-monitoring/`. Nothing here authorizes code, a
+contract change, a deploy, a new Cloudflare Access application, or a change on
+any machine before that spec is accepted.
 
 ## Problem / why now
 
@@ -159,17 +161,16 @@ not an inventory.
 | Jetson | None named. sparkDash does not mention the Jetson, and whether its Linux NVIDIA path works there is untested | `[unknown: model and JetPack version]` |
 | Galadriel | Depends on its hardware | `[unknown: not yet arrived]` |
 
-## Open questions
+## Decisions
 
-Each question has a proposed default, which applies if Danny accepts the intent
-without answering that question.
+Danny accepted these defaults on 2026-11-24 and chose the front door himself.
 
-| Question | Proposed default |
+| Question | Decision |
 | --- | --- |
 | Which host runs sparkDash, and does it run anywhere already? | Delphi, with sparkDash's published Docker image. Delphi is read locally, and every other machine over SSH with a key |
 | Which machines count as "reachable over SSH", and where is that list kept? | Every machine the team can log in to over SSH today. The list is kept on the sparkDash host, in sparkDash's configuration for the kinds it reads and in the Collector's configuration for the rest, never in the repository |
 | How is a machine sparkDash cannot read checked? | A TCP connection to its SSH port that reads the SSH server's banner, with no login and no command. It shows the machine is up and listening, not that a login works |
-| Which front door reaches the sparkDash page from outside: Cloudflare Tunnel with Access, or Tailscale Serve (sparkDash's documented path)? | Cloudflare Access, because the Galadriel draft says to reach outside only through Access. Is Tailscale in use at all? |
+| Which front door reaches the sparkDash page from outside: Cloudflare Tunnel with Access, or Tailscale Serve (sparkDash's documented path)? | Cloudflare Tunnel with Access (Danny's choice) |
 | Where does the Collector run? | On the sparkDash host, reading loopback, so sparkDash needs no token and no extra exposure |
 | Which sparkDash alerts go to Buzz? | Its critical and warning alerts (machine offline, thermal or hardware throttle, storage at 90 %, LLM unavailable, Xid or out-of-memory), their clears, and a reachability check that fails twice in a row |
 | What freshness budget makes a machine stale? | Two minutes without a successful read |
@@ -203,7 +204,6 @@ Consequences for the spec, not questions:
 
 ## Next
 
-A human accepts this file (`Status: accepted`). Then specify
-(`specs/fleet-monitoring/spec.md` with `## Workflows`), with an ADR for the
-read-only allowlist, the reachability check and the outbound push. Do not
+Specify `specs/fleet-monitoring/spec.md` with `## Workflows`, with an ADR for
+the read-only allowlist, the reachability check and the outbound push. Do not
 implement from this file alone.
