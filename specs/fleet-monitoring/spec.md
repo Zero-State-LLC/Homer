@@ -105,6 +105,11 @@ Collector posts one Fleet Report per poll:
   `pinnedVersion`), `events_backlog` (more events are waiting than this report
   carries), and `queue_full` (see [Deliver a report](#deliver-a-report)).
   Nothing else goes in a diagnostic.
+- `collector_gap` and `sparkdash_restarted` record something that already
+  happened, so they are **held**. The Collector writes each one to its state
+  when it detects it, keeps its `since`, and puts it in every report until a
+  `2xx` answers a report that carried it. The other three describe the present
+  and are worked out again for each report.
 - `machines` holds at most 64 entries, and `events` at most 100 Activity Events
   under contract version 3, the oldest waiting ones, in order. The body is at
   most 256 KiB.
@@ -156,7 +161,8 @@ Both live on the Collector's host, never in the repository.
   Work Request emitter reads its secrets. Never in the configuration file.
 - State: the cursor (the newest history `id` turned into events, and that
   entry's `key`, `status` and `at`), the alerts active at the last poll, the
-  Reachability Check counters, and the queue of events not yet delivered.
+  Reachability Check counters, the queue of events not yet delivered, and the
+  held diagnostics.
 
 ## Workflows
 
@@ -237,12 +243,13 @@ server. It does not show that a login works, and the status view says so.
 1. Build the report from the current snapshot and the oldest 100 events in the
    queue. If more are waiting, add `events_backlog`.
 2. `POST <intake>/v1/fleet/report` with the Access service token headers.
-3. On a `2xx`, remove exactly the events that report carried from the queue. The
-   next report carries the next 100, without waiting for the next poll, until
-   the queue is empty.
-4. On a failure, keep the queue and try again with backoff, at most every poll.
-   Only the latest snapshot is ever sent; an old one is not kept. Event Keys
-   make a resent event a Duplicate, never a second event.
+3. On a `2xx`, remove exactly the events that report carried from the queue, and
+   clear the held diagnostics it carried. The next report carries the next 100,
+   without waiting for the next poll, until the queue is empty.
+4. On a failure, keep the queue and the held diagnostics, and try again with
+   backoff, at most every poll. Only the latest snapshot is sent, but it always
+   carries every held diagnostic. Event Keys make a resent event a Duplicate,
+   never a second event.
 5. The queue holds at most 10,000 events. When it is full, the Collector stops
    moving the cursor and adds `queue_full`. sparkDash's own history then holds
    the newest transitions, and the continuity rules report any it loses.
@@ -281,7 +288,8 @@ that work (ZER-55) first.
 | `fleet:<machineId>:<rule>` | A `machine.alert_fired` or `machine.alert_cleared` event. Critical and warning alerts are sent; `concurrency` is not | `<rule name> on <machine name>` / `... cleared` |
 | `fleet:collector:stale` | No report for 2 minutes | `Fleet monitoring has not reported since <time>` |
 | `fleet:collector:<state>` | `unreachable`, `metrics_off`, `alerts_off` or `shape_changed` | One fixed sentence per state |
-| `fleet:collector:<code>` | A diagnostic in the latest report: `collector_gap`, `sparkdash_restarted`, `version_changed`, `events_backlog` (only after 10 minutes) or `queue_full` | One fixed sentence per code. `version_changed` names the pinned and the seen release |
+| `fleet:collector:<code>` | A diagnostic in the latest report: `version_changed`, `events_backlog` (only after 10 minutes) or `queue_full`. It clears when a report no longer carries it | One fixed sentence per code. `version_changed` names the pinned and the seen release |
+| `fleet:collector:<code>:<since>` | A held diagnostic, `collector_gap` or `sparkdash_restarted`, the first time a report carries it. One Alert per occurrence; it does not clear | One fixed sentence per code, with the `since` time |
 
 ### Threat model
 
@@ -331,6 +339,8 @@ and the new contracts' fixtures, like any other package.
 | 150 transitions between two polls | two reports, 100 events then 50, none lost; `events_backlog` on the first |
 | The Collector stops after queueing events, before delivering them | the events are delivered after it starts again; the cursor did not skip them |
 | The queue holds 10,000 events | the cursor stops; `queue_full` |
+| A gap is detected and that poll's post fails; the next poll is contiguous | the next delivered report still carries `collector_gap` with the first `since`; one Alert |
+| A report carrying `sparkdash_restarted` gets a `2xx` | later reports no longer carry it |
 | `label` or `summary` with an address, an error line or markup | absent from the report and the event |
 | A machine name with control characters or more than 40 characters | replaced by the `machineId` |
 | A report that contains an IPv4 or IPv6 address anywhere | refused by the Collector's own check |
