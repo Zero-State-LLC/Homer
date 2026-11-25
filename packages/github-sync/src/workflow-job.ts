@@ -75,6 +75,14 @@ function optionalUtc(value: unknown): value is string | null {
 function optionalId(value: unknown): value is number | null {
   return value === null || id(value);
 }
+/**
+ * A runner or runner group id. GitHub sends `0` for a job no runner has been
+ * assigned to yet: that is Unknown (`null`), not an id. `undefined` means invalid.
+ */
+function runnerRef(value: unknown): number | null | undefined {
+  if (value === undefined || value === null || value === 0) return null;
+  return id(value) ? value : undefined;
+}
 function bounded(value: unknown, max: number): value is string {
   return (
     typeof value === "string" &&
@@ -153,8 +161,8 @@ export function mapWorkflowJobWebhook(
     job.status !== root.action ||
     !optionalConclusion(job.conclusion ?? null) ||
     !optionalSha(job.head_sha ?? null) ||
-    !optionalId(job.runner_id ?? null) ||
-    !optionalId(job.runner_group_id ?? null) ||
+    runnerRef(job.runner_id) === undefined ||
+    runnerRef(job.runner_group_id) === undefined ||
     !optionalUtc(job.created_at ?? null) ||
     !optionalUtc(job.started_at ?? null) ||
     !optionalUtc(job.completed_at ?? null)
@@ -180,8 +188,8 @@ export function mapWorkflowJobWebhook(
       status: root.action as GitHubJobObservation["status"],
       conclusion: (job.conclusion ?? null) as string | null,
       headSha: (job.head_sha ?? null) as string | null,
-      runnerId: (job.runner_id ?? null) as number | null,
-      runnerGroupId: (job.runner_group_id ?? null) as number | null,
+      runnerId: runnerRef(job.runner_id) ?? null,
+      runnerGroupId: runnerRef(job.runner_group_id) ?? null,
       createdAt: (job.created_at ?? null) as string | null,
       startedAt: (job.started_at ?? null) as string | null,
       completedAt: (job.completed_at ?? null) as string | null,
@@ -231,6 +239,11 @@ export function enrichWorkflowJob(
     return { outcome: "refused", reason: "enrichment_attempt_mismatch" };
   if (job.run_attempt != null && job.run_attempt !== run.run_attempt)
     return { outcome: "refused", reason: "enrichment_attempt_mismatch" };
+  // A rerun keeps the run id and head SHA, so a matching job id does not prove
+  // which attempt a job belongs to. Without the attempt from the webhook or the
+  // job record, the run's current attempt and triggering actor are not attached.
+  if (observation.runAttempt === null && job.run_attempt == null)
+    return { outcome: "refused", reason: "enrichment_attempt_unproven" };
   const original = actor(run.actor ?? null);
   const triggering = actor(run.triggering_actor ?? null);
   if (original === undefined || triggering === undefined)
@@ -240,15 +253,15 @@ export function enrichWorkflowJob(
     (observation.headSha !== null && run.head_sha !== observation.headSha)
   )
     return { outcome: "refused", reason: "enrichment_sha_mismatch" };
+  const apiRunner = runnerRef(job.runner_id);
+  const apiRunnerGroup = runnerRef(job.runner_group_id);
   if (
-    !optionalId(job.runner_id ?? null) ||
-    !optionalId(job.runner_group_id ?? null) ||
-    (observation.runnerId !== null &&
-      job.runner_id != null &&
-      job.runner_id !== observation.runnerId) ||
+    apiRunner === undefined ||
+    apiRunnerGroup === undefined ||
+    (observation.runnerId !== null && apiRunner !== null && apiRunner !== observation.runnerId) ||
     (observation.runnerGroupId !== null &&
-      job.runner_group_id != null &&
-      job.runner_group_id !== observation.runnerGroupId)
+      apiRunnerGroup !== null &&
+      apiRunnerGroup !== observation.runnerGroupId)
   )
     return { outcome: "refused", reason: "enrichment_runner_mismatch" };
   if (

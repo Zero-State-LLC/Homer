@@ -269,3 +269,44 @@ it("refuses invalid API timestamps and unrecognized API states", () => {
     reason: "invalid_enrichment_status",
   });
 });
+it("treats GitHub's unassigned runner id 0 as Unknown, and still refuses a negative one", () => {
+  const p = payload("queued");
+  const queued = mapWorkflowJobWebhook(
+    { ...p, workflow_job: { ...p.workflow_job, runner_id: 0, runner_group_id: 0 } },
+    ctx,
+  );
+  expect(queued).toMatchObject({
+    outcome: "mapped",
+    observation: { runnerId: null, runnerGroupId: null },
+  });
+  const negative = mapWorkflowJobWebhook(
+    { ...p, workflow_job: { ...p.workflow_job, runner_id: 0, runner_group_id: -1 } },
+    ctx,
+  );
+  expect(negative).toEqual({ outcome: "refused", reason: "invalid_job_evidence" });
+  expect(
+    enrichWorkflowJob(mapped(), run(), { ...job(), runner_id: 0, runner_group_id: 0 }),
+  ).toMatchObject({ outcome: "enriched", observation: { runnerId: 555, runnerGroupId: 7 } });
+  expect(enrichWorkflowJob(mapped(), run(), { ...job(), runner_group_id: -1 })).toEqual({
+    outcome: "refused",
+    reason: "enrichment_runner_mismatch",
+  });
+});
+it("refuses to attach a run attempt that neither the webhook nor the job record names", () => {
+  const unproven = { ...job() } as Record<string, unknown>;
+  delete unproven["run_attempt"];
+  const before = mapped();
+  expect(before.runAttempt).toBeNull();
+  expect(enrichWorkflowJob(before, run(), unproven)).toEqual({
+    outcome: "refused",
+    reason: "enrichment_attempt_unproven",
+  });
+  expect(enrichWorkflowJob(before, run(), { ...unproven, run_attempt: null })).toEqual({
+    outcome: "refused",
+    reason: "enrichment_attempt_unproven",
+  });
+  expect(enrichWorkflowJob(before, run(), job())).toMatchObject({
+    outcome: "enriched",
+    observation: { runAttempt: 2, triggeringActor: { id: 20 } },
+  });
+});
