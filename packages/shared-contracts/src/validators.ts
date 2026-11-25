@@ -1,11 +1,19 @@
 import { activityEventSemanticErrors } from "./activity-semantics.js";
+import { fleetReportSemanticErrors } from "./fleet-report.js";
 import { join } from "node:path";
 import type { AnySchema, ErrorObject, ValidateFunction } from "ajv";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { isRecord, readJson } from "./json.js";
 import { integrationContractsDir } from "./paths.js";
-import type { ActivityEvent, FactoryEvent, Result, WorkRequest } from "./types.js";
+import type {
+  ActivityEvent,
+  FactoryEvent,
+  FleetReport,
+  Provenance,
+  Result,
+  WorkRequest,
+} from "./types.js";
 
 const ajv = new Ajv2020({
   allErrors: true,
@@ -17,11 +25,26 @@ addFormats.default(ajv);
 
 const validateActivityEventV1Schema = compile("activity-event.v1.schema.json");
 const validateActivityEventV2Schema = compile("activity-event.v2.schema.json");
+const validateActivityEventV3Schema = compile("activity-event.v3.schema.json");
+// After version 3, which a Fleet Report's events reference by $id.
+const validateFleetReportSchema = compile("fleet-report.v1.schema.json");
+// The newest Activity Event's Provenance, link rule included, for a Correction's Provenance.
+const validateProvenanceSchema = subschema(
+  "https://zero-state.llc/home/contracts/activity-event/v3#/properties/provenance",
+);
 const validateWorkRequestSchema = compile("work-request.v1.schema.json");
 const validateFactoryEventSchema = compile("factory-event.v1.schema.json");
 
 function compile(fileName: string): ValidateFunction {
   return ajv.compile(loadSchema(fileName));
+}
+
+function subschema(ref: string): ValidateFunction {
+  const validate = ajv.getSchema(ref);
+  if (validate === undefined) {
+    throw new Error(`${ref} is not a compiled schema`);
+  }
+  return validate;
 }
 
 function loadSchema(fileName: string): AnySchema {
@@ -54,15 +77,42 @@ function formatAjvError(error: ErrorObject): string {
  * missing or unknown contract, is checked as version 1, so its errors stay as they were.
  */
 export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
+  const contract = isRecord(input) ? input["contract"] : undefined;
   const schema =
-    isRecord(input) && input["contract"] === "home.activity-event/v2"
-      ? validateActivityEventV2Schema
-      : validateActivityEventV1Schema;
+    contract === "home.activity-event/v3"
+      ? validateActivityEventV3Schema
+      : contract === "home.activity-event/v2"
+        ? validateActivityEventV2Schema
+        : validateActivityEventV1Schema;
   const errors = [...schemaErrors(schema, input), ...activityEventSemanticErrors(input)];
   if (errors.length > 0) {
     return { ok: false, errors };
   }
   return { ok: true, value: input as ActivityEvent };
+}
+
+/**
+ * A Provenance on its own, as the newest Activity Event contract defines it: for
+ * a Correction, whose Provenance names any Source System an event can come from.
+ */
+export function validateProvenance(input: unknown): Result<Provenance> {
+  const errors = schemaErrors(validateProvenanceSchema, input);
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, value: input as Provenance };
+}
+
+/** A Fleet Report, its events under Activity Event contract version 3. */
+export function validateFleetReport(input: unknown): Result<FleetReport> {
+  const errors = [
+    ...schemaErrors(validateFleetReportSchema, input),
+    ...fleetReportSemanticErrors(input),
+  ];
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, value: input as FleetReport };
 }
 
 export function validateWorkRequest(input: unknown): Result<WorkRequest> {

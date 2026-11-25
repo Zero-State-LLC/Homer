@@ -133,7 +133,7 @@ describe("Activity Event contract version 2", () => {
 
   it("checks an unknown contract as version 1", () => {
     const value = { ...(loadFixture("valid/activity-event-v2-buzz-message.json") as object) };
-    const result = validateActivityEvent({ ...value, contract: "home.activity-event/v3" });
+    const result = validateActivityEvent({ ...value, contract: "home.activity-event/v99" });
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.errors.join("\n")).toContain("/contract must be equal to constant");

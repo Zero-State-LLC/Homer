@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/fleet-report/v1",
+  "title": "Fleet Report",
+  "description": "The Fleet Collector's snapshot of every configured Machine, its own diagnostics, and the oldest machine alert events waiting to be delivered. One per poll, posted to homer-intake. Ids and fixed text only: no address, SSH user, port or key. A body is at most 256 KiB, and no string carries an IP address; both are checked in code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "reportId",
+    "collector",
+    "collectedAt",
+    "sparkdash",
+    "machines",
+    "diagnostics",
+    "events"
+  ],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.fleet-report/v1"
+    },
+    "reportId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable across retries of the same report; changed content under a seen reportId is a conflict."
+    },
+    "collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "fleet-collector"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9A-Za-z][0-9A-Za-z.+-]{0,63}$",
+          "description": "The Collector's Build Version."
+        }
+      }
+    },
+    "collectedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+    },
+    "sparkdash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "version", "pinnedVersion"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["ok", "unreachable", "metrics_off", "alerts_off", "shape_changed"]
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The release /api/health reported, or null when it was not read."
+        },
+        "pinnedVersion": {
+          "type": "string",
+          "pattern": "^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$"
+        }
+      }
+    },
+    "machines": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/machine"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "since"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "collector_gap",
+              "sparkdash_restarted",
+              "version_changed",
+              "events_backlog",
+              "queue_full"
+            ]
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "maxItems": 100,
+      "description": "The oldest waiting machine alert events, in order, each under Activity Event contract version 3.",
+      "items": {
+        "type": "object",
+        "required": ["contract", "kind"],
+        "properties": {
+          "contract": {
+            "type": "string",
+            "const": "home.activity-event/v3"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["machine.alert_fired", "machine.alert_cleared"]
+          }
+        },
+        "$ref": "https://zero-state.llc/home/contracts/activity-event/v3"
+      }
+    }
+  },
+  "$defs": {
+    "machine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machineId", "name", "kind", "source", "state", "lastSeenAt", "firing"],
+      "properties": {
+        "machineId": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "description": "The machine's id in the runner fleet configuration."
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9 ._-]{1,40}$",
+          "description": "Display text; the Collector replaces anything else with the machineId."
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["spark", "mac", "host", "ssh"]
+        },
+        "source": {
+          "type": "string",
+          "enum": ["sparkdash", "reachability"]
+        },
+        "state": {
+          "type": "string",
+          "enum": ["up", "down", "unknown"]
+        },
+        "lastSeenAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The last time the machine answered; null when unknown."
+        },
+        "firing": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["rule", "severity", "since"],
+            "properties": {
+              "rule": {
+                "type": "string",
+                "pattern": "^[a-z0-9-]{1,40}$"
+              },
+              "severity": {
+                "type": "string",
+                "enum": ["warning", "critical"]
+              },
+              "since": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$"
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "$comment": "A reachability-only machine is kind ssh, and only it.",
+          "if": {
+            "type": "object",
+            "required": ["source"],
+            "properties": {
+              "source": {
+                "type": "string",
+                "const": "reachability"
+              }
+            }
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "ssh"
+              }
+            }
+          },
+          "else": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["spark", "mac", "host"]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

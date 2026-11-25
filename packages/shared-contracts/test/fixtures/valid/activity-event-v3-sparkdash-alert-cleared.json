@@ -1,0 +1,25 @@
+{
+  "contract": "home.activity-event/v3",
+  "eventKey": "sparkdash:machine.alert_cleared:delphi:thermal:1795543080000",
+  "kind": "machine.alert_cleared",
+  "occurredAt": "2026-11-24T17:59:30Z",
+  "actor": {
+    "sourceAccount": "sparkdash:alerts"
+  },
+  "subject": "GPU temperature cleared on Delphi",
+  "provenance": {
+    "sourceSystem": "sparkdash",
+    "sourceObjectId": "delphi:thermal@1795543080000",
+    "sourceUrl": "https://sparkdash.example.test/",
+    "collector": "fleet-collector",
+    "collectorVersion": "0.1.0+a1b2c3d",
+    "collectedAt": "2026-11-24T18:00:01Z"
+  },
+  "data": {
+    "machineId": "delphi",
+    "rule": "thermal",
+    "severity": "warning",
+    "startsAt": "2026-11-24T17:58:00Z",
+    "sparkdashVersion": "2.91.0"
+  }
+}

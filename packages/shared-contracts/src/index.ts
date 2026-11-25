@@ -5,12 +5,39 @@ export type {
   ActorKind,
   EventKind,
   FactoryEvent,
+  FleetDiagnosticCode,
+  FleetMachine,
+  FleetReport,
   Result,
   SourceSystem,
   WorkRequest,
 } from "./types.js";
 
-export { validateActivityEvent, validateFactoryEvent, validateWorkRequest } from "./validators.js";
+export {
+  validateActivityEvent,
+  validateFactoryEvent,
+  validateFleetReport,
+  validateProvenance,
+  validateWorkRequest,
+} from "./validators.js";
+
+export type { MachineAlertKind } from "./fleet.js";
+
+export {
+  FLEET_RULE_ID,
+  FLEET_RULE_NAMES,
+  MACHINE_ALERT_KINDS,
+  MACHINE_ID,
+  MACHINE_NAME,
+  MAX_FLEET_REPORT_BYTES,
+  fleetRuleName,
+  hasIpAddress,
+  ipAddressIn,
+  isMachineAlertKind,
+  machineAlertEventKey,
+  machineAlertObjectId,
+  machineAlertSubject,
+} from "./fleet.js";
 
 export { loadUpstreamWorkPacketSchema, toWorkPacket } from "./factory.js";
 

@@ -61,7 +61,7 @@ it("refuses a buzz:// link on a version 1 event and on a non-Buzz version 2 even
   );
 });
 
-it("validates Correction Provenance from every version 2 Source System", () => {
+it("validates Correction Provenance from every Source System", () => {
   const base = {
     contract: "home.correction/v1",
     correctionId: "c-buzz",
@@ -77,6 +77,23 @@ it("validates Correction Provenance from every version 2 Source System", () => {
   };
   expect(validateCorrection({ ...base, provenance: homer }).ok).toBe(true);
   expect(validateCorrection({ ...base, provenance: event().provenance }).ok).toBe(true);
+  // Version 3's Source System, for retracting or superseding a machine alert.
+  const sparkdash = {
+    ...event().provenance,
+    sourceSystem: "sparkdash",
+    sourceObjectId: "delphi:thermal@1764007080000",
+    collector: "fleet-collector",
+  };
+  expect(validateCorrection({ ...base, provenance: sparkdash }).ok).toBe(true);
   const unknown = { ...event().provenance, sourceSystem: "unknown-system" };
   expect(validateCorrection({ ...base, provenance: unknown }).ok).toBe(false);
+  // A buzz:// link is still Buzz's alone.
+  const linked = { ...sparkdash, sourceUrl: buzzEvent().provenance.sourceUrl };
+  expect(validateCorrection({ ...base, provenance: linked })).toEqual({
+    ok: false,
+    errors: [
+      '/provenance/sourceUrl must match pattern "^https://"',
+      '/provenance must match "else" schema',
+    ],
+  });
 });
