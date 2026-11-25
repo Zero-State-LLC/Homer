@@ -5,6 +5,7 @@ Status: repository implementation authorized by Daniel's continuation on Novembe
 and live drain/resume evidence are verified. No credentials or policy changes.
 Amended by ADR 013 (accepted by Danny on 2026-11-24): `homer-intake` serves poll
 and report, and `homer-catalog` serves enrollment and the lifecycle controls.
+Amended by the fleet monitoring spec (ZER-80): fleet reports, below.
 
 ## Decision and boundaries
 
@@ -50,6 +51,37 @@ No arbitrary command, shell, SSH, registration token or reboot API.
   from desired configuration. Enabled completion requires running/accepting reports;
   maintenance completion requires stopped, idle, not accepting. Anything else is
   pending/blocked. These are host reports, not confirmed provider-side outcomes.
+
+## Fleet reports (fleet monitoring)
+
+Amended in ZER-80 by the fleet monitoring spec's Intake: a second report type
+on this protocol, with one more principal kind. Nothing above changes for
+runner principals, which keep their one-machine scope.
+
+- A **fleet collector** principal has its own audience, `FLEET_COLLECTOR_AUD`,
+  held by `homer-intake` only. It must differ from `RUNNER_CONTROLLER_AUD`
+  (intake refuses with `503` when they are equal) and from the read and admin
+  audiences, which intake does not hold. Only a workload identity with exactly
+  that audience gets through; human subjects are refused.
+- An admin binds the principal's digest to the `machineId`s it may report on
+  with `PUT /v1/admin/fleet/collector` on `homer-catalog`: a revision
+  precondition through `If-Match`, the next revision in the body, a nonsecret
+  evidence reference, and an audit record of who and when. The binding may be
+  disabled or replaced; history is immutable.
+- `POST /v1/fleet/report` on `homer-intake` takes a `home.fleet-report/v1` body
+  of at most 256 KiB. A report that does not validate gets `400`, and a report
+  naming a machine outside the binding gets `403`; nothing is recorded.
+- Idempotency: an identical retry of a `reportId` returns the original receipt;
+  changed content under the same `reportId` is `409`.
+- Each event is appended through the Event Ledger binding before the receipt
+  is stored, so a receipt means every event is recorded. A Duplicate counts as
+  success; a ledger Conflict is `409`.
+- The report's snapshot becomes the fleet's latest unless the stored one has a
+  later `collectedAt`. Receipts are immutable; the report body is not kept.
+- At most 6 new reports a minute per principal; past that, `429`. A retry of a
+  report already received is answered regardless.
+- A fleet collector records observations only, and the intake returns no
+  desired state to it.
 
 ## Workflows
 

@@ -103,6 +103,63 @@ export function parseControllerBinding(value: unknown): ControllerBinding {
     throw new Error("invalid_config");
   return v as unknown as ControllerBinding;
 }
+/**
+ * Which Machines the Fleet Collector's principal may report on (fleet
+ * monitoring spec, "Intake"). One binding for the fleet, revisioned and
+ * audited like a controller's enrollment.
+ */
+export interface FleetCollectorBinding {
+  revision: number;
+  principalDigest: string;
+  machineIds: string[];
+  evidenceRef: string;
+  enabled: boolean;
+}
+const FLEET_MACHINE_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
+export function parseFleetCollectorBinding(value: unknown): FleetCollectorBinding {
+  const v = object(value, ["revision", "principalDigest", "machineIds", "evidenceRef", "enabled"]);
+  const ids: unknown[] = Array.isArray(v.machineIds) ? (v.machineIds as unknown[]) : [];
+  if (
+    !Number.isSafeInteger(v.revision) ||
+    (v.revision as number) < 1 ||
+    typeof v.principalDigest !== "string" ||
+    !/^[a-f0-9]{64}$/.test(v.principalDigest) ||
+    !Array.isArray(v.machineIds) ||
+    ids.length > 64 ||
+    ids.some((id) => typeof id !== "string" || !FLEET_MACHINE_ID.test(id)) ||
+    new Set(ids).size !== ids.length ||
+    typeof v.evidenceRef !== "string" ||
+    !/^[A-Za-z0-9][A-Za-z0-9:/.#_-]{0,255}$/.test(v.evidenceRef) ||
+    typeof v.enabled !== "boolean"
+  )
+    throw new Error("invalid_config");
+  return v as unknown as FleetCollectorBinding;
+}
+/** What the intake keeps of an accepted Fleet Report: its receipt, never its body. */
+export interface FleetReceipt {
+  reportId: string;
+  receivedAt: string;
+  digest: string;
+  events: number;
+}
+/** The latest Fleet Report's snapshot, for the status view. */
+export interface FleetSnapshot {
+  reportId: string;
+  collectedAt: string;
+  receivedAt: string;
+  sparkdash: unknown;
+  machines: unknown[];
+  diagnostics: unknown[];
+}
+export type FleetAdmission =
+  | "admitted"
+  | "forbidden"
+  | "machine_not_bound"
+  | "report_conflict"
+  | "rate_limited"
+  | { receipt: FleetReceipt };
+/** At most this many new Fleet Reports a minute. */
+export const FLEET_REPORTS_PER_MINUTE = 6;
 export interface ControllerReport {
   reportId: string;
   operationId: string;
@@ -203,7 +260,15 @@ export class RunnerFleetObject extends DurableObject<unknown> {
  CREATE TRIGGER IF NOT EXISTS binding_no_update BEFORE UPDATE ON controller_bindings BEGIN SELECT RAISE(ABORT,'Binding history is immutable'); END;
  CREATE TRIGGER IF NOT EXISTS binding_no_delete BEFORE DELETE ON controller_bindings BEGIN SELECT RAISE(ABORT,'Binding history is immutable'); END;
  CREATE TRIGGER IF NOT EXISTS runner_no_update BEFORE UPDATE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;
- CREATE TRIGGER IF NOT EXISTS runner_no_delete BEFORE DELETE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;`);
+ CREATE TRIGGER IF NOT EXISTS runner_no_delete BEFORE DELETE ON runner_history BEGIN SELECT RAISE(ABORT,'Runner history is immutable'); END;
+ CREATE TABLE IF NOT EXISTS fleet_collector_bindings (revision INTEGER PRIMARY KEY, binding TEXT NOT NULL, operator_digest TEXT NOT NULL, requested_at TEXT NOT NULL) STRICT;
+ CREATE TRIGGER IF NOT EXISTS fleet_binding_no_update BEFORE UPDATE ON fleet_collector_bindings BEGIN SELECT RAISE(ABORT,'Fleet binding history is immutable'); END;
+ CREATE TRIGGER IF NOT EXISTS fleet_binding_no_delete BEFORE DELETE ON fleet_collector_bindings BEGIN SELECT RAISE(ABORT,'Fleet binding history is immutable'); END;
+ CREATE TABLE IF NOT EXISTS fleet_reports (sequence INTEGER PRIMARY KEY, report_id TEXT NOT NULL UNIQUE, digest TEXT NOT NULL, receipt TEXT NOT NULL, principal_digest TEXT NOT NULL, binding_revision INTEGER NOT NULL, received_ms INTEGER NOT NULL) STRICT;
+ CREATE INDEX IF NOT EXISTS fleet_reports_principal_received ON fleet_reports(principal_digest, received_ms);
+ CREATE TRIGGER IF NOT EXISTS fleet_report_no_update BEFORE UPDATE ON fleet_reports BEGIN SELECT RAISE(ABORT,'Fleet report receipts are immutable'); END;
+ CREATE TRIGGER IF NOT EXISTS fleet_report_no_delete BEFORE DELETE ON fleet_reports BEGIN SELECT RAISE(ABORT,'Fleet report receipts are immutable'); END;
+ CREATE TABLE IF NOT EXISTS fleet_snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), snapshot TEXT NOT NULL, collected_ms INTEGER NOT NULL) STRICT;`);
   }
   lifecycle(machineId: string, budgetMs: number | null) {
     const config = this.read().config;
@@ -507,6 +572,146 @@ export class RunnerFleetObject extends DurableObject<unknown> {
       history,
       historyTruncated,
     };
+  }
+  fleetCollectorBinding() {
+    const rows = this.ctx.storage.sql
+      .exec<{ binding: string; operator_digest: string; requested_at: string }>(
+        "SELECT binding,operator_digest,requested_at FROM fleet_collector_bindings ORDER BY revision DESC LIMIT 21",
+      )
+      .toArray();
+    const history = rows
+      .slice(0, 20)
+      .reverse()
+      .map((r) => ({
+        ...parseFleetCollectorBinding(JSON.parse(r.binding)),
+        operatorDigest: r.operator_digest,
+        requestedAt: r.requested_at,
+      }));
+    return {
+      revision: history.at(-1)?.revision ?? 0,
+      binding: history.at(-1) ?? null,
+      history,
+      historyTruncated: rows.length > 20,
+    };
+  }
+  bindFleetCollector(expected: number, input: unknown, operatorDigest: string) {
+    const binding = parseFleetCollectorBinding(input);
+    if (
+      !Number.isSafeInteger(expected) ||
+      expected < 0 ||
+      binding.revision !== expected + 1 ||
+      !/^[a-f0-9]{64}$/.test(operatorDigest)
+    )
+      throw new Error("invalid_config");
+    return this.ctx.storage.transactionSync(() => {
+      if (this.fleetCollectorBinding().revision !== expected) return "revision_conflict";
+      this.ctx.storage.sql.exec(
+        "INSERT INTO fleet_collector_bindings VALUES (?,?,?,?)",
+        binding.revision,
+        JSON.stringify(binding),
+        operatorDigest,
+        new Date().toISOString(),
+      );
+      return "saved";
+    });
+  }
+  private fleetReceipt(reportId: string, digest: string): FleetReceipt | "report_conflict" | null {
+    const row = this.ctx.storage.sql
+      .exec<{ digest: string; receipt: string }>(
+        "SELECT digest,receipt FROM fleet_reports WHERE report_id=?",
+        reportId,
+      )
+      .toArray()[0];
+    if (!row) return null;
+    return row.digest === digest ? (JSON.parse(row.receipt) as FleetReceipt) : "report_conflict";
+  }
+  private fleetRefusal(principal: string, machineIds: readonly string[]) {
+    const binding = this.fleetCollectorBinding().binding;
+    if (!binding?.enabled || binding.principalDigest !== principal) return "forbidden";
+    if (machineIds.some((id) => !binding.machineIds.includes(id))) return "machine_not_bound";
+    return null;
+  }
+  /**
+   * Before the intake appends a report's events: the principal's binding, the
+   * Machines it may report on, a seen `reportId`, and the rate limit. Nothing is
+   * recorded here; an identical retry is answered with its original receipt.
+   */
+  fleetReportAdmission(
+    principal: string,
+    reportId: string,
+    digest: string,
+    machineIds: string[],
+  ): FleetAdmission {
+    const refused = this.fleetRefusal(principal, machineIds);
+    if (refused) return refused;
+    const seen = this.fleetReceipt(reportId, digest);
+    if (seen === "report_conflict") return seen;
+    if (seen) return { receipt: seen };
+    const recent = this.ctx.storage.sql
+      .exec<{ n: number }>(
+        "SELECT count(*) AS n FROM fleet_reports WHERE principal_digest=? AND received_ms>?",
+        principal,
+        Date.now() - 60_000,
+      )
+      .toArray()[0];
+    if ((recent?.n ?? 0) >= FLEET_REPORTS_PER_MINUTE) return "rate_limited";
+    return "admitted";
+  }
+  /**
+   * After the events are in the Event Ledger: the receipt, and the snapshot
+   * unless a later one is already stored. One transaction; an identical report
+   * that got here first wins and is answered.
+   */
+  fleetReportCommit(
+    principal: string,
+    reportId: string,
+    digest: string,
+    machineIds: string[],
+    events: number,
+    snapshot: Omit<FleetSnapshot, "receivedAt">,
+  ): FleetReceipt | "forbidden" | "machine_not_bound" | "report_conflict" {
+    return this.ctx.storage.transactionSync(() => {
+      const refused = this.fleetRefusal(principal, machineIds);
+      if (refused) return refused;
+      const seen = this.fleetReceipt(reportId, digest);
+      if (seen) return seen;
+      const now = Date.now();
+      const receipt: FleetReceipt = {
+        reportId,
+        receivedAt: new Date(now).toISOString(),
+        digest,
+        events,
+      };
+      this.ctx.storage.sql.exec(
+        "INSERT INTO fleet_reports(report_id,digest,receipt,principal_digest,binding_revision,received_ms) VALUES (?,?,?,?,?,?)",
+        reportId,
+        digest,
+        JSON.stringify(receipt),
+        principal,
+        this.fleetCollectorBinding().revision,
+        now,
+      );
+      const collected = Date.parse(snapshot.collectedAt);
+      const stored = this.ctx.storage.sql
+        .exec<{ collected_ms: number }>("SELECT collected_ms FROM fleet_snapshot WHERE id=1")
+        .toArray()[0];
+      // An older report after a newer one leaves the newer snapshot.
+      if (!stored || collected > stored.collected_ms) {
+        this.ctx.storage.sql.exec(
+          "INSERT OR REPLACE INTO fleet_snapshot VALUES (1,?,?)",
+          JSON.stringify({ ...snapshot, receivedAt: receipt.receivedAt }),
+          collected,
+        );
+      }
+      return receipt;
+    });
+  }
+  /** The latest snapshot, or null before the first report. */
+  fleetSnapshot(): FleetSnapshot | null {
+    const row = this.ctx.storage.sql
+      .exec<{ snapshot: string }>("SELECT snapshot FROM fleet_snapshot WHERE id=1")
+      .toArray()[0];
+    return row ? (JSON.parse(row.snapshot) as FleetSnapshot) : null;
   }
   read() {
     const row = this.ctx.storage.sql

@@ -5,7 +5,9 @@
 pages and editor, the credential directory views, the Activity Calendar, runner
 fleet pages and enrollment, and `GET /v1/version`. Every route goes through
 Access with the read or admin audience, and any other path answers `404`. The
-GitHub webhook and the runner controller protocol are in `homer-intake`; see
+GitHub webhook, the runner controller protocol and fleet reports are in
+`homer-intake`; its Fleet Collector binding, `/v1/admin/fleet/collector`, is an
+admin route here. See
 [`intake.md`](intake.md).
 
 Hosting decision: Daniel selected Cloudflare for all Homer hosting on 2026-11-20.
