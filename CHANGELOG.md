@@ -10,6 +10,12 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 - The pure Work Request builder in `@zs-home/shared-contracts` (ZER-71): reads Linear, GitHub and manual sources, refuses bad ones with the spec's reason codes, derives every field, and turns Jev's answer into a risk tier.
 
+- The pure Work Request builder in `@zs-home/shared-contracts` (ZER-71): reads Linear, GitHub and manual sources, refuses bad ones with the spec's reason codes, derives every field, and turns Jev's answer into a risk tier.
+
+- A "Say how risky the change is" section in `CONTRIBUTING.md`: blast radius, rollback cost, error detection, and screenshots for operator-screen changes.
+
+- Accepted CI feedback intent and spec (`specs/ci-feedback/spec.md`), ADRs 008 to 010, and a measured CI baseline receipt.
+
 - Pocock skills: `/to-tickets` writes Tasks to Linear team ZER, `/triage` is on with labels mapped in `docs/agents/triage-labels.md`, and `/implement-spec` may run implementers in parallel.
 
 - Trail code map wiring for Claude Code (`trail init --team --agents claude`, Trail 0.30.5): shared `.claude/settings.json` SessionStart hook, `.trail/hook.cjs` shim and a `## Code map` rule in `AGENTS.md`. Telemetry disabled.
