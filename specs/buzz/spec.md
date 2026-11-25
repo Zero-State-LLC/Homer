@@ -172,6 +172,27 @@ Alerts and collection run in the `homer-buzz` Worker, the only one holding
 Homer's key ([ADR 014](../adr/014-homer-buzz-worker.md), accepted by Danny on
 2026-11-25).
 
+As built in ZER-55, the pure engine in `@zs-home/buzz-collector`
+(`applyAlerts`, `dueAlerts`, `markDelivered`, `markFailed`, `alertMessage`):
+
+- A monitor owns a key prefix, such as `fleet:`, and passes the Alerts it raises
+  now. One it no longer raises is cleared, and one that cleared before it was
+  ever posted is dropped without a message. A template without a cleared form
+  is one-shot: one message per Alert Key.
+- Each template names its parameters and their kinds: an id, a display name
+  under the Fleet Report's name rule, a UTC time, a rule id, a version, a count,
+  or one of a fixed list. Anything else, and any key outside the monitor's
+  prefix, is refused and queues nothing. The message is the template's sentence,
+  the Alert Key and a fixed runbook link.
+- The cap counts every post in a rolling hour, the summary included. When more
+  are due than fit, the last free slot carries the summary, once an hour. A held
+  Alert stays queued and is posted with its message as it is when the cap frees.
+- A failed post waits 30 s, 60 s, 120 s, 300 s, then 600 s, and is never
+  dropped.
+- `alertMessage` builds the unsigned kind 9 message with the channel's `h` tag.
+  Signing it with Homer's key (packet 5) and posting it are not built yet: they
+  need `@noble/curves` (ZER-61) and Homer's key (ZER-48).
+
 ### Homer's Buzz identity
 
 Homer has one Buzz key, as the Agent `homer`.
