@@ -48,7 +48,8 @@ on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
 Alerts and Buzz collection.
 
 Later the same day, after Danny's "Continue" at 13:01 Pacific time, three more
-pull requests followed: two docs-only, one config.
+pull requests followed: two docs-only, and #107, which changes configuration
+and CI and so owes a Verdict like the code pull requests.
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
@@ -71,4 +72,5 @@ sparkDash rule id `stale`.
 
 ## Still owed
 
-None of the five code pull requests has a Verdict. ZER-63 lists them with their full head SHAs.
+None of the five code pull requests, nor #107, has a Verdict. ZER-63 lists
+them with their full head SHAs.
