@@ -46,7 +46,7 @@ The bypass waived only the code-owner review. Before each merge:
 One gate caught a defect. The first update of #68 left extra blank lines and a
 second copy of the ZER-71 changelog entry, and `markdownlint` failed on it. The
 duplicate had already reached `main` with #67 (`ff31792`). Commit `ec85c60` on
-#68 removed both, so `main` was clean again from `db5b08f`.
+pull request #68 removed both, so `main` was clean again from `db5b08f`.
 
 After the last merge, `main` at `3e2132d` passed all six checks. The check job
 ran 31 test files and took 56 seconds.
