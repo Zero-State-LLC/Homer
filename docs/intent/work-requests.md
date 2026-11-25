@@ -113,6 +113,10 @@ Decided while reviewing the spec in #61. They amend this intent.
   changed. A changed requirement needs a new source.
 - **Homer's policy is the lowest risk tier and budget** (`low`, 5 USD), so a judge
   run stays cheap.
+- **Jev picks each request's risk tier**, through Cloudflare Workers AI, never
+  below the policy's `low` floor. Jev is TypeSafe AI's typed decision model and
+  costs a fraction of a cent per Task. The tier is still never guessed: an
+  unavailable answer refuses the emission.
 
 Still open, and only a human can answer them: whether the schema's inability to
 express `requestId` uniqueness is fixed in the contract README now or in a later

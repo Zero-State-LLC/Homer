@@ -3,7 +3,8 @@
 Status: proposed. Not accepted until Danny accepts this spec.
 Intent: [Homer emits Work Requests](../../docs/intent/work-requests.md), accepted
 by Danny on 2026-11-23 (#59) and amended on 2026-11-24 (#61): Done Linear Tasks
-are admitted, and a recorded request stands when its source is edited.
+are admitted, a recorded request stands when its source is edited, and Jev picks
+the risk tier.
 Decision: [ADR 006](../adr/006-work-request-transport.md).
 Contract: `../integration-contracts/work-request.v1.schema.json`, mapped to a
 Work Packet by `toWorkPacket` in `packages/shared-contracts/src/factory.ts`.
@@ -17,7 +18,7 @@ Homer builds a Work Request from one Source System object, validates it with
 Homer never advances a Work Packet past `intake` and never writes a Verdict.
 
 In scope: a pure builder, a request store, a CLI, a delivery receipt, a reviewed
-policy file, and refusal of bad sources.
+policy file, the risk-tier decision, and refusal of bad sources.
 Out of scope: judging, choosing the judge model, packet stages after intake,
 Linear or GitHub write-back, and any change to an Activity Event contract.
 
@@ -79,10 +80,13 @@ the tests are its proof.
 ### The request store
 
 The emitter keeps one file per `requestId`: `<store>/<requestId>.json`, holding
-the recorded request exactly as first emitted. It creates the file atomically and
-never overwrites, renames or deletes it. A missing or unreadable store stops the
-emitter before it derives anything; it never falls back to emitting without a
-record.
+the recorded request exactly as first emitted. It creates that file atomically
+and never overwrites, renames or deletes it. Beside it sit the risk-tier
+decision (`<requestId>.risk.json`) and, after a delivery, the receipt
+(`<requestId>.receipt.json`). The request file is written last, so a decision
+file without its request is not a record, and the next emission replaces it. A
+missing or unreadable store stops the emitter before it derives anything; it
+never falls back to emitting without a record.
 
 Version 1 keeps the store on the machine where the software-factory judge runs
 (Danny's machine, as in ZER-63), at `$HOMER_WORK_REQUEST_STORE`, by default
@@ -133,7 +137,7 @@ a different Agent, at a different time, is still a Duplicate.
 | `who` | source creator | the Actor named by the creator's Identity Binding; with no binding, the raw stable account (`linear:<user id>`, `github:<login>`, or the manual file's `who`). Never the assignee, a display name or an email |
 | `doneWhen` | source acceptance criteria | Linear and GitHub: the list items under the body's first heading named `Done when` or `Observable done`, case-insensitive, at any heading level. Manual: the file's `doneWhen`. Each item trimmed, with control characters removed; duplicates dropped in order. At least one item of at least 5 characters, or refuse `acceptance_missing` |
 | `repository` | policy | a Linear Task: its Project through `linearProjects`; a GitHub issue: its own repository; a manual request: its file's `repository`. The repository must have an entry in `repositories` |
-| `riskTier` | policy | the repository's entry; never guessed from text |
+| `riskTier` | Jev, with a policy floor | the [risk-tier decision](#the-risk-tier-decision) below; never below the repository's `riskFloor`, never from a default when Jev cannot answer |
 | `budgetUsd` | policy | the repository's entry; positive, at most 500 |
 | `testCommand` | policy | the repository's entry, shell-wrapped: `bash -c '...'` |
 | `links` | source | the Linear or GitHub source's own `https://` URL; none for a manual request |
@@ -148,6 +152,37 @@ ZER-62 and ZER-63 carry a `## Done when` section, and the `intent` issue form
 has an `Observable done` field. No Identity Binding store exists yet (ZER-48), so
 until one does, `who` is the raw account and `actorId` is absent.
 
+### The risk-tier decision
+
+Danny decided on 2026-11-24 that Jev picks each request's risk tier. Jev is
+TypeSafe AI's decision model: it answers typed questions with a choice and a
+confidence, and never writes prose. Homer calls it through Cloudflare Workers AI
+as `typesafe/jev`.
+
+1. The emitter asks Jev one `choice` question with the options `low`, `medium`
+   and `high`. The question gives the upstream Work Packet schema's definition
+   (`high` = touches auth, money, secrets, data deletion or production
+   infrastructure), and the state is the same source text that `pain` and
+   `doneWhen` come from: the title, the body and the `Done when` items.
+2. When Jev's confidence in its choice is below the policy's
+   `riskDecider.minConfidence`, the tier goes one step higher, up to `high`. An
+   unsure answer rounds toward more care, never less.
+3. The result is never below the repository's `riskFloor`.
+4. If Jev cannot answer, because of a failed call, an unknown option or a missing
+   confidence, the emission is refused as `risk_unavailable` and nothing is
+   recorded. The emitter never falls back to the floor or to a default.
+5. The decision is recorded beside the request, as
+   `<store>/<requestId>.risk.json`: the model, Jev's choice, its confidence and
+   probabilities, the floor, the resulting tier, and the instant. The request
+   itself carries only `riskTier`, as the contract allows.
+6. A retry does not call Jev again. It compares packets using the recorded tier,
+   so the recorded decision stands with the recorded request.
+
+The secret check runs before the call, so text refused as `secret_in_source`
+never leaves the machine. Cloudflare lists Jev as third-party with zero data
+retention. A call costs about 0.042 USD per million input tokens, and output
+tokens are free, so a Task costs a small fraction of a cent.
+
 ### The policy file
 
 `docs/work-requests/policy.json` is reviewed configuration, changed only by pull
@@ -158,9 +193,10 @@ request:
   "schemaVersion": 1,
   "revision": 1,
   "linearProjects": { "Homer": "Zero-State-LLC/Homer" },
+  "riskDecider": { "model": "typesafe/jev", "minConfidence": 0.8 },
   "repositories": {
     "Zero-State-LLC/Homer": {
-      "riskTier": "low",
+      "riskFloor": "low",
       "budgetUsd": 5,
       "testCommand": "bash -c 'npm ci --no-audit --no-fund && npm run check'"
     }
@@ -168,9 +204,11 @@ request:
 }
 ```
 
-The Homer values are Danny's (2026-11-24): the lowest risk tier and budget, so a
-judge run stays cheap. A missing or invalid policy file refuses every source with
-`policy_invalid`. The emitter never falls back to built-in values.
+The Homer values are Danny's (2026-11-24): the lowest floor and budget, so a
+judge run stays cheap, with Jev raising the tier where a Task needs it. The
+`minConfidence` of 0.8 is a default; see Open choices. A missing or invalid
+policy file refuses every source with `policy_invalid`. The emitter never falls
+back to built-in values.
 
 ### Manual requests
 
@@ -231,10 +269,11 @@ without GAP.
 
 The emitter runs on the judge's machine. It reads Linear with a read-only API key
 from 1Password through the read-only service account, the way the curator
-runner reads its secrets, and GitHub with that machine's `gh` authentication. The
-key reaches the process environment only; it never enters a request, the store,
-a receipt, a log or a pull request. The builder itself is pure: it takes the
-source's API response, the policy and the bindings, and does no I/O.
+runner reads its secrets, and GitHub with that machine's `gh` authentication. It
+calls Jev with a Cloudflare API token scoped to Workers AI and the account id,
+both read from 1Password the same way. Each key reaches the process environment
+only; it never enters a request, the store, a receipt, a log or a pull request. The builder itself is pure: it takes the source's API response, the policy, the
+bindings and Jev's answer, and does no I/O.
 
 ### Skills
 
@@ -267,6 +306,8 @@ source's API response, the policy and the bindings, and does no I/O.
 | Source canceled or closed after its request was recorded | refuse, `source_canceled` or `source_closed`; the record is kept |
 | Source text holds a secret-shaped string | refuse, `secret_in_source`, naming the field and never the value |
 | Endpoint returns non-2xx | non-zero exit, no receipt, response body not echoed |
+| Jev call fails or returns no usable choice | refuse, `risk_unavailable`; nothing recorded, no fallback tier |
+| Jev unsure (below `minConfidence`) | one tier higher, recorded with the confidence |
 
 Refusing a secret-shaped string, rather than stripping it, keeps the derivation
 deterministic and treats the secret in a Task as the incident it is. No
@@ -295,12 +336,19 @@ a pull request.
 | A secret-shaped string in the body | `secret_in_source`, value not printed |
 | `toWorkPacket` on every emitted fixture | the packet validates against the pinned upstream schema |
 | Endpoint failure | non-zero exit, no receipt file, record kept |
+| Jev (stubbed) picks `high` for a Task about credentials | `riskTier` is `high`, and the `.risk.json` records the choice and confidence |
+| Jev picks `low` at confidence 0.6 | `riskTier` is `medium` |
+| Jev picks `low` with a `medium` floor | `riskTier` is `medium` |
+| Jev call fails | `risk_unavailable`, no record written |
+| A retry of a recorded request | no Jev call; the recorded tier is used |
+| A secret-shaped string in the body | refused before any Jev call |
 
 ## Execution plan and dependencies
 
 1. The pure builder and refusal codes in `packages/shared-contracts`, beside
    `toWorkPacket`, with fixtures of raw Linear and GitHub API responses.
-2. `docs/work-requests/policy.json` with Homer's values.
+2. `docs/work-requests/policy.json` with Homer's values, and the Jev call behind
+   an interface the builder's tests stub.
 3. The store and CLI in a new `packages/work-request-emitter`: reads, the store,
    printing, and the tests above.
 4. The runbook `docs/deployment/work-requests.md`: from a Task to a packet to
@@ -319,6 +367,7 @@ Each default holds unless Danny changes it when accepting this spec.
 | Where the request store lives | On the judge's machine, under `$HOMER_WORK_REQUEST_STORE` | A records branch in Homer that any machine can append to; or the Event Ledger, which needs Activity Event version 3 (ADR 006 deferred it) |
 | A GitHub issue closed as completed | Refused, as the intent's text says | Admitted like a Done Linear Task |
 | How the emitter reads sources | It reads Linear and GitHub itself on the judge's machine, so no hand-editable copy sits between source and request | It takes a snapshot file that an agent exports, which keeps credentials off the emitter but lets the caller alter the source |
+| Jev's `minConfidence` | 0.8; below it the tier goes one step higher | A different threshold, or always taking Jev's choice |
 | Endpoint variable | `GAP_WORK_REQUEST_URL` | Whatever name GAP's intake defines when it exists |
 | Saying in the contract README that `requestId` is unique per source | In this spec only, as the intent left open | Also in `specs/integration-contracts/README.md` now |
 
@@ -331,3 +380,6 @@ Each default holds unless Danny changes it when accepting this spec.
 - `docs/receipts/implementation-2026-11-23.md`, decisions 5 and 7.
 - Linear: ZER-62 (this work), ZER-63 (after-the-fact Verdicts), ZER-68 to
   ZER-70 (Done Tasks for #51 to #53).
+- Cloudflare's [Jev model page](https://developers.cloudflare.com/ai/models/typesafe/jev/),
+  read 2026-11-24: the `typesafe/jev` model id, the `choice` question type, and
+  pricing.
