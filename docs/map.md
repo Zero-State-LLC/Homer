@@ -8,14 +8,15 @@ Homer is the Zero State engineering headquarters. It observes work in GitHub, Li
 
 ## What matters now
 
-Four accepted specs are being built, one Linear Task per work packet in the Homer project (team ZER):
+Five accepted specs are being built, one Linear Task per work packet in the Homer project (team ZER):
 
 - Buzz as a Source System and alert channel: [`specs/buzz/spec.md`](../specs/buzz/spec.md).
 - The knowledge loop (Knowledge Flags, the Curator, Curator Profiles): [`specs/knowledge-loop/spec.md`](../specs/knowledge-loop/spec.md).
 - CI feedback time (build once; docs-only pull requests skip the workspace steps): [`specs/ci-feedback/spec.md`](../specs/ci-feedback/spec.md). Both steps landed on 2026-11-24.
 - Work Request emission (ZER-62): [`specs/work-requests/spec.md`](../specs/work-requests/spec.md). The builder, policy, Jev client and emitter CLI landed on 2026-11-24; the runbook (ZER-74) and delivery to GAP (ZER-75) remain.
+- Fleet monitoring through sparkDash (ZER-76): [`specs/fleet-monitoring/spec.md`](../specs/fleet-monitoring/spec.md). Every machine reachable over SSH, read-only. It builds on the runner stream's fleet configuration and controller protocol, which landed on 2026-11-24.
 
-Hosting (Danny, 2026-11-23): runners are local, and Cloudflare handles everything else. The merge contract needs a Verdict, and the judge grades a Work Packet built from a Work Request; docs-only pull requests merge on Danny's acceptance. On 2026-11-24 Danny granted an admin bypass, and eight pull requests merged ahead of their Verdicts. The code among them owes after-the-fact Verdicts (ZER-63); see [`docs/receipts/bypass-merges-2026-11-24.md`](receipts/bypass-merges-2026-11-24.md). The state of the work, the open pull requests, and the next Tasks are in the latest handoff, [`docs/receipts/implementation-2026-11-23.md`](receipts/implementation-2026-11-23.md). The foundation intent, [`docs/intent/home-foundation.md`](intent/home-foundation.md), still governs the Event Ledger and Projections (ZER-9). Do not invent a Milestone date; an Unknown Date is a valid answer.
+Hosting (Danny, 2026-11-23): runners are local, and Cloudflare handles everything else. The merge contract needs a Verdict, and the judge grades a Work Packet built from a Work Request; docs-only pull requests merge on Danny's acceptance. On 2026-11-24 Danny granted an admin bypass, and nineteen pull requests merged under it, the runner stack (#31 to #46) among them after a rebase onto `main`. The code among them owes after-the-fact Verdicts (ZER-63); see [`docs/receipts/bypass-merges-2026-11-24.md`](receipts/bypass-merges-2026-11-24.md). The state of the work, the open pull requests, and the next Tasks are in the latest handoff, [`docs/receipts/implementation-2026-11-23.md`](receipts/implementation-2026-11-23.md). The foundation intent, [`docs/intent/home-foundation.md`](intent/home-foundation.md), still governs the Event Ledger and Projections (ZER-9). Do not invent a Milestone date; an Unknown Date is a valid answer.
 
 ## Authority / source order
 
