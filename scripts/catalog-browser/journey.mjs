@@ -1091,6 +1091,23 @@ try {
   console.log(
     "PASS: a monitored DGX Spark saves without runner fields or lifecycle controls, and a runner cannot become monitored only",
   );
+  // The fleet status view lists every configured machine as unknown before any Fleet Report.
+  await fleet.goto(base + "/v1/workspace/fleet");
+  await fleet.getByRole("heading", { name: "Fleet status", exact: true }).waitFor();
+  assert.match(await fleet.getByRole("status").innerText(), /No Fleet Report has arrived/);
+  const statusCard = fleet.locator('article[data-machine-id="fixture-spark"]');
+  assert.match(await statusCard.innerText(), /Unknown/);
+  assert.match(await statusCard.innerText(), /Fixture Spark/);
+  assert.equal(await fleet.locator("article.machine").count(), monitored.machines.length);
+  assert(await fleet.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  if (process.env.ADMIN_SCREENSHOT_DIR)
+    await fleet.screenshot({
+      path: join(process.env.ADMIN_SCREENSHOT_DIR, "fleet-status-mobile.png"),
+      fullPage: true,
+    });
+  console.log(
+    "PASS: the fleet status view lists every configured machine as unknown before a report",
+  );
   await fleetContext.close();
   console.log(
     "PASS: real ledger calendar evidence, Pacific day filters and URLs; PC/Mac durable fleet review/readback, pending maintenance, denied reader access and mobile reflow",

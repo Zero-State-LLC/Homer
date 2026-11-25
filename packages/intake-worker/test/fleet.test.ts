@@ -20,6 +20,7 @@ let collector: string;
 let otherCollector: string;
 let controller: string;
 let person: string;
+let reader: string;
 let collectorDigest: string;
 
 beforeAll(async () => {
@@ -39,6 +40,7 @@ beforeAll(async () => {
   otherCollector = await token("fleet", workload("other.access"));
   controller = await token("controller", workload("collector.access"));
   person = await token("fleet", { sub: "operator" });
+  reader = await token("read", { sub: "operator" });
   const config = {
     ACCESS_ISSUER: ISSUER,
     ACCESS_READ_AUD: "read",
@@ -427,4 +429,78 @@ it("binds the Collector only to machines in the runner fleet configuration", asy
   expect((await read.json<{ revision: number }>()).revision).toBe(0);
   // Monitored machines and a runner machine may all be bound.
   expect((await bind(e)).status).toBe(200);
+});
+
+// The fleet status view (packet 5) reads the snapshot and the configuration in
+// homer-catalog, for the read audience.
+interface StatusView {
+  state: string;
+  reason: string | null;
+  sparkdashUrl: string | null;
+  machines: {
+    machineId: string;
+    name: string;
+    status: string;
+    telemetry: string;
+    reported: string | null;
+  }[];
+}
+const status = (e: FleetTestEnv, path = "/v1/fleet") =>
+  handleCatalogRequest(request(path, reader), e, key);
+
+it("shows every configured machine as unknown before the first report", async () => {
+  const e = testEnv();
+  await configure(e);
+  const response = await status(e);
+  expect(response.status).toBe(200);
+  const view = await response.json<StatusView>();
+  expect(view.state).toBe("none");
+  expect(view.sparkdashUrl).toBeNull();
+  expect(view.machines.map((m) => [m.machineId, m.status])).toEqual([
+    ["delphi", "unknown"],
+    ["mac-studio", "unknown"],
+    ["pc-one", "unknown"],
+  ]);
+});
+
+it("shows a fresh report's machines, with the sparkDash page through the front door", async () => {
+  const e = { ...testEnv(), SPARKDASH_ORIGIN: "https://sparkdash.example.test" };
+  await bind(e);
+  const now = new Date().toISOString();
+  const machines = report().machines.map((m) => ({ ...m, lastSeenAt: m.lastSeenAt && now }));
+  const fresh = report({ reportId: crypto.randomUUID(), collectedAt: now, machines, events: [] });
+  expect((await post(e, fresh)).status).toBe(200);
+  const view = await (await status(e)).json<StatusView>();
+  expect(view.state).toBe("fresh");
+  expect(view.sparkdashUrl).toBe("https://sparkdash.example.test/");
+  expect(view.machines).toMatchObject([
+    { machineId: "delphi", name: "Delphi", status: "up", telemetry: "sparkdash" },
+    { machineId: "mac-studio", status: "unknown", reported: null },
+    // No successful read yet: unknown, never the "down" or "up" it was reported as.
+    { machineId: "pc-one", name: "Build PC", status: "unknown", reported: "down" },
+  ]);
+  const page = await status(e, "/v1/workspace/fleet");
+  expect(page.status).toBe(200);
+  expect(page.headers.get("Content-Type")).toContain("text/html");
+  const html = await page.text();
+  expect(html).toContain("<h1>Fleet status</h1>");
+  expect(html).toContain('href="https://sparkdash.example.test/"');
+  expect(html).toContain("not that a login works");
+  expect((await status(e, "/v1/fleet?machineId=delphi")).status).toBe(400);
+});
+
+it("shows every reported machine as stale when the latest report is old, and says when it came", async () => {
+  const e = testEnv();
+  await bind(e);
+  expect((await post(e, report())).status).toBe(200);
+  const view = await (await status(e)).json<StatusView>();
+  expect(view.state).toBe("stale");
+  expect(view.reason).toContain("2026-11-24T18:00:00.000Z");
+  expect(view.machines.map((m) => [m.machineId, m.status, m.reported])).toEqual([
+    ["delphi", "stale", "up"],
+    ["mac-studio", "unknown", null],
+    ["pc-one", "stale", "down"],
+  ]);
+  const html = await (await status(e, "/v1/workspace/fleet")).text();
+  expect(html).toContain("Every reported machine shows as stale");
 });

@@ -277,3 +277,13 @@ export type {
   RunnerTimingSummary,
   RunnerCacheMode,
 } from "./runner-performance.js";
+export { FLEET_CLOCK_SKEW_MS, FLEET_FRESH_MS, projectFleetStatus } from "./fleet-status.js";
+export type {
+  FleetMachineStatus,
+  FleetStatus,
+  FleetStatusAlert,
+  FleetStatusConfiguredMachine,
+  FleetStatusMachine,
+  FleetStatusOptions,
+  FleetStatusSnapshot,
+} from "./fleet-status.js";

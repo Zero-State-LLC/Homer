@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import type { FleetMachine, FleetReport } from "@zs-home/shared-contracts/workers";
 export const MAX_RUNNER_BYTES = 64 * 1024;
 /**
  * A machine in the runner fleet configuration. A monitored machine has only
@@ -175,9 +176,9 @@ export interface FleetSnapshot {
   reportId: string;
   collectedAt: string;
   receivedAt: string;
-  sparkdash: unknown;
-  machines: unknown[];
-  diagnostics: unknown[];
+  sparkdash: FleetReport["sparkdash"];
+  machines: FleetMachine[];
+  diagnostics: FleetReport["diagnostics"];
 }
 export type FleetAdmission =
   | "admitted"
