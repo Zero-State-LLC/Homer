@@ -14,6 +14,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Accepted versioning and releases intent and spec (`specs/versioning/spec.md`) and ADR 012: one lockstep product version, a build version on every Activity Event, `GET /v1/version` on every Worker, release tags cut only by Danny, and a receipt for every deploy.
+
 - Accepted fleet monitoring intent and spec (`specs/fleet-monitoring/spec.md`) and ADR 011: every machine reachable over SSH, read-only, through sparkDash and an SSH reachability check.
 
 - `@zs-home/work-request-emitter` and `npm --silent run work-request -- <source>` (ZER-73): reads a Linear Task, GitHub issue or manual request, records each Work Request once in an append-only store, prints the recorded bytes on a retry without asking Jev again, and reads credentials from 1Password by reference. The policy file and manual requests come from `origin/main` (or `--ref`), never the working tree.
