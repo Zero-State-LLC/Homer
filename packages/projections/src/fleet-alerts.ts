@@ -34,6 +34,19 @@ function displayName(name: string, machineId: string): string {
   return DISPLAY_NAME.test(name) ? name : machineId.slice(0, 40);
 }
 
+/**
+ * What the fleet raises now, and the Alert Key prefixes to hold: a machine whose alerts
+ * sparkDash is not evaluating keeps its rule Alerts as they were, since an empty firing list
+ * then says nothing.
+ */
+export interface FleetAlertPlan {
+  alerts: FleetAlertRequest[];
+  hold: string[];
+}
+
+/** sparkDash states in which its machines' firing lists say nothing. */
+const ALERTS_UNSEEN = new Set(["unreachable", "metrics_off", "alerts_off", "shape_changed"]);
+
 /** A held diagnostic occurrence, kept by the intake apart from the snapshot. */
 export interface FleetHeldOccurrence {
   code: "collector_gap" | "sparkdash_restarted";
@@ -53,16 +66,19 @@ export function projectFleetAlerts(
   snapshot: FleetStatusSnapshot | null,
   configured: readonly FleetStatusConfiguredMachine[],
   options: FleetAlertOptions,
-): FleetAlertRequest[] {
+): FleetAlertPlan {
   // Before the first report there is nothing to be stale against.
-  if (!snapshot) return [];
+  if (!snapshot) return { alerts: [], hold: [] };
   const alerts: FleetAlertRequest[] = [];
+  const hold: string[] = [];
+  const unseen = ALERTS_UNSEEN.has(snapshot.sparkdash.state);
   const collected = Date.parse(snapshot.collectedAt);
   // Each machine as the report itself saw it, so a stale fleet holds its machine Alerts.
   const asReported = projectFleetStatus(snapshot, configured, { now: collected });
   for (const machine of asReported.machines) {
     if (machine.reported === null) continue;
     const name = displayName(machine.name, machine.machineId);
+    if (unseen && machine.source === "sparkdash") hold.push(`fleet:${machine.machineId}:`);
     // A Reachability Check's alert is its down state: the Collector reports it as events
     // and lists no firing alerts for that machine.
     const unreachable = machine.source === "reachability" && machine.reported === "down";
@@ -133,5 +149,5 @@ export function projectFleetAlerts(
     alerts.push({ key, template: "fleet.held_diagnostic", params: { ...held } });
   // One Alert per key: the first rule that raises it wins.
   const keys = new Set<string>();
-  return alerts.filter((alert) => !keys.has(alert.key) && keys.add(alert.key));
+  return { alerts: alerts.filter((alert) => !keys.has(alert.key) && keys.add(alert.key)), hold };
 }

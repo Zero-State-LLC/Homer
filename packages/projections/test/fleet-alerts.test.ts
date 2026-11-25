@@ -33,7 +33,7 @@ function snapshot(over: Partial<FleetStatusSnapshot> = {}): FleetStatusSnapshot 
   };
 }
 const alerts = (s: FleetStatusSnapshot | null, now = T0 + 30_000) =>
-  projectFleetAlerts(s, configured, { now });
+  projectFleetAlerts(s, configured, { now }).alerts;
 
 it("raises nothing before the first report, or for a healthy fleet", () => {
   expect(alerts(null)).toEqual([]);
@@ -89,9 +89,10 @@ it("raises fleet:<machineId>:reachability for a Reachability Check machine that 
 it("cuts a long id to the 40-character display-name rule when it stands in for the name", () => {
   const id = "lab-" + "x".repeat(46);
   const box = machine({ machineId: id, kind: "ssh", source: "reachability", state: "down" });
-  const [alert] = projectFleetAlerts(snapshot({ machines: [box] }), [{ id, alias: "Lab <box>" }], {
+  const plan = projectFleetAlerts(snapshot({ machines: [box] }), [{ id, alias: "Lab <box>" }], {
     now: T0 + 30_000,
   });
+  const [alert] = plan.alerts;
   expect(alert?.key).toBe(`fleet:${id}:reachability`);
   expect(alert?.params).toEqual({ machineId: id, name: id.slice(0, 40), rule: "reachability" });
 });
@@ -126,6 +127,22 @@ it("raises fleet:collector:stale after 2 minutes without a report, and holds the
   ]);
   // The machine's own Alert stays as the last report had it: neither cleared nor made stale.
   expect(stale.map((a) => a.key)).toEqual(["fleet:delphi:thermal", "fleet:collector:stale"]);
+});
+
+it("holds sparkDash machines' Alerts while sparkDash's firing lists say nothing", () => {
+  const box = machine({ machineId: "bosgame", kind: "ssh", source: "reachability" });
+  for (const state of ["unreachable", "metrics_off", "alerts_off", "shape_changed"] as const) {
+    const plan = projectFleetAlerts(
+      snapshot({
+        sparkdash: { state, version: null, pinnedVersion: "2.91.0" },
+        machines: [machine({ state: "unknown" }), box],
+      }),
+      configured,
+      { now: T0 + 30_000 },
+    );
+    expect(plan.hold).toEqual(["fleet:delphi:"]);
+  }
+  expect(projectFleetAlerts(snapshot(), configured, { now: T0 + 30_000 }).hold).toEqual([]);
 });
 
 it("raises fleet:collector:<state> while sparkDash is not read", () => {
@@ -191,10 +208,13 @@ it("raises held occurrences the intake kept after the report that carried them w
       params: { code: "collector_gap", since },
     },
   ];
-  expect(projectFleetAlerts(snapshot(), configured, { now: T0, held: [gap] })).toEqual(expected);
+  expect(projectFleetAlerts(snapshot(), configured, { now: T0, held: [gap] }).alerts).toEqual(
+    expected,
+  );
   // Carried by the report and kept by the intake: still one Alert.
   expect(
-    projectFleetAlerts(snapshot({ diagnostics: [gap] }), configured, { now: T0, held: [gap] }),
+    projectFleetAlerts(snapshot({ diagnostics: [gap] }), configured, { now: T0, held: [gap] })
+      .alerts,
   ).toEqual(expected);
 });
 

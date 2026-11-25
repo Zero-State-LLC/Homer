@@ -26,6 +26,7 @@ export {
   emptyAlertState,
   markDelivered,
   markFailed,
+  type AlertApplyOptions,
   type AlertDelivery,
   type AlertParamKind,
   type AlertRecord,
