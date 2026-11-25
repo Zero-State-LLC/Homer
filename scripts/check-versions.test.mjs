@@ -21,6 +21,7 @@ import {
   checkSources,
   checkWorkspace,
   compareVersions,
+  parseChangelog,
   loadWorkspace,
   repositoryRoot,
   workspaceDirectories,
@@ -538,6 +539,61 @@ test("release-notes prints exactly one section's body", () => {
       ),
     /is empty/,
   );
+});
+
+test("a fence closes only with a matching delimiter", () => {
+  const text = CHANGELOG_OK.replace(
+    "- Notes for 0.1.0.",
+    [
+      "- Notes for 0.1.0, with an example:",
+      "",
+      "  ````md",
+      "  ```js",
+      "## Example heading",
+      "  ```",
+      "  ````",
+    ].join("\n"),
+  );
+  assert.deepEqual(checkChangelog(text, "0.1.0"), []);
+  assert.match(releaseNotes(text, "v0.1.0"), /## Example heading\n {2}```\n {2}````\n$/);
+  // A tilde fence is not closed by backticks, and an unclosed fence runs to the end.
+  const tilde = CHANGELOG_OK.replace("- A fix.", "~~~\n```\n## Still code\n~~~");
+  assert.deepEqual(checkChangelog(tilde, "0.0.0"), []);
+  const unclosed = CHANGELOG_OK.replace("- Notes for 0.1.0.", "```\n## Inside an unclosed fence");
+  assert.deepEqual(
+    parseChangelog(unclosed).map((s) => s.heading),
+    ["## Unreleased", "## [0.2.0] - 2026-12-01", "## [0.1.0] - 2026-11-24"],
+  );
+});
+
+test("release notes keep the link definitions their references use", () => {
+  const text = CHANGELOG_OK.replace(
+    "- Notes for 0.1.0.",
+    "- Notes for 0.1.0, see [details][Change  One] and [the spec].",
+  ).replace(
+    "[0.1.0]: https://github.com/Zero-State-LLC/Homer/releases/tag/v0.1.0",
+    [
+      "[0.1.0]: https://github.com/Zero-State-LLC/Homer/releases/tag/v0.1.0",
+      "[change one]: https://example.com/change",
+      "[The Spec]: https://example.com/spec",
+      "[unused]: https://example.com/unused",
+    ].join("\n"),
+  );
+  assert.deepEqual(checkChangelog(text, "0.1.0"), []);
+  assert.equal(
+    releaseNotes(text, "v0.1.0"),
+    [
+      "### Security",
+      "",
+      "- Notes for 0.1.0, see [details][Change  One] and [the spec].",
+      "",
+      "[change one]: https://example.com/change",
+      "[The Spec]: https://example.com/spec",
+      "",
+    ].join("\n"),
+  );
+  // A section with no reference links gets no definitions.
+  assert.equal(releaseNotes(text, "Unreleased"), "### Added\n\n- Something new.\n");
 });
 
 test("the contracts table must list every schema file", (t) => {

@@ -2,14 +2,22 @@
 // node scripts/release-notes.mjs vX.Y.Z
 // node scripts/release-notes.mjs Unreleased
 //
-// Prints one version's CHANGELOG section, without its "## " heading, for the
-// GitHub Release Danny creates for that tag (versioning spec, "Cut a
-// release"). "Unreleased" previews what the next release pull request will
-// turn into a section. It reads CHANGELOG.md and changes nothing.
+// Prints one version's CHANGELOG section for the GitHub Release Danny creates
+// for that tag (versioning spec, "Cut a release"): its body without the "## "
+// heading, plus the link definitions its reference links use. "Unreleased"
+// previews what the next release pull request will turn into a section. It
+// reads CHANGELOG.md and changes nothing.
 import { readFileSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { CHANGELOG, SEMVER, parseChangelog, repositoryRoot } from "./check-versions.mjs";
+import {
+  CHANGELOG,
+  SEMVER,
+  linkDefinitions,
+  linkLabel,
+  parseChangelog,
+  repositoryRoot,
+} from "./check-versions.mjs";
 
 /** The section's body for `which` (a tag, a version, or "Unreleased"), or throws. */
 export function releaseNotes(text, which) {
@@ -30,7 +38,16 @@ export function releaseNotes(text, which) {
   }
   const body = section.body.join("\n").trim();
   if (body === "") throw new Error(`${CHANGELOG}: "${section.heading}" is empty`);
-  return `${body}\n`;
+  // Keep the definitions this section's reference links use, so the notes
+  // stand alone. An unused definition would render as nothing, so a label
+  // that only looks like a reference does no harm.
+  const definitions = linkDefinitions(text);
+  const used = new Set();
+  for (const m of body.matchAll(/\[([^\]]+)\](?:\[([^\]]*)\])?/g)) {
+    used.add(linkLabel(m[2] ? m[2] : m[1]));
+  }
+  const kept = [...definitions].filter(([label]) => used.has(label)).map(([, line]) => line);
+  return kept.length > 0 ? `${body}\n\n${kept.join("\n")}\n` : `${body}\n`;
 }
 
 function isMain() {

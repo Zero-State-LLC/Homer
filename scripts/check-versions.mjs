@@ -213,7 +213,45 @@ export function checkWorkspace({ root, packages, lock }) {
 export const CHANGELOG = "CHANGELOG.md";
 export const SUBSECTIONS = ["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"];
 const RELEASE_HEADING = /^## \[([^\]]+)\] - (\d{4}-\d{2}-\d{2})$/;
-const LINK_DEFINITION = /^\[[^\]]+\]:\s/;
+const LINK_DEFINITION = /^ {0,3}\[([^\]]+)\]:\s*\S/;
+
+/**
+ * Returns a function that says, line by line, whether a line is code: inside a
+ * fence or a fence delimiter. As in CommonMark, a fence closes only with the
+ * same character, at least as many of them, and nothing after; an unclosed
+ * fence runs to the end.
+ */
+function codeFences() {
+  let open = null;
+  return (line) => {
+    const m = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    if (!open) {
+      if (!m || (m[1][0] === "`" && m[2].includes("`"))) return false;
+      open = { char: m[1][0], length: m[1].length };
+      return true;
+    }
+    if (m && m[1][0] === open.char && m[1].length >= open.length && m[2].trim() === "") {
+      open = null;
+    }
+    return true;
+  };
+}
+
+/** The label of a link reference definition, normalized as CommonMark matches it. */
+export function linkLabel(label) {
+  return label.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Every link reference definition outside code fences, by normalized label. */
+export function linkDefinitions(text) {
+  const isCode = codeFences();
+  const definitions = new Map();
+  for (const line of text.split(/\r?\n/)) {
+    const m = isCode(line) ? null : LINK_DEFINITION.exec(line);
+    if (m && !definitions.has(linkLabel(m[1]))) definitions.set(linkLabel(m[1]), line.trim());
+  }
+  return definitions;
+}
 
 function realDate(date) {
   const parsed = new Date(`${date}T00:00:00Z`);
@@ -222,16 +260,16 @@ function realDate(date) {
 
 /**
  * Splits CHANGELOG.md into its `## ` sections, ignoring headings inside code
- * fences and the link definitions at the end. Each section keeps its body
+ * fences and leaving out link reference definitions (linkDefinitions has them). Each section keeps its body
  * lines, its `### ` subsections, and any problem found, with line numbers.
  */
 export function parseChangelog(text) {
   const lines = text.split(/\r?\n/);
   const sections = [];
-  let fence = false;
+  const isCode = codeFences();
   let current;
   lines.forEach((line, i) => {
-    if (/^\s*(```|~~~)/.test(line)) fence = !fence;
+    const fence = isCode(line);
     if (!fence && line.startsWith("## ")) {
       current = { heading: line, line: i + 1, body: [], subsections: [], deep: [] };
       const release = RELEASE_HEADING.exec(line);
