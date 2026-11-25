@@ -107,7 +107,7 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Changed
 
-- Every package declares the Node range the root does, `^22.13.0 || ^24.0.0 || >=26.0.0`, and `.nvmrc` names Node 22, as CI uses (ZER-89). The `links` check waits 10 s before its first retry instead of 1 s, so its three retries of a `5xx` span about 70 s rather than 7 s.
+- Every package declares the Node range the root does, `^22.13.0 || ^24.0.0 || >=26.0.0`, and `.nvmrc` names Node 22, as CI uses (ZER-89). The `links` check passes `--retry-wait-time 10` to lychee. This is not shown to absorb a GitHub `5xx`: the next `502`, on #109, still failed the check within 15 s.
 
 - The catalog Worker is split by who calls it (ZER-96, ADR 013). `homer-catalog` keeps every route people and agents reach through Access with the read or admin audience, and no longer holds the webhook secret or `RUNNER_CONTROLLER_AUD`. The new `homer-intake` Worker (`packages/intake-worker`) takes `POST /v1/hooks/github` with job evidence, and the runner controller's poll and report, and holds no read or admin audience, no page and no `GET /v1/version`. `JOB_EVIDENCE` and its `job-evidence-v1` migration move to `homer-intake`. Intake binds the catalog's `MAPPING_CATALOG` and `RUNNER_FLEET` by `script_name`, and the catalog binds nothing of intake's, so the deploy order is the ledger, then `homer-catalog`, then `homer-intake`. Each Worker's router has a caller table and answers `404` for any path it does not list. Routes, contracts and stored formats are unchanged. Deployment: `docs/deployment/intake.md`.
 
