@@ -43,7 +43,7 @@ If you cannot find a fact, say so. Never invent Attribution or a Milestone date,
 - [`CONTEXT.md`](../CONTEXT.md) — the ubiquitous language
 - [`docs/intent/`](intent/) — accepted intents (read the active one before you edit)
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — the order of work, and how to land a fix
-- [`docs/agents/`](agents/) — where Pocock's engineering skills put Tasks, specs, terms, and decisions
+- [`docs/agents/`](agents/) — where Pocock's engineering skills put Tasks, specs, terms, and decisions, and how agents use Buzz
 - [`agent-context.pin.json`](../agent-context.pin.json) — the Context Pin
 - Team context lives in [`Zero-State-LLC/agent-context`](https://github.com/Zero-State-LLC/agent-context): read `HANDOFF.md`, then `STATUS.md`, then `DECISIONS.md` only if a prior choice affects this Task. Clone it as `AGENTS.md` describes. Do not copy it into Homer.
 
