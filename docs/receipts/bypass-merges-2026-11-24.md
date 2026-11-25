@@ -168,3 +168,29 @@ without the bypass.
 **Still owed:** the seven configuration and code pull requests above have no
 Verdict. ZER-63 lists them with their full head SHAs. ZER-95 stays open for the staging deploy
 receipts, which need Danny's yes for staging.
+
+## Late evening
+
+Three more pull requests merged under the same grant, each after green CI on
+its head and a clean Codex review. `main`'s tree equalled the reviewed head
+after each merge, and CI passed on `main`.
+
+**Docs-only.** [#85](https://github.com/Zero-State-LLC/Homer/pull/85)
+(`166c088`, squash `2716af1`) is ADR 013, which Danny accepted: split the
+catalog Worker by who calls it.
+
+**Configuration and code.** These owe the merge contract's Verdict and
+reproduce check.
+
+| PR | Change | Merged head | Squash commit on `main` |
+| --- | --- | --- | --- |
+| [#84](https://github.com/Zero-State-LLC/Homer/pull/84) | The runbook from a Task to a Verdict (ZER-74), with the packet and Verdict comment commands | `92535ab` | `7c3010b` |
+| [#86](https://github.com/Zero-State-LLC/Homer/pull/86) | `homer-intake` split out of the catalog Worker (ZER-96, ADR 013) | `dbfa1eb` | `5f1119d` |
+
+#86 moves one check from code to the deployment. The catalog refused a
+`RUNNER_CONTROLLER_AUD` equal to its read or admin audience; `homer-intake`
+holds neither, so `docs/deployment/intake.md` gives the controller paths their
+own Access application on intake's own hostname.
+
+**Still owed:** both have no Verdict. ZER-63 lists them with their full head
+SHAs.
