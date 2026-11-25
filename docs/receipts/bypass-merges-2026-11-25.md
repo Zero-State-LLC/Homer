@@ -11,8 +11,9 @@ Pacific time, Danny told Claude Code to "grant admin bypass for merge as
 needed". The main ruleset was not edited, and `AGENTS.md` and the merge
 contract in `CONTRIBUTING.md` are unchanged.
 
-Danny asked for the first change below in chat on 2026-11-25: "Yes extend
-fleet configuration and continue".
+Danny asked for two of the changes below in chat on 2026-11-25: #94 ("Yes
+extend fleet configuration and continue") and #97 (machine fleet and runner
+fleet as separate sections; he chose two pages).
 
 ## What merged
 
@@ -24,6 +25,7 @@ browser journey included.
 | --- | --- | --- | --- |
 | [#94](https://github.com/Zero-State-LLC/Homer/pull/94) | The runner fleet configuration lists monitored machines and the `spark` and `jetson` kinds; the Fleet Collector's binding names only configured machines (ZER-113) | `a35c5cc` | `41474b1` |
 | [#95](https://github.com/Zero-State-LLC/Homer/pull/95) | The fleet status Projection and view (ZER-81, fleet monitoring packet 5) | `1816959` | `c89cef8` |
+| [#97](https://github.com/Zero-State-LLC/Homer/pull/97) | Separate Machine fleet and Runner fleet pages (ZER-114), at Danny's request | `49ece2d` | `146f50a` |
 
 Two contract changes, both written down where they belong:
 
@@ -34,6 +36,10 @@ Two contract changes, both written down where they belong:
   routes, `/v1/fleet` and `/v1/workspace/fleet`.
   `docs/deployment/cloudflare-catalog.md` lists both. Nothing is deployed.
 
+#97 adds one admin page, `/v1/admin/machines`, on the same configuration
+endpoint, and renames the status view to Machine fleet. The configuration and
+its API are unchanged.
+
 ## Still owed
 
-Neither has a Verdict. ZER-63 lists them with their full head SHAs.
+None of the three has a Verdict. ZER-63 lists them with their full head SHAs.
