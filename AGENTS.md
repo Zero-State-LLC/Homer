@@ -23,8 +23,10 @@ Read [`CONTEXT.md`](CONTEXT.md) first. Use its terms exactly in code, tests, spe
 | Check the agent-context pin and this file | `bash scripts/check-context-pin.sh` |
 | Prove the pin check can fail | `bash scripts/test-check-context-pin.sh` |
 | Check the TypeScript workspace | `npm run check` |
+| Check that the product version agrees everywhere | `npm run versions:check` |
+| Change the product version (release pull requests only) | `node scripts/version.mjs <version>` |
 
-`npm run check` runs format, lint, typecheck, tests and build. Do not invent commands.
+`npm run check` runs the version check, format, lint, typecheck, tests and build. Do not invent commands.
 
 ## Invariants
 
