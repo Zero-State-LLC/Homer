@@ -42,9 +42,11 @@ export function continuity(cursor: Cursor | null, recent: HistoryEntry[]): Conti
     entries: recent,
     gap: oldest !== undefined && oldest.id !== 1,
   });
-  // An empty history after one that held the cursor: sparkDash restarted and
-  // has seen nothing since.
-  if (!newest || !oldest) return restart();
+  if (!newest || !oldest) {
+    // Still empty from the start (a baseline at 0 names no entry): nothing new.
+    // Empty after a history that held entries: sparkDash restarted.
+    return cursor.id === 0 ? { kind: "none", entries: [] } : restart();
+  }
   if (newest.id < cursor.id) return restart();
   if (atCursor !== undefined && !same(atCursor, cursor)) return restart();
   if (newest.id === cursor.id) return atCursor ? { kind: "none", entries: [] } : restart();

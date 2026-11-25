@@ -56,7 +56,11 @@ describe("the continuity rules", () => {
     expect(restarted.kind).toBe("restart");
     expect(restarted.kind === "restart" && restarted.gap).toBe(true);
     expect(restarted.entries).toHaveLength(26);
-    // An empty history after a cursor: restarted, nothing new yet.
+    // An empty history from the start is nothing new; after a cursor, a restart.
+    expect(continuity({ id: 0, key: "", status: "firing", at: 0 }, [])).toEqual({
+      kind: "none",
+      entries: [],
+    });
     expect(continuity(cursorAt(history(1, 3), 3), [])).toEqual({
       kind: "restart",
       entries: [],

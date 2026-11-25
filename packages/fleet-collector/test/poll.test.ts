@@ -276,6 +276,19 @@ describe("each poll", () => {
     expect(codes(kept.state)).toEqual(["sparkdash_restarted"]);
   });
 
+  it("reports an empty history that stays empty as nothing new, and a restart only once", () => {
+    const empty = run();
+    const again = run({ state: empty.state });
+    expect(again.events).toEqual([]);
+    expect(codes(again.state)).toEqual([]);
+    // A restart that empties the history is reported once; after delivery it does not come back.
+    const before = run({ read: read({ alerts: ok(alertsBody(range(1, 3))) }) });
+    const restarted = run({ state: before.state });
+    expect(codes(restarted.state)).toEqual(["sparkdash_restarted"]);
+    const delivered: CollectorState = { ...restarted.state, held: [] };
+    expect(codes(run({ state: delivered }).state)).toEqual([]);
+  });
+
   it("is shape_changed for a metrics timestamp no date can hold, and still builds a snapshot", () => {
     const text = metricsText().replace(/ 1795543200\n/, " 1e20\n");
     const shaped = run({ read: read({ metrics: ok(text) }) });
