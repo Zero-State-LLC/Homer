@@ -36,9 +36,9 @@ Two contract changes, both written down where they belong:
   routes, `/v1/fleet` and `/v1/workspace/fleet`.
   `docs/deployment/cloudflare-catalog.md` lists both. Nothing is deployed.
 
-#97 adds one admin page, `/v1/admin/machines`, on the same configuration
-endpoint, and renames the status view to Machine fleet. The configuration and
-its API are unchanged.
+Pull request #97 adds one admin page, `/v1/admin/machines`, on the same
+configuration endpoint, and renames the status view to Machine fleet. The
+configuration and its API are unchanged.
 
 ## Still owed
 
