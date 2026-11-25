@@ -212,3 +212,60 @@ it("rejects unbounded batch sizes and invalid configured thresholds", () => {
     "too_many_runner_samples",
   );
 });
+function reordered<T extends object>(value: T): T {
+  return Object.fromEntries(Object.entries(value).reverse()) as T;
+}
+it("treats equal evidence in another property order as one attempt in one group", () => {
+  const a = sample();
+  const b = reordered({
+    ...sample(),
+    environment: reordered({ ...env }),
+    provenance: reordered(sample().provenance),
+  });
+  const same = projectRunnerTimings([a, b], { ...options, minP50: 1, minP95: 1 });
+  expect(same).toHaveLength(1);
+  expect(same[0]).toMatchObject({ distinctAttempts: 1, successfulTimings: 1 });
+  expect(same[0]!.warnings).not.toContain("conflicting_attempt_evidence");
+  const rerun = reordered({
+    ...sample({ workflowRunId: 457, jobId: 102 }),
+    environment: reordered({ ...env }),
+  });
+  const grouped = projectRunnerTimings([a, rerun], { ...options, minP50: 1, minP95: 1 });
+  expect(grouped).toHaveLength(1);
+  expect(grouped[0]!.distinctAttempts).toBe(2);
+  expect(JSON.stringify(parseRunnerJobSample(b))).toBe(JSON.stringify(parseRunnerJobSample(a)));
+});
+it("keeps creation-time warnings when the execution time is valid", () => {
+  const late = projectRunnerTimings([sample({ createdAt: "2026-11-22T14:01:00Z" })], {
+    ...options,
+    minP50: 1,
+    minP95: 1,
+  })[0]!;
+  expect(late).toMatchObject({ status: "ready", successfulTimings: 1, p50ExecutionMs: 20000 });
+  expect(late.warnings).toContain("reversed_creation_to_start");
+  expect(late.warnings).toContain("reversed_end_to_end");
+  const missing = projectRunnerTimings([sample({ createdAt: null })], {
+    ...options,
+    minP50: 1,
+    minP95: 1,
+  })[0]!;
+  expect(missing.successfulTimings).toBe(1);
+  expect(missing.warnings).toContain("missing_created_at");
+});
+it("does not count skipped, neutral or unknown outcomes as failures", () => {
+  const xs = [
+    sample({ jobId: 1, workflowRunId: 1, conclusion: "skipped" }),
+    sample({ jobId: 2, workflowRunId: 2, conclusion: "neutral" }),
+    sample({ jobId: 3, workflowRunId: 3, conclusion: "action_required" }),
+    sample({ jobId: 4, workflowRunId: 4, conclusion: null }),
+    sample({ jobId: 5, workflowRunId: 5, conclusion: "failure" }),
+  ];
+  const out = projectRunnerTimings(xs, { ...options, minP50: 1, minP95: 1 })[0]!;
+  expect(out).toMatchObject({
+    distinctAttempts: 5,
+    successfulTimings: 0,
+    failedAttempts: 1,
+    skippedOrNeutralAttempts: 2,
+    unknownOutcomeAttempts: 2,
+  });
+});

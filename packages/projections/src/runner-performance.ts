@@ -72,6 +72,10 @@ export interface RunnerTimingSummary {
   distinctAttempts: number;
   successfulTimings: number;
   failedAttempts: number;
+  /** Completed as `skipped` or `neutral`: neither a success nor a failure. */
+  skippedOrNeutralAttempts: number;
+  /** Completed with no conclusion, or as `action_required` or `stale`. */
+  unknownOutcomeAttempts: number;
   cancelledAttempts: number;
   pendingAttempts: number;
   missingTiming: number;
@@ -103,6 +107,22 @@ const keys = [
   "evidenceUrl",
   "environment",
   "provenance",
+];
+const environmentKeys = [
+  "os",
+  "architecture",
+  "cacheMode",
+  "workflowRevision",
+  "toolchainRevision",
+  "imageRevision",
+];
+const provenanceKeys = [
+  "sourceSystem",
+  "sourceObjectId",
+  "sourceUrl",
+  "collector",
+  "collectorVersion",
+  "deliveryId",
 ];
 function exactObject(input: unknown, fields: readonly string[]): Record<string, unknown> {
   if (input === null || typeof input !== "object" || Array.isArray(input))
@@ -187,14 +207,7 @@ export function parseRunnerJobSample(input: unknown): RunnerJobSample {
   )
     throw new RangeError("invalid_runner_measurement");
   if (v.environment !== null) {
-    const e = exactObject(v.environment, [
-      "os",
-      "architecture",
-      "cacheMode",
-      "workflowRevision",
-      "toolchainRevision",
-      "imageRevision",
-    ]);
+    const e = exactObject(v.environment, environmentKeys);
     if (
       !["linux", "windows", "macos", "unknown"].includes(e.os as string) ||
       !["x64", "arm64", "unknown"].includes(e.architecture as string) ||
@@ -205,14 +218,7 @@ export function parseRunnerJobSample(input: unknown): RunnerJobSample {
     )
       throw new RangeError("invalid_runner_measurement");
   }
-  const p = exactObject(v.provenance, [
-    "sourceSystem",
-    "sourceObjectId",
-    "sourceUrl",
-    "collector",
-    "collectorVersion",
-    "deliveryId",
-  ]);
+  const p = exactObject(v.provenance, provenanceKeys);
   if (
     p.sourceSystem !== "github" ||
     !boundString(p.sourceObjectId, 128) ||
@@ -222,7 +228,21 @@ export function parseRunnerJobSample(input: unknown): RunnerJobSample {
     !boundString(p.deliveryId, 128)
   )
     throw new RangeError("invalid_runner_measurement");
-  return structuredClone(input) as RunnerJobSample;
+  // Rebuild in a fixed field order, so equal evidence serializes equally however
+  // the caller ordered its properties. Every leaf is a string, number or null.
+  const environment =
+    v.environment === null
+      ? null
+      : Object.fromEntries(
+          environmentKeys.map((key) => [key, (v.environment as Record<string, unknown>)[key]]),
+        );
+  const provenance = Object.fromEntries(provenanceKeys.map((key) => [key, p[key]]));
+  return Object.fromEntries(
+    keys.map((key) => [
+      key,
+      key === "environment" ? environment : key === "provenance" ? provenance : v[key],
+    ]),
+  ) as unknown as RunnerJobSample;
 }
 export function deriveRunnerJobTiming(sample: RunnerJobSample): RunnerJobTiming {
   const v = parseRunnerJobSample(sample);
@@ -328,6 +348,8 @@ export function projectRunnerTimings(
     total: number;
     durations: number[];
     failed: number;
+    skippedOrNeutral: number;
+    unknownOutcome: number;
     cancelled: number;
     pending: number;
     missing: number;
@@ -344,6 +366,8 @@ export function projectRunnerTimings(
         total: 0,
         durations: [],
         failed: 0,
+        skippedOrNeutral: 0,
+        unknownOutcome: 0,
         cancelled: 0,
         pending: 0,
         missing: 0,
@@ -362,19 +386,29 @@ export function projectRunnerTimings(
       b.pending++;
       continue;
     }
+    // Only `failure` is a failure. Skipped and neutral jobs did not fail, and an
+    // unknown outcome is not evidence of one (specs/runner-scheduling/spec.md).
     if (s.conclusion === "cancelled" || s.conclusion === "timed_out") {
       b.cancelled++;
       continue;
     }
-    if (s.conclusion !== "success") {
+    if (s.conclusion === "failure") {
       b.failed++;
       continue;
     }
+    if (s.conclusion === "skipped" || s.conclusion === "neutral") {
+      b.skippedOrNeutral++;
+      continue;
+    }
+    if (s.conclusion !== "success") {
+      b.unknownOutcome++;
+      continue;
+    }
     const timing = deriveRunnerJobTiming(s);
-    if (timing.executionMs === null) {
-      b.missing++;
-      timing.warnings.forEach((warning) => b.warnings.add(warning));
-    } else b.durations.push(timing.executionMs);
+    // Warnings about creation time still count when the execution time is valid.
+    timing.warnings.forEach((warning) => b.warnings.add(warning));
+    if (timing.executionMs === null) b.missing++;
+    else b.durations.push(timing.executionMs);
   }
   const result: RunnerTimingSummary[] = [];
   for (const [key, b] of [...groups].sort(([a], [z]) => (a < z ? -1 : a > z ? 1 : 0))) {
@@ -403,6 +437,8 @@ export function projectRunnerTimings(
       distinctAttempts: b.total,
       successfulTimings: b.durations.length,
       failedAttempts: b.failed,
+      skippedOrNeutralAttempts: b.skippedOrNeutral,
+      unknownOutcomeAttempts: b.unknownOutcome,
       cancelledAttempts: b.cancelled,
       pendingAttempts: b.pending,
       missingTiming: b.missing,
