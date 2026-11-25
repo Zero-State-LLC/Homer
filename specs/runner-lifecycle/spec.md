@@ -41,7 +41,8 @@ bounded strict JSON, no redirects or workload/read-audience access. POST exact b
 {action:resume|drain|disconnect|revoke,configRevision,bindingRevision,operationRevision}.
 All revisions nonnegative safe integers. POST compares all three atomically and
 returns 409 for stale revision, missing enrollment, or unsafe prerequisites. Missing
-machine 404. No If-Match needed: all three body revisions are required preconditions.
+machine 404. A monitored machine, which runs no runner (fleet monitoring spec,
+Machine list), is 404 `not_a_runner` on GET and POST; enrolling one is 409. No If-Match needed: all three body revisions are required preconditions.
 GET and successful POST return:
 {machineId,configRevision,bindingRevision,operationRevision,connectionState,
  desiredState,disconnectPending,observation,binding,history,historyTruncated}.

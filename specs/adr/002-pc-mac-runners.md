@@ -1,6 +1,10 @@
 # ADR 002: PC and Mac CI runner fleet
 
 Status: accepted for implementation, November 21, 2026 PT.
+Amended by the fleet monitoring spec (ZER-113, Danny, 2026-11-25): the same
+configuration also lists monitored machines, which run no runner, and the
+`spark` and `jetson` kinds. Runner machines are unchanged. See the spec's
+[Machine list](../fleet-monitoring/spec.md#machine-list).
 
 ## Decision
 

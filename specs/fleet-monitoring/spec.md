@@ -1,6 +1,6 @@
 # Fleet monitoring through sparkDash
 
-Version: 0.1.2
+Version: 0.1.3
 Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
 monitoring waits for the runner stream's machine list (#35) and controller
 protocol (#38); SSH monitoring is read-only on every machine, except for agentic
@@ -13,6 +13,9 @@ Amended by [ADR 013](../adr/013-catalog-worker-boundary.md) (accepted by Danny o
 2026-11-24): the intake is built in `homer-intake`, the Worker for machines.
 Corrected in ZER-77: the Fleet Report example's `machineId` follows the runner
 fleet configuration's id rule, as the Machine table says.
+Amended in ZER-113 at Danny's request (2026-11-25): the runner fleet
+configuration lists machines that run no runner, and the Collector's binding
+names only machines in it. See [Machine list](#machine-list).
 
 Homer shows every machine the team can reach over SSH as up, down or stale,
 with its firing alerts, and sends alert changes to the Buzz `homer` channel.
@@ -31,7 +34,7 @@ every machine is read through an unprivileged monitoring account.
 | sparkDash's published container | `privileged: true`, `network_mode: host`, `pid: host`, read-only `/proc` and `/sys` mounts [verified: `docker-compose.image.yml` at `86f972e`]. Not used as published: see [Read-only machines](#read-only-machines) |
 | Front door to the sparkDash page | Cloudflare Tunnel with Access by default; Tailscale Serve allowed; never Tailscale Funnel (Danny, 2026-11-24) |
 | Homer's intake | Not built. It extends the runner controller protocol from PR #38 (ZER-34), which is not on `main` |
-| Machine list | The runner fleet configuration from PR #35 (ZER-33), which is not on `main`. Both PRs were cut before `main` restarted and share no history with it, so they need a rebase before they can land |
+| Machine list | The runner fleet configuration (ZER-33), version 2 from ZER-113. See [Machine list](#machine-list) |
 | Machines | The intent's [named machines](../../docs/intent/fleet-monitoring.md#the-named-machines). No inventory exists |
 
 ## Contract
@@ -117,7 +120,7 @@ facts.
 
 | Field | Rule |
 | --- | --- |
-| `machineId` | The machine's id in the runner fleet configuration from #35, which holds aliases, operating systems and architectures but no addresses. A machine not in that configuration is not reported. The Collector's configuration maps each `machineId` to a sparkDash unit id or an SSH target |
+| `machineId` | The machine's id in the runner fleet configuration, which holds aliases, operating systems and architectures but no addresses. A machine not in that configuration is not reported, and the Collector's binding cannot name it. The Collector's configuration maps each `machineId` to a sparkDash unit id or an SSH target |
 | `name` | Display text. Letters, digits, space, `.`, `_` and `-`, at most 40 characters. Anything else is replaced by the `machineId` |
 | `kind` | `spark`, `mac` or `host` from sparkDash's `kind` label; `ssh` for a reachability-only machine |
 | `source` | `sparkdash` or `reachability` |
@@ -126,6 +129,33 @@ facts.
 A machine's address, SSH user, port and key stay on the Collector's host. No
 Fleet Report, Activity Event, Projection or Alert carries one. A test rejects
 any report that contains an IPv4 or IPv6 address.
+
+### Machine list
+
+The runner fleet configuration is the one list of machines (Danny,
+2026-11-24). Version 2 (ZER-113, Danny, 2026-11-25) lets it hold machines that
+run no CI runner:
+
+- A **runner machine** has the nine fields version 1 has: `id`, `alias`,
+  `kind`, `os`, `architecture`, `runnerId`, `repository`, `labels` and
+  `desiredState`.
+- A **monitored machine** has only `id`, `alias`, `kind`, `os` and
+  `architecture`. Fleet monitoring watches it. It has no desired mode, no
+  lifecycle and no controller enrollment: lifecycle answers `404 not_a_runner`,
+  and enrollment `409 not_a_runner`.
+- `kind` is `pc` (Windows or Linux, which covers a Linux or Windows GPU host),
+  `mac` (macOS), `spark` (a DGX Spark) or `jetson`. A `spark` and a `jetson` are
+  Linux on arm64. A machine's kind and hardware are recorded as found, never
+  guessed: a machine nobody has inventoried is not listed yet.
+- Version 1, runner machines of kind `pc` or `mac` only, is still read and
+  accepted, so stored history and older clients keep working.
+- A machine is never deleted, and a runner machine never becomes a monitored
+  machine (`409 runner_removal_forbidden`), since its controller binding would
+  be left without a desired mode. A monitored machine may become a runner
+  machine.
+- The Collector's binding names only machines in this list; any other
+  `machineId` is `409 unknown_machine`. Machines are never deleted, so the
+  check at bind time holds for the binding's lifetime.
 
 ### Fleet Report, contract `home.fleet-report/v1`
 
@@ -245,9 +275,10 @@ The runbook in packet 7 covers each step. Nothing here is Homer code.
    Danny and Boof, listing the hostname in `SPARKDASH_ALLOWED_HOSTS`. Or use
    Tailscale Serve inside the tailnet. Never Tailscale Funnel, and never
    `BIND_HOST=0.0.0.0`.
-5. Enroll the Collector under the #38 protocol: create its Access service token,
-   store it in 1Password, and have an admin bind its principal digest to the
-   `machineId`s it may report on.
+5. Add every machine to the runner fleet configuration, as a monitored machine
+   unless it runs a CI runner. Enroll the Collector under the #38 protocol:
+   create its Access service token, store it in 1Password, and have an admin
+   bind its principal digest to the `machineId`s it may report on.
 6. Install the Fleet Collector as a service on Delphi under its own
    unprivileged user, and map each `machineId` to a sparkDash unit or an SSH
    target in its configuration.
@@ -339,7 +370,9 @@ status view. It reuses that protocol's rules and adds one principal kind:
    subjects are refused.
 2. An admin binds the principal's digest to the `machineId`s it may report on,
    with a revision precondition and an audit record, as #38 enrolls a machine.
-   A report that names any other machine is refused.
+   Each must be in the runner fleet configuration
+   ([Machine list](#machine-list)). A report that names any other machine is
+   refused.
 3. The body must validate as `home.fleet-report/v1`, with each event under
    Activity Event version 3. A bad report gets `400`, and nothing is recorded.
 4. Idempotency follows #38: an identical retry of a `reportId` returns the
@@ -499,7 +532,7 @@ channel.
 | --- | --- |
 | How sparkDash runs | Unprivileged on Delphi, every machine read over SSH through a monitoring account ([Read-only machines](#read-only-machines)). Recommended at Danny's request; it follows his read-only rule |
 | How reports reach Homer | A second report type on the #38 runner controller protocol (Danny, 2026-11-24) |
-| One machine list | The runner fleet configuration from #35 (Danny, 2026-11-24) |
+| One machine list | The runner fleet configuration (Danny, 2026-11-24), with monitored machines from version 2 (Danny, 2026-11-25) |
 
 ## Open choices with defaults
 

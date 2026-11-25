@@ -139,6 +139,41 @@ it("reads unenrolled state and refuses lifecycle mutations without enrollment", 
   expect((await call(e, lifecyclePath, admin, "POST", action("resume", 1, 0))).status).toBe(409);
   expect((await call(e, lifecyclePath.replace("pc-one", "absent"))).status).toBe(404);
 });
+it("gives a monitored machine no lifecycle, no enrollment and no poll", async () => {
+  const e = { ...env, ...config, CATALOG_NAME: crypto.randomUUID() };
+  const spark = {
+    id: "delphi",
+    alias: "Delphi",
+    kind: "spark",
+    os: "linux",
+    architecture: "arm64",
+  };
+  const machines = [machine, spark];
+  expect(
+    (
+      await handleRunnerRequest(
+        req("/v1/admin/runners/config", admin, "PUT", { version: 2, revision: 1, machines }, 0),
+        e,
+        key,
+      )
+    ).status,
+  ).toBe(200);
+  const sparkLifecycle = "/v1/admin/runners/lifecycle?machineId=delphi";
+  const lifecycle = await call(e, sparkLifecycle);
+  expect(lifecycle.status).toBe(404);
+  expect(await lifecycle.json()).toEqual({ error: "not_a_runner" });
+  const drain = await call(e, sparkLifecycle, admin, "POST", action("drain", 1, 0));
+  expect(drain.status).toBe(404);
+  expect(await drain.json()).toEqual({ error: "not_a_runner" });
+  const sparkBinding = "/v1/admin/runners/binding?machineId=delphi";
+  const enroll = await call(e, sparkBinding, admin, "PUT", binding(), 0);
+  expect(enroll.status).toBe(409);
+  expect(await enroll.json()).toEqual({ error: "not_a_runner" });
+  const poll = await call(e, "/v1/runner-controller/poll?machineId=delphi", host);
+  expect(poll.status).toBe(403);
+  // The runner beside it keeps its lifecycle.
+  expect((await call(e, lifecyclePath)).status).toBe(200);
+});
 it("requests drain and resume atomically with all revisions and durable operator history", async () => {
   const e = await setup();
   await call(e, bindingPath, admin, "PUT", binding(), 0);

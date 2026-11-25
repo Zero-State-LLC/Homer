@@ -90,7 +90,9 @@ service-token policy for the Fleet Collector only, and set its audience as
 `RUNNER_CONTROLLER_AUD`, the route answers `503`. An admin then binds the
 Collector's principal digest to the Machines it reports on with
 `PUT /v1/admin/fleet/collector` on `homer-catalog` (If-Match the current
-revision). Until that binding exists, every report is `403`. The Collector's
+revision). Each Machine must first be in the runner fleet configuration, as a
+monitored machine if it runs no runner; any other id is `409 unknown_machine`.
+Until that binding exists, every report is `403`. The Collector's
 own setup is in the fleet monitoring runbook (ZER-83).
 
 Each report's events are appended to the Event Ledger before its receipt is

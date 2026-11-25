@@ -5,7 +5,9 @@ Status: repository implementation authorized by Daniel's continuation on Novembe
 and live drain/resume evidence are verified. No credentials or policy changes.
 Amended by ADR 013 (accepted by Danny on 2026-11-24): `homer-intake` serves poll
 and report, and `homer-catalog` serves enrollment and the lifecycle controls.
-Amended by the fleet monitoring spec (ZER-80): fleet reports, below.
+Amended by the fleet monitoring spec (ZER-80): fleet reports, below. Amended
+in ZER-113: a monitored machine has no enrollment, poll or report, and a fleet
+collector's binding names only configured machines.
 
 ## Decision and boundaries
 
@@ -67,7 +69,8 @@ runner principals, which keep their one-machine scope.
   with `PUT /v1/admin/fleet/collector` on `homer-catalog`: a revision
   precondition through `If-Match`, the next revision in the body, a nonsecret
   evidence reference, and an audit record of who and when. The binding may be
-  disabled or replaced; history is immutable.
+  disabled or replaced; history is immutable. Every `machineId` must be in the
+  runner fleet configuration, or the binding is `409 unknown_machine`.
 - `POST /v1/fleet/report` on `homer-intake` takes a `home.fleet-report/v1` body
   of at most 256 KiB. A report that does not validate gets `400`, and a report
   naming a machine outside the binding gets `403`; nothing is recorded.

@@ -19,10 +19,22 @@ Restrict runner groups to approved repositories/workflows and verify effective
 policy; labels route jobs but do not establish authorization. Avoid giving these
 machines production deploy credentials or running untrusted PR code.
 
+## Monitored machines
+
+The same configuration lists the machines fleet monitoring watches. A machine
+that runs no CI runner, such as a DGX Spark, a Jetson or a GPU host, is added
+with the role **Monitored only**: its id, alias, kind, operating system and
+architecture, and nothing else. It has no desired mode, no lifecycle controls
+and no controller enrollment. A `spark` or `jetson` is Linux on arm64; a Linux
+or Windows GPU host is a `pc`. Record what the machine is, never a guess. A
+monitored machine can later become a runner; a runner cannot go back. See the
+fleet monitoring spec's
+[Machine list](../../specs/fleet-monitoring/spec.md#machine-list).
+
 ## Operator workflow
 
 1. Open CI runners with authenticated admin access.
-2. Read current fleet revision, then add or edit the PC and Mac records.
+2. Read current fleet revision, then add or edit the machine records.
 3. Review the exact changes. A maintenance request records intent only.
 4. Save with the observed revision and verify fresh readback.
 5. For conflict or uncertain save, read back before manual reconciliation. Do not

@@ -212,6 +212,54 @@ it("accepts configured Windows PC and macOS Mac without inventing host identity"
   expect(body.config.machines).toEqual(machines);
   expect(body.observedState).toBe("unknown");
 });
+const spark = { id: "delphi", alias: "Delphi", kind: "spark", os: "linux", architecture: "arm64" };
+/** The machine without the named fields. */
+function without(fields: string[]): Record<string, unknown> {
+  const copy: Record<string, unknown> = { ...machine };
+  for (const field of fields) delete copy[field];
+  return copy;
+}
+it("lists monitored machines and DGX Sparks in version 2 after version 1 history", async () => {
+  const e = environment();
+  const put = (body: unknown, expected: number) =>
+    handleRunnerRequest(request("PUT", body, { "If-Match": `"${expected}"` }), e, key);
+  expect((await put({ version: 1, revision: 1, machines: [machine] }, 0)).status).toBe(200);
+  const jetson = { ...spark, id: "jetson", alias: "Jetson", kind: "jetson" };
+  const host = { ...spark, id: "bosgame", alias: "Bosgame", kind: "pc", architecture: "x64" };
+  const sparkRunner = { ...machine, ...spark, id: "morpheus", alias: "Morpheus" };
+  const machines = [machine, spark, jetson, host, sparkRunner];
+  expect((await put({ version: 2, revision: 2, machines }, 1)).status).toBe(200);
+  await abortAllDurableObjects();
+  const body = await (await handleRunnerRequest(request(), e, key)).json<{ config: unknown }>();
+  expect(body.config).toEqual({ version: 2, revision: 2, machines });
+  // A runner keeps its runner settings; a monitored machine may become a runner.
+  const monitoredPc = without(["runnerId", "repository", "labels", "desiredState"]);
+  const removal = await put(
+    { version: 2, revision: 3, machines: [monitoredPc, ...machines.slice(1)] },
+    2,
+  );
+  expect(removal.status).toBe(409);
+  expect(await removal.json()).toEqual({ error: "runner_removal_forbidden" });
+  const promoted = machines.map((m) => (m.id === "delphi" ? { ...machine, ...spark } : m));
+  expect((await put({ version: 2, revision: 3, machines: promoted }, 2)).status).toBe(200);
+});
+it("refuses a new kind in version 1, a misfit Spark or Jetson, and partial runner fields", async () => {
+  const e = environment();
+  for (const body of [
+    { version: 1, revision: 1, machines: [spark] },
+    { version: 1, revision: 1, machines: [{ ...machine, ...spark }] },
+    { version: 3, revision: 1, machines: [] },
+    { version: 2, revision: 1, machines: [{ ...spark, architecture: "x64" }] },
+    { version: 2, revision: 1, machines: [{ ...spark, kind: "jetson", os: "windows" }] },
+    { version: 2, revision: 1, machines: [{ ...spark, kind: "host" }] },
+    { version: 2, revision: 1, machines: [{ ...spark, repository: "Zero-State-LLC/example" }] },
+    { version: 2, revision: 1, machines: [without(["desiredState"])] },
+    { version: 2, revision: 1, machines: [spark, { ...machine, id: "delphi" }] },
+  ]) {
+    const response = await handleRunnerRequest(request("PUT", body, { "If-Match": '"0"' }), e, key);
+    expect(response.status).toBe(400);
+  }
+});
 it("serves authenticated fleet assets with safe headers and explicit desired-state boundaries", async () => {
   const e = environment();
   for (const path of ["", "/app.js", "/style.css"]) {

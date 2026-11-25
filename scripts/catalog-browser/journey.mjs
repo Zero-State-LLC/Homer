@@ -1046,6 +1046,51 @@ try {
   console.log(
     "PASS: exact workload scope, durable duplicate host receipt, operator host-evidence view and immediate revocation",
   );
+  // A monitored machine has no runner fields, no desired mode and no lifecycle controls.
+  await fleet.getByRole("button", { name: "New machine", exact: true }).click();
+  await fleet.getByLabel("Machine ID", { exact: true }).fill("fixture-spark");
+  await fleet.getByLabel("Alias", { exact: true }).fill("Fixture Spark");
+  await fleet.getByLabel("Machine kind", { exact: true }).selectOption("spark");
+  assert.equal(await fleet.getByLabel("Operating system", { exact: true }).inputValue(), "linux");
+  assert.equal(await fleet.getByLabel("Architecture", { exact: true }).inputValue(), "arm64");
+  await fleet.getByLabel("Role", { exact: true }).selectOption("monitored");
+  assert.equal(await fleet.getByLabel("Repository scope", { exact: true }).isDisabled(), true);
+  assert.equal(await fleet.getByLabel("Desired mode", { exact: true }).isDisabled(), true);
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(await fleet.locator("#review-text").innerText(), /Monitored only/);
+  await fleet.getByRole("button", { name: "Save desired configuration", exact: true }).click();
+  await fleet.getByRole("button", { name: "Edit Fixture Spark", exact: true }).waitFor();
+  const monitored = (await (await fleet.request.get(base + "/v1/admin/runners/config")).json())
+    .config;
+  assert.equal(monitored.version, 2);
+  assert.deepEqual(monitored.machines.at(-1), {
+    id: "fixture-spark",
+    alias: "Fixture Spark",
+    kind: "spark",
+    os: "linux",
+    architecture: "arm64",
+  });
+  const spark = fleet.locator('article[data-machine-id="fixture-spark"]');
+  assert.match(await spark.innerText(), /Monitored only/);
+  assert.equal(await spark.getByRole("button").count(), 1);
+  assert.equal(
+    (
+      await fleet.request.get(base + "/v1/admin/runners/lifecycle?machineId=fixture-spark")
+    ).status(),
+    404,
+  );
+  // A runner machine cannot become monitored only.
+  await fleet
+    .locator('article[data-machine-id="fixture-pc"]')
+    .getByRole("button", { name: /^Edit / })
+    .click();
+  await fleet.getByLabel("Role", { exact: true }).selectOption("monitored");
+  await fleet.getByRole("button", { name: "Review request", exact: true }).click();
+  assert.match(await fleet.locator("#status").innerText(), /keeps its runner settings/);
+  assert.equal(await fleet.locator("#review").isHidden(), true);
+  console.log(
+    "PASS: a monitored DGX Spark saves without runner fields or lifecycle controls, and a runner cannot become monitored only",
+  );
   await fleetContext.close();
   console.log(
     "PASS: real ledger calendar evidence, Pacific day filters and URLs; PC/Mac durable fleet review/readback, pending maintenance, denied reader access and mobile reflow",
