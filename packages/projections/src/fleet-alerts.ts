@@ -55,16 +55,22 @@ export interface FleetAlertPlan {
 
 /**
  * The Collector conditions a sparkDash state hides. An unreachable sparkDash, or one whose
- * responses changed shape, says nothing of its metrics, alert notifications or release, so
- * their Alerts are held rather than cleared.
+ * responses changed shape, says nothing of its metrics, alert notifications or release. The
+ * report gives one state, and `metrics_off` takes precedence over `alerts_off`, so with metrics
+ * off it cannot say whether alert notifications are on. Hidden conditions are held, not cleared.
  */
 const HIDDEN_BY: Readonly<Record<string, readonly string[]>> = {
   unreachable: ["metrics_off", "alerts_off", "shape_changed", "version_changed"],
   shape_changed: ["metrics_off", "alerts_off", "version_changed"],
+  metrics_off: ["alerts_off"],
 };
 
-/** sparkDash states in which the Collector reads no alerts (its `alertsRead` is false). */
-const ALERTS_UNSEEN = new Set(["unreachable", "alerts_off", "shape_changed"]);
+/**
+ * sparkDash states in which a firing list cannot show a recovery: alerts are not read, or, with
+ * metrics off, may not be evaluated, since sparkDash evaluates none while notifications are off.
+ * A recovery is announced only once it is seen with notifications confirmed on.
+ */
+const ALERTS_UNSEEN = new Set(["unreachable", "alerts_off", "shape_changed", "metrics_off"]);
 
 /** A held diagnostic occurrence, kept by the intake apart from the snapshot. */
 export interface FleetHeldOccurrence {
@@ -151,16 +157,18 @@ export function projectFleetAlerts(
   ];
   for (const diagnostic of diagnostics) {
     const code = diagnostic.code;
-    if (code === "version_changed")
+    if (code === "version_changed") {
+      // An unread release is not news: the hold keeps the last mismatch as it was.
+      if (snapshot.sparkdash.version === null) continue;
       alerts.push({
         key: "fleet:collector:version_changed",
         template: "fleet.version_changed",
         params: {
           pinned: snapshot.sparkdash.pinnedVersion,
-          seen: snapshot.sparkdash.version ?? "unknown",
+          seen: snapshot.sparkdash.version,
         },
       });
-    else if (code === "queue_full" || code === "events_backlog") {
+    } else if (code === "queue_full" || code === "events_backlog") {
       if (
         code === "events_backlog" &&
         collected - Date.parse(diagnostic.since) < EVENTS_BACKLOG_ALERT_MS

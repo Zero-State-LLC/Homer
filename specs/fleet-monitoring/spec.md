@@ -480,17 +480,20 @@ under the `fleet:` prefix:
   While the whole fleet is stale, only `fleet:collector:stale` is added: each
   machine's Alerts stay as the last report left them, neither cleared nor made
   stale. Before the first report, nothing is raised.
-- While the Collector reads no alerts from sparkDash (it is `unreachable`,
-  its alert notifications are off, or its shape changed), its machines' firing
-  lists say nothing. The rules then return `fleet:<machineId>:` as a hold
-  prefix for each, and the engine keeps their raised rule Alerts as they were
-  instead of announcing a recovery nobody saw. Their stale Alert is excepted,
-  since freshness may still be read. With only the metrics off, alerts are
-  still read, so a rule's recovery is real and clears.
+- A rule's recovery is announced only when it is seen with sparkDash's alert
+  notifications confirmed on, which only the `ok` state confirms: with metrics
+  off, the report's single state cannot say whether notifications are on, and
+  sparkDash evaluates no alerts while they are off. In every other state the
+  rules return `fleet:<machineId>:` as a hold prefix for each sparkDash
+  machine, and the engine keeps its raised rule Alerts as they were. Its stale
+  Alert is excepted, since freshness may still be read. A recovery during
+  `metrics_off` is therefore posted when metrics return, never invented.
 - An unreachable sparkDash says nothing of its metrics, alert notifications,
-  shape or release, and one whose responses changed shape says nothing of the
-  first two or its release, so those Collector Alerts are held too, never
-  cleared by a change of state alone.
+  shape or release; one whose responses changed shape says nothing of the
+  first two or its release; and with metrics off, notifications are unknown.
+  Those Collector Alerts are held, never cleared by a change of state alone.
+  While the release is unread, no `version_changed` Alert is requested, so the
+  last mismatch stands.
 - A machine is named by its alias when the alias fits the Fleet Report's name
   rule, and otherwise by its id, cut to the rule's 40 characters.
 - The templates are `HOMER_ALERT_TEMPLATES` in `@zs-home/buzz-collector`. Where

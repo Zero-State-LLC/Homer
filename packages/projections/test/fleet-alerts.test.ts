@@ -131,7 +131,7 @@ it("raises fleet:collector:stale after 2 minutes without a report, and holds the
 
 it("holds sparkDash machines' rule Alerts, not their stale Alert, while their alerts are unread", () => {
   const box = machine({ machineId: "bosgame", kind: "ssh", source: "reachability" });
-  for (const state of ["unreachable", "alerts_off", "shape_changed"] as const) {
+  for (const state of ["unreachable", "alerts_off", "shape_changed", "metrics_off"] as const) {
     const plan = projectFleetAlerts(
       snapshot({
         sparkdash: { state, version: null, pinnedVersion: "2.91.0" },
@@ -143,15 +143,8 @@ it("holds sparkDash machines' rule Alerts, not their stale Alert, while their al
     expect(plan.hold.filter((p) => !p.startsWith("fleet:collector:"))).toEqual(["fleet:delphi:"]);
     expect(plan.holdExcept).toEqual(["fleet:delphi:stale"]);
   }
-  // With metrics off, sparkDash's alerts are still read, so a recovery is real.
-  for (const state of ["ok", "metrics_off"] as const)
-    expect(
-      projectFleetAlerts(
-        snapshot({ sparkdash: { state, version: "2.91.0", pinnedVersion: "2.91.0" } }),
-        configured,
-        { now: T0 + 30_000 },
-      ).hold,
-    ).toEqual([]);
+  // Only with notifications confirmed on does an empty firing list mean a recovery.
+  expect(projectFleetAlerts(snapshot(), configured, { now: T0 + 30_000 }).hold).toEqual([]);
 });
 
 it("holds the Collector conditions an unreachable or reshaped sparkDash hides", () => {
@@ -175,8 +168,8 @@ it("holds the Collector conditions an unreachable or reshaped sparkDash hides", 
     "fleet:collector:alerts_off",
     "fleet:collector:version_changed",
   ]);
-  // Metrics off: alerts and the release are still read, so their recoveries are real.
-  expect(plan("metrics_off")).toEqual([]);
+  // Metrics off: the report cannot say whether notifications are on; the release is read.
+  expect(plan("metrics_off")).toEqual(["fleet:collector:alerts_off"]);
   expect(plan("ok")).toEqual([]);
 });
 
@@ -260,6 +253,20 @@ it("raises a held occurrence from the snapshot only within a day of the report",
   expect(alerts(old, T0 + day - 2_000)).toHaveLength(2);
   // A Collector silent for a day: only its stale Alert, never the old occurrence again.
   expect(alerts(old, T0 + 1_000 + day).map((a) => a.key)).toEqual(["fleet:collector:stale"]);
+});
+
+it("raises no version Alert while the release is unread, so the hold keeps the last one", () => {
+  const plan = projectFleetAlerts(
+    snapshot({
+      sparkdash: { state: "unreachable", version: null, pinnedVersion: "2.91.0" },
+      machines: [machine({ state: "unknown" })],
+      diagnostics: [{ code: "version_changed", since: iso(T0 - 60_000) }],
+    }),
+    configured,
+    { now: T0 + 30_000 },
+  );
+  expect(plan.alerts.map((a) => a.key)).toEqual(["fleet:collector:unreachable"]);
+  expect(plan.hold).toContain("fleet:collector:version_changed");
 });
 
 it("raises one Alert per held diagnostic occurrence, keyed by its since", () => {
