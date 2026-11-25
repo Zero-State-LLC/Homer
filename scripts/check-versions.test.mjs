@@ -438,10 +438,34 @@ test("the repository's CHANGELOG and contracts table pass", () => {
   assert.deepEqual(checkContractsTable(repo), []);
 });
 
-test("a well-formed CHANGELOG passes at each of its versions and at a release candidate", () => {
-  for (const version of ["0.0.0", "0.1.0", "0.2.0", "0.3.0-rc.1"]) {
+test("a well-formed CHANGELOG passes at each of its versions", () => {
+  for (const version of ["0.0.0", "0.1.0", "0.2.0"]) {
     assert.deepEqual(checkChangelog(CHANGELOG_OK, version), [], version);
   }
+});
+
+test("a release candidate needs a section of its own, in order", () => {
+  const missing = 'no "## [0.3.0-rc.1] - YYYY-MM-DD" section';
+  assert.ok(checkChangelog(CHANGELOG_OK, "0.3.0-rc.1").some((e) => e.includes(missing)));
+  const withSections = (...versions) =>
+    CHANGELOG_OK.replace(
+      "## [0.2.0] - 2026-12-01",
+      [
+        ...versions.map((v) => `## [${v}] - 2026-12-05\n\n### Fixed\n\n- In ${v}.\n`),
+        "## [0.2.0] - 2026-12-01",
+      ].join("\n"),
+    );
+  assert.deepEqual(checkChangelog(withSections("0.3.0-rc.1"), "0.3.0-rc.1"), []);
+  assert.deepEqual(checkChangelog(withSections("0.3.0", "0.3.0-rc.2", "0.3.0-rc.1"), "0.3.0"), []);
+  assert.ok(
+    checkChangelog(withSections("0.3.0-rc.1", "0.3.0-rc.2"), "0.3.0-rc.2").some((e) =>
+      e.includes("0.3.0-rc.2 must come after 0.3.0-rc.1: newest release first"),
+    ),
+  );
+  assert.equal(
+    releaseNotes(withSections("0.3.0-rc.1"), "v0.3.0-rc.1"),
+    "### Fixed\n\n- In 0.3.0-rc.1.\n",
+  );
 });
 
 test("check-versions names each CHANGELOG problem by line", async (t) => {
