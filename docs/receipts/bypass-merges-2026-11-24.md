@@ -63,3 +63,60 @@ ran 31 test files and took 56 seconds.
 - **ZER-67** (Danny): with #64 landed, `check` and `audit` can become required
   checks on `main`.
 - **ZER-66**: record the first docs-only check run now that #64 has landed.
+
+## Later the same day
+
+Under the same grant, eleven more pull requests merged.
+
+**Fleet monitoring and this receipt (docs-only).** #69 (`aca0d56`) records
+Danny's acceptance of the fleet monitoring intent, #70 (`463ea35`) is this
+receipt, and #71 (`8f6ad0e`) records his acceptance of the fleet monitoring
+spec and ADR 011. They stand on his acceptance, CI and clean Codex reviews.
+
+**The runner stack, rebased at Danny's request.** #31 to #46 were cut before
+`main` restarted on 2026-11-23 and shared no history with it, and fleet
+monitoring waits on #35 and #38. Before anything was rewritten, each original
+head was pushed to `backup/pre-rebase-2026-11-24/<branch>`. Each PR's whole
+diff was then replayed as one commit onto the rebased PR below it, with a
+three-way merge against its original base, and pushed with leases pinned to
+the original heads. Every file of every PR carries the same added and removed
+lines as before, with two exceptions, both noted on the PRs:
+
+- #32: the new `admin-browser` job takes the docs-only classifier step and its
+  `if:` conditions, as the accepted CI feedback spec requires.
+- #38: the build chain is `main`'s with `runner-controller` added, and the
+  lockfile gains its two entries in npm's sorted order.
+
+Codex then reviewed every rebased head. On #44 and #45 it found five problems,
+four of them open since 2026-11-22, and one more on #44 after the first fixes.
+Danny asked for them fixed, each with a test that fails when its fix is
+reverted:
+
+- #44: samples are compared and grouped in a canonical field order; timing
+  warnings are kept when the execution time is valid; skipped and neutral jobs
+  no longer count as failures; a conflicting attempt is flagged in every
+  bucket it touches, whatever the input order.
+- #45: GitHub's runner id `0` reads as Unknown; enrichment is refused when
+  nothing names the job's attempt, so a rerun's actor is not attached to an
+  older job.
+
+| PR | Change | Merged head | Squash commit on `main` |
+| --- | --- | --- | --- |
+| [#31](https://github.com/Zero-State-LLC/Homer/pull/31) | Credential administration design | `56c622e` | `f652580` |
+| [#32](https://github.com/Zero-State-LLC/Homer/pull/32) | Operator forms and scoped credential read views (ZER-25, ZER-26) | `2e290ff` | `e41d3dc` |
+| [#35](https://github.com/Zero-State-LLC/Homer/pull/35) | Work calendar and runner fleet configuration (ZER-32, ZER-33) | `6922f78` | `8cb7057` |
+| [#38](https://github.com/Zero-State-LLC/Homer/pull/38) | Scoped runner controller protocol (ZER-34) | `b0eaaaa` | `6d5e702` |
+| [#39](https://github.com/Zero-State-LLC/Homer/pull/39) | Machine connection and runner disconnect (ZER-38, ZER-39) | `2794758` | `266e63a` |
+| [#44](https://github.com/Zero-State-LLC/Homer/pull/44) | Runner performance Projection (ZER-40) | `71dd7cf` | `51050ae` |
+| [#45](https://github.com/Zero-State-LLC/Homer/pull/45) | Workflow-job provenance mapper (ZER-36) | `226b823` | `c4fde94` |
+| [#46](https://github.com/Zero-State-LLC/Homer/pull/46) | Workflow-job admission (ZER-36) | `5d47278` | `bad73ad` |
+
+Each merged with all seven checks green on its exact head, `admin-browser`
+included. After the last merge, `main`'s tree at `bad73ad` is identical to the
+head Codex reviewed on #46, and all seven checks passed on it, with 41 test
+files.
+
+**Still owed:** all eight are code, and none has a Verdict. ZER-63 lists them
+with their full head SHAs. ZER-34 and ZER-36 stay open for live enrollment and
+the remaining job evidence work, as their pull requests say. The backup
+branches can be deleted once Danny is satisfied with the rebase.
