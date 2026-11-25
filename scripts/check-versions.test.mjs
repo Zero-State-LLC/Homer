@@ -26,6 +26,13 @@ import { VersionRefused, planVersion, writePlan } from "./version.mjs";
 
 const repo = repositoryRoot();
 
+// A version above `version`: the next minor. Tests that bump a copy of the
+// repository use it, so they pass at whatever version the repository is.
+function nextMinor(version) {
+  const [major, minor] = version.split(/[.-]/);
+  return `${major}.${Number(minor) + 1}.0`;
+}
+
 function temporary(t) {
   const dir = mkdtempSync(join(tmpdir(), "homer-versions-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -122,33 +129,34 @@ test("the repository's package files round-trip byte for byte", () => {
   }
 });
 
-test("version.mjs 0.1.0 from the repository sets every version field", (t) => {
+test("version.mjs from the repository's version sets every version field", (t) => {
   const dir = temporary(t);
   copyRepository(dir);
   const before = loadWorkspace(dir);
+  const next = nextMinor(before.root.json.version);
   const workspaceNames = new Set(before.packages.map((p) => p.json.name));
-  const plan = planVersion(before, "0.1.0");
+  const plan = planVersion(before, next);
   writePlan(dir, plan);
 
   const after = loadWorkspace(dir);
   assert.deepEqual(checkWorkspace(after), []);
-  assert.equal(after.root.json.version, "0.1.0");
+  assert.equal(after.root.json.version, next);
   assert.ok(after.packages.length > 0);
-  for (const pkg of after.packages) assert.equal(pkg.json.version, "0.1.0", pkg.path);
+  for (const pkg of after.packages) assert.equal(pkg.json.version, next, pkg.path);
   let internal = 0;
   for (const pkg of after.packages) {
     for (const [name, range] of Object.entries(pkg.json.dependencies ?? {})) {
       if (!workspaceNames.has(name)) continue;
       internal += 1;
-      assert.equal(range, "0.1.0", `${pkg.path} ${name}`);
-      assert.equal(after.lock.json.packages[pkg.dir].dependencies[name], "0.1.0");
+      assert.equal(range, next, `${pkg.path} ${name}`);
+      assert.equal(after.lock.json.packages[pkg.dir].dependencies[name], next);
     }
   }
   assert.ok(internal > 0, "the repository has internal dependencies");
-  assert.equal(after.lock.json.version, "0.1.0");
-  assert.equal(after.lock.json.packages[""].version, "0.1.0");
+  assert.equal(after.lock.json.version, next);
+  assert.equal(after.lock.json.packages[""].version, next);
   for (const pkg of after.packages) {
-    assert.equal(after.lock.json.packages[pkg.dir].version, "0.1.0", pkg.dir);
+    assert.equal(after.lock.json.packages[pkg.dir].version, next, pkg.dir);
   }
   // Every workspace package, the root and the lock changed; nothing else did.
   assert.equal(plan.length, after.packages.length + 2);
@@ -338,6 +346,13 @@ test("workspace patterns other than a directory or dir/* are refused", (t) => {
   assert.throws(() => workspaceDirectories(dir, "packages/*"), /must be a list/);
 });
 
+test("nextMinor is above every version of its minor", () => {
+  for (const version of ["0.0.0", "0.1.0", "0.1.0-rc.1", "1.9.3", "1.10.0-beta.2"]) {
+    assert.equal(compareVersions(nextMinor(version), version), 1, version);
+  }
+  assert.equal(nextMinor("1.9.3"), "1.10.0");
+});
+
 test("SemVer precedence follows the SemVer 2.0.0 example", () => {
   const ordered = [
     "1.0.0-alpha",
@@ -376,9 +391,10 @@ test("the CLIs change the copy, refuse bad input and fail on disagreement", (t) 
     assert.equal(readFileSync(join(dir, "package-lock.json"), "utf8"), before);
   }
 
-  const bumped = run("version.mjs", "0.1.0");
+  const next = nextMinor(read(dir, "package.json").version);
+  const bumped = run("version.mjs", next);
   assert.equal(bumped.status, 0, bumped.stderr);
-  assert.match(bumped.stdout, /Homer is now 0\.1\.0/);
+  assert.ok(bumped.stdout.startsWith(`Homer is now ${next} (was `), bumped.stdout);
   assert.equal(run("check-versions.mjs").status, 0);
 
   const pkg = read(dir, "packages/shared-contracts/package.json");
