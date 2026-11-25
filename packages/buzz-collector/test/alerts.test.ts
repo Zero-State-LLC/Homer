@@ -171,6 +171,17 @@ describe("what may enter a message", () => {
     expect(Object.keys(state.records)).toEqual(["fleet:delphi:thermal"]);
   });
 
+  it("keeps an Alert as it is when a request under its key is refused", () => {
+    let { state } = apply(emptyAlertState(), [thermal()]);
+    ({ state } = deliverAll(state, T0));
+    const before = structuredClone(state.records);
+    const bad = { ...thermal(), params: { machineId: "delphi", name: "<b>", rule: "thermal" } };
+    const result = apply(state, [bad], T0 + 1_000);
+    expect(result.refused).toEqual([{ key: "fleet:delphi:thermal", reason: "invalid_params" }]);
+    expect(result.state.records).toEqual(before);
+    expect(dueAlerts(result.state, templates, T0 + 1_000)).toEqual([]);
+  });
+
   it("renders every template from its parameters alone", () => {
     const sample: Record<string, Record<string, string>> = {
       "fleet.machine_alert": { machineId: "delphi", name: "Delphi", rule: "new-rule" },
@@ -239,6 +250,24 @@ describe("the hourly cap", () => {
 });
 
 describe("retries", () => {
+  it("backs off a failed summary, keeping its slot", () => {
+    let { state } = apply(
+      emptyAlertState(),
+      Array.from({ length: 31 }, (_, i) => thermal(`m${i}`, `M${i}`)),
+    );
+    const due = dueAlerts(state, templates, T0);
+    expect(due).toHaveLength(ALERTS_PER_HOUR);
+    for (const d of due.slice(0, -1)) state = markDelivered(state, d.key, d.content, T0);
+    state = markFailed(state, HELD_ALERTS_KEY, T0);
+    expect(dueAlerts(state, templates, T0)).toEqual([]);
+    expect(dueAlerts(state, templates, T0 + 29_999)).toEqual([]);
+    const [summary] = dueAlerts(state, templates, T0 + 30_000);
+    expect(summary?.key).toBe(HELD_ALERTS_KEY);
+    expect(summary?.content).toMatch(/^Homer is holding 2 alert changes/);
+    state = markDelivered(state, summary!.key, summary!.content, T0 + 30_000);
+    expect(state.summaryRetry).toBeNull();
+  });
+
   it("waits 30 s, 60 s, 120 s, 300 s, then 600 s between failed posts, and never drops a message", () => {
     let { state } = apply(emptyAlertState(), [thermal()]);
     let now = T0;

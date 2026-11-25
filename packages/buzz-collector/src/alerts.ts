@@ -16,17 +16,7 @@ export const ONE_SHOT_RETENTION_MS = 7 * 24 * HOUR_MS;
 /** The Alert Key of the summary that says how many Alerts the hourly cap holds. */
 export const HELD_ALERTS_KEY = "homer:alerts:held";
 
-/** What a parameter may hold. Each kind admits ids, times or Homer's own words, never free text. */
-export type AlertParamKind =
-  | "id"
-  | "name"
-  | "time"
-  | "rule"
-  | "version"
-  | "count"
-  | readonly string[];
-
-const PATTERNS: Record<Exclude<AlertParamKind, readonly string[]>, RegExp> = {
+const PATTERNS = {
   id: /^[a-z0-9][a-z0-9-]{0,63}$/,
   // The Fleet Report's display-name rule: letters, digits, space, `.`, `_` and `-`.
   name: /^[A-Za-z0-9 ._-]{1,40}$/,
@@ -34,7 +24,10 @@ const PATTERNS: Record<Exclude<AlertParamKind, readonly string[]>, RegExp> = {
   rule: /^[a-z0-9-]{1,40}$/,
   version: /^[0-9A-Za-z][0-9A-Za-z.+-]{0,39}$/,
   count: /^(0|[1-9][0-9]{0,5})$/,
-};
+} satisfies Record<string, RegExp>;
+
+/** What a parameter may hold: ids, times or Homer's own words, or one of a fixed list. */
+export type AlertParamKind = keyof typeof PATTERNS | readonly string[];
 
 /** An Alert Key: Homer's ids, joined by `:`. */
 const ALERT_KEY = /^[a-z0-9][A-Za-z0-9:._-]{0,199}$/;
@@ -61,12 +54,14 @@ export interface AlertRequest {
   readonly params: Readonly<Record<string, string>>;
 }
 
-export type AlertRefusal =
-  | "invalid_key"
-  | "outside_scope"
-  | "duplicate_key"
-  | "unknown_template"
-  | "invalid_params";
+const REFUSALS = [
+  "invalid_key",
+  "outside_scope",
+  "duplicate_key",
+  "unknown_template",
+  "invalid_params",
+] as const;
+export type AlertRefusal = (typeof REFUSALS)[number];
 
 interface Pending {
   content: string;
@@ -94,6 +89,8 @@ export interface AlertState {
   window: number[];
   /** When the held-alert summary was last posted, if within the window. */
   summaryAt: number | null;
+  /** The held-alert summary's retry, after a failed post. */
+  summaryRetry: { attempts: number; nextAttemptAt: number } | null;
 }
 
 /** A message to sign and post now. */
@@ -103,7 +100,7 @@ export interface AlertDelivery {
 }
 
 export function emptyAlertState(): AlertState {
-  return { version: 1, records: {}, window: [], summaryAt: null };
+  return { version: 1, records: {}, window: [], summaryAt: null, summaryRetry: null };
 }
 
 function paramsOk(template: AlertTemplate, params: Readonly<Record<string, string>>): boolean {
@@ -163,6 +160,8 @@ export function applyAlerts(
     else if (!paramsOk(template, request.params)) reason = "invalid_params";
     if (reason || !template) {
       refused.push({ key, reason: reason ?? "unknown_template" });
+      // A refused request is no news: an Alert already under its key stays as it is.
+      if (reason !== "invalid_key" && reason !== "outside_scope") seen.add(key);
       continue;
     }
     seen.add(key);
@@ -224,6 +223,8 @@ export function applyAlerts(
 function prune(state: AlertState, now: number): void {
   state.window = state.window.filter((at) => at > now - HOUR_MS);
   if (state.summaryAt !== null && state.summaryAt <= now - HOUR_MS) state.summaryAt = null;
+  if (state.summaryRetry && state.summaryRetry.nextAttemptAt <= now - HOUR_MS)
+    state.summaryRetry = null;
   for (const [key, record] of Object.entries(state.records)) {
     if (record.pending) continue;
     // A cleared Alert that was posted, or never needed posting, is finished.
@@ -253,6 +254,8 @@ export function dueAlerts(
   if (due.length <= free) return due;
   const summary = templates["homer.alerts_held"];
   if (free === 0 || state.summaryAt !== null || !summary) return due.slice(0, free);
+  // A summary waiting out its backoff keeps its slot.
+  if (state.summaryRetry && state.summaryRetry.nextAttemptAt > now) return due.slice(0, free - 1);
   const held = due.length - (free - 1);
   const params = { count: String(Math.min(held, 999_999)) };
   return [
@@ -275,6 +278,7 @@ export function markDelivered(
   state.window.push(now);
   if (key === HELD_ALERTS_KEY) {
     state.summaryAt = now;
+    state.summaryRetry = null;
     return state;
   }
   const record = state.records[key];
@@ -288,11 +292,14 @@ export function markDelivered(
 /** Records a failed post: the message waits, longer after each failure. */
 export function markFailed(previous: AlertState, key: string, now: number): AlertState {
   const state = structuredClone(previous);
-  const pending = state.records[key]?.pending;
-  if (!pending) return state;
-  pending.attempts += 1;
-  const wait = ALERT_BACKOFF_MS[Math.min(pending.attempts, ALERT_BACKOFF_MS.length) - 1]!;
-  pending.nextAttemptAt = now + wait;
+  const retry =
+    key === HELD_ALERTS_KEY
+      ? (state.summaryRetry ??= { attempts: 0, nextAttemptAt: now })
+      : state.records[key]?.pending;
+  if (!retry) return state;
+  retry.attempts += 1;
+  const wait = ALERT_BACKOFF_MS[Math.min(retry.attempts, ALERT_BACKOFF_MS.length) - 1]!;
+  retry.nextAttemptAt = now + wait;
   return state;
 }
 
