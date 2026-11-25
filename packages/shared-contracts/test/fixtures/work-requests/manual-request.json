@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-24",
+  "repository": "Zero-State-LLC/Homer",
+  "title": "Nightly flag sweep",
+  "pain": "Knowledge Flags that nobody addressed pile up between Curator Runs.",
+  "who": "Danny",
+  "doneWhen": [
+    "Every open Knowledge Flag older than a day is listed in the nightly sweep.",
+    "The sweep names each flag by its Event Key."
+  ]
+}

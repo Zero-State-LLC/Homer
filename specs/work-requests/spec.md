@@ -313,6 +313,7 @@ bindings and Jev's answer, and does no I/O.
 | Endpoint returns non-2xx | non-zero exit, no receipt, response body not echoed |
 | Jev call fails or returns no usable choice | refuse, `risk_unavailable`; nothing recorded, no fallback tier |
 | Jev unsure (below `minConfidence`) | one tier higher, recorded with the confidence |
+| Source text too long for Jev's input (over 24,000 characters with the criteria first) | refuse, `risk_unavailable`; never cut, so Jev always reads every criterion |
 
 Refusing a secret-shaped string, rather than stripping it, keeps the derivation
 deterministic and treats the secret in a Task as the incident it is. No

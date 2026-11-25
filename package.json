@@ -9,7 +9,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger && npm run build -w @zs-home/projections && npm run build -w @zs-home/github-sync && npm run build -w @zs-home/catalog-worker && npm run build -w @zs-home/curator-runner && npm run build -w @zs-home/curator-host-docker && npm run build -w @zs-home/buzz-collector",
+    "build": "npm run build -w @zs-home/shared-contracts && npm run build -w @zs-home/event-ledger && npm run build -w @zs-home/projections && npm run build -w @zs-home/github-sync && npm run build -w @zs-home/catalog-worker && npm run build -w @zs-home/curator-runner && npm run build -w @zs-home/curator-host-docker && npm run build -w @zs-home/buzz-collector && npm run build -w @zs-home/work-request-emitter",
     "postbuild": "node --test scripts/*runtime.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -19,7 +19,8 @@
     "check": "npm run format:check && npm run build && npm run lint && npm run --ignore-scripts typecheck && npm test --ignore-scripts && npm run smoke:workers",
     "pretypecheck": "npm run build",
     "pretest": "npm run build",
-    "smoke:workers": "node scripts/ledger-smoke.mjs"
+    "smoke:workers": "node scripts/ledger-smoke.mjs",
+    "work-request": "node packages/work-request-emitter/dist/cli.js"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.8.5",
