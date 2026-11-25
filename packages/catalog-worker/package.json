@@ -15,6 +15,7 @@
   "dependencies": {
     "@zs-home/github-sync": "0.0.0",
     "jose": "6.2.18",
-    "@zs-home/event-ledger": "0.0.0"
+    "@zs-home/event-ledger": "0.0.0",
+    "@zs-home/projections": "0.0.0"
   }
 }

@@ -4,6 +4,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ## Unreleased
 
+- Add ADRs and operator surfaces for evidence-linked work calendars and revisioned PC/Mac runner fleet intent.
+
 ### Added
 
 - Accepted fleet monitoring intent and spec (`specs/fleet-monitoring/spec.md`) and ADR 011: every machine reachable over SSH, read-only, through sparkDash and an SSH reachability check.
