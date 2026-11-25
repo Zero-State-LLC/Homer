@@ -1,6 +1,6 @@
 # ADR 006: a Work Request is built locally and delivered by a CLI
 
-Status: proposed. Not accepted until Danny accepts the intent.
+Status: accepted by Danny on 2026-11-24 (#61), with the Work Request spec.
 Intent: [Homer emits Work Requests](../../docs/intent/work-requests.md), accepted
 2026-11-23 (#59), amended 2026-11-24 (#61).
 Amended 2026-11-24 (Danny): a Done Linear Task is admitted, and a recorded

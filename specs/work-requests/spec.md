@@ -1,6 +1,6 @@
 # Work Request emission (v0.1.0)
 
-Status: proposed. Not accepted until Danny accepts this spec.
+Status: accepted by Danny on 2026-11-24 (#61), with the open-choice defaults.
 Intent: [Homer emits Work Requests](../../docs/intent/work-requests.md), accepted
 by Danny on 2026-11-23 (#59) and amended on 2026-11-24 (#61): Done Linear Tasks
 are admitted, a recorded request stands when its source is edited, and Jev picks
@@ -229,7 +229,8 @@ fabricated at emission time. The `manual:<slug>` source names the file.
 3. A Task in Backlog, Todo, In Progress, In Review or **Done** is admitted. Done is
    admitted so merged work can get an after-the-fact Verdict (Danny, 2026-11-24,
    ZER-63). ZER-68, ZER-69 and ZER-70 were filed as Done Tasks for #51 to #53 for
-   that reason.
+   that reason. Any other state, such as Triage, is refused as
+   `source_not_ready`: the Task has not been accepted into the work yet.
 4. Derive, record and output, by the store rules above.
 
 ### Emit for a GitHub issue
@@ -238,7 +239,9 @@ The same shape against a GitHub issue, read with the machine's `gh`
 authentication, using `created_at` for the date and the issue's own repository.
 
 A closed GitHub issue is refused as `source_closed`, whether it was closed as
-completed, not planned or stale. Admitting Done Linear Tasks did not change this;
+completed, not planned or stale. A pull request has an issue number too, but it
+is not an issue: a source that names one is refused as `source_not_found`, and so
+is a response whose repository or number differs from the source. Admitting Done Linear Tasks did not change this;
 see Open choices.
 
 ### Emit manually
@@ -294,7 +297,9 @@ bindings and Jev's answer, and does no I/O.
 | Case | Behaviour |
 | --- | --- |
 | Source names a Project or repository outside the policy | refuse, `source_not_mapped` |
-| Source does not exist | refuse, `source_not_found` |
+| Source does not exist, or names a GitHub pull request | refuse, `source_not_found` |
+| Linear Task in Triage or an unknown state | refuse, `source_not_ready` |
+| Source response missing a field, of the wrong type, or a Linear identifier outside ZER | refuse, `source_malformed`, naming the field |
 | Linear Task in a Canceled or Duplicate state | refuse, `source_canceled` |
 | GitHub issue closed, including closed as completed | refuse, `source_closed` |
 | Source date missing or unparseable | refuse, `source_date_unknown`; never substitute the current date |
