@@ -2,7 +2,7 @@
 
 Author: Claude Code for Danny (scrimshawlife-ctrl)
 Date: 2026-11-24
-Status: draft
+Status: accepted
 Product: Homer (`Zero-State-LLC/Homer`)
 
 This file is a proto-spec. It comes **before** specify.
@@ -10,8 +10,10 @@ Next stage is `spec.md` (spec-kit specify). Do not skip to code.
 
 One committed intent per change stream. Live under `docs/intent/`.
 
-This intent is **proposed, not accepted, and not built**. Nothing in it
-authorizes a tag, a release, a deploy or a change to a contract.
+Danny accepted this intent on 2026-11-24 (#74), with the proposed defaults
+below. It is not built. The next stage is the spec in `specs/versioning/`.
+Nothing here authorizes a tag, a release, a deploy or a change to a contract
+before that spec is accepted.
 
 ## Problem / why now
 
@@ -90,12 +92,11 @@ Non-goals:
 - Automatic deploys or automatic tags.
 - Renaming a contract id that is already in use.
 
-## Open questions
+## Decisions
 
-Each question has a proposed default, which applies if Danny accepts the intent
-without answering it.
+Danny accepted these defaults on 2026-11-24.
 
-| Question | Proposed default |
+| Question | Decision |
 | --- | --- |
 | What is the first version? | `v0.1.0`, tagged when Danny decides `main` is ready, after the audit's High findings have Tasks |
 | Do workspace packages carry the version, or only the root? | All of them, in lockstep, so each Collector can read its own `package.json` |
@@ -117,6 +118,5 @@ without answering it.
 
 ## Next
 
-A human accepts this file (`Status: accepted`). Then specify
-(`specs/versioning/spec.md` with `## Workflows`). Do not implement from this
-file alone.
+Specify `specs/versioning/spec.md` with `## Workflows`. Do not implement from
+this file alone.
