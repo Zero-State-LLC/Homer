@@ -89,6 +89,12 @@ describe("change-only Alerts", () => {
     });
     expect(held.state.records).toEqual(state.records);
     expect(dueAlerts(held.state, templates, T0 + 30_000)).toEqual([]);
+    // A key the monitor can still see clears under a hold prefix.
+    const except = applyAlerts(state, "fleet:", [], templates, T0 + 30_000, {
+      hold: ["fleet:delphi:"],
+      holdExcept: ["fleet:delphi:thermal"],
+    });
+    expect(dueAlerts(except.state, templates, T0 + 30_000)[0]?.content).toMatch(/cleared/);
     // Seen again and gone: now it clears.
     ({ state } = apply(held.state, [], T0 + 60_000));
     expect(dueAlerts(state, templates, T0 + 60_000)[0]?.content).toMatch(/cleared/);

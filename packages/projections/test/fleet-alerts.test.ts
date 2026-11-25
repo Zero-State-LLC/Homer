@@ -129,9 +129,9 @@ it("raises fleet:collector:stale after 2 minutes without a report, and holds the
   expect(stale.map((a) => a.key)).toEqual(["fleet:delphi:thermal", "fleet:collector:stale"]);
 });
 
-it("holds sparkDash machines' Alerts while sparkDash's firing lists say nothing", () => {
+it("holds sparkDash machines' rule Alerts, not their stale Alert, while their alerts are unread", () => {
   const box = machine({ machineId: "bosgame", kind: "ssh", source: "reachability" });
-  for (const state of ["unreachable", "metrics_off", "alerts_off", "shape_changed"] as const) {
+  for (const state of ["unreachable", "alerts_off", "shape_changed"] as const) {
     const plan = projectFleetAlerts(
       snapshot({
         sparkdash: { state, version: null, pinnedVersion: "2.91.0" },
@@ -141,8 +141,17 @@ it("holds sparkDash machines' Alerts while sparkDash's firing lists say nothing"
       { now: T0 + 30_000 },
     );
     expect(plan.hold).toEqual(["fleet:delphi:"]);
+    expect(plan.holdExcept).toEqual(["fleet:delphi:stale"]);
   }
-  expect(projectFleetAlerts(snapshot(), configured, { now: T0 + 30_000 }).hold).toEqual([]);
+  // With metrics off, sparkDash's alerts are still read, so a recovery is real.
+  for (const state of ["ok", "metrics_off"] as const)
+    expect(
+      projectFleetAlerts(
+        snapshot({ sparkdash: { state, version: "2.91.0", pinnedVersion: "2.91.0" } }),
+        configured,
+        { now: T0 + 30_000 },
+      ).hold,
+    ).toEqual([]);
 });
 
 it("raises fleet:collector:<state> while sparkDash is not read", () => {

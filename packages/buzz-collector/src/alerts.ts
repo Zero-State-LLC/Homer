@@ -53,6 +53,8 @@ export interface AlertApplyOptions {
    * because the monitor cannot see their source now.
    */
   readonly hold?: readonly string[];
+  /** Keys under a hold prefix that the monitor can still see, so they clear as usual. */
+  readonly holdExcept?: readonly string[];
 }
 
 /** An Alert a Projection or monitor raises now. */
@@ -215,7 +217,8 @@ export function applyAlerts(
   for (const [key, record] of Object.entries(state.records)) {
     if (!key.startsWith(scope) || record.phase !== "raised" || seen.has(key)) continue;
     // The monitor cannot see this Alert's source now: no news is not a recovery.
-    if (hold.some((prefix) => key.startsWith(prefix))) continue;
+    if (hold.some((prefix) => key.startsWith(prefix)) && !options.holdExcept?.includes(key))
+      continue;
     const template = Object.hasOwn(templates, record.template)
       ? templates[record.template]
       : undefined;

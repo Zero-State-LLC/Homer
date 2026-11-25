@@ -40,17 +40,18 @@ function displayName(name: string, machineId: string): string {
 }
 
 /**
- * What the fleet raises now, and the Alert Key prefixes to hold: a machine whose alerts
- * sparkDash is not evaluating keeps its rule Alerts as they were, since an empty firing list
- * then says nothing.
+ * What the fleet raises now, and the Alert Key prefixes to hold: while the Collector does not
+ * read sparkDash's alerts, a sparkDash machine keeps its rule Alerts as they were, since an
+ * empty firing list then says nothing. Its stale Alert is excepted: freshness may still be read.
  */
 export interface FleetAlertPlan {
   alerts: FleetAlertRequest[];
   hold: string[];
+  holdExcept: string[];
 }
 
-/** sparkDash states in which its machines' firing lists say nothing. */
-const ALERTS_UNSEEN = new Set(["unreachable", "metrics_off", "alerts_off", "shape_changed"]);
+/** sparkDash states in which the Collector reads no alerts (its `alertsRead` is false). */
+const ALERTS_UNSEEN = new Set(["unreachable", "alerts_off", "shape_changed"]);
 
 /** A held diagnostic occurrence, kept by the intake apart from the snapshot. */
 export interface FleetHeldOccurrence {
@@ -73,9 +74,10 @@ export function projectFleetAlerts(
   options: FleetAlertOptions,
 ): FleetAlertPlan {
   // Before the first report there is nothing to be stale against.
-  if (!snapshot) return { alerts: [], hold: [] };
+  if (!snapshot) return { alerts: [], hold: [], holdExcept: [] };
   const alerts: FleetAlertRequest[] = [];
   const hold: string[] = [];
+  const holdExcept: string[] = [];
   const unseen = ALERTS_UNSEEN.has(snapshot.sparkdash.state);
   const collected = Date.parse(snapshot.collectedAt);
   // Each machine as the report itself saw it, so a stale fleet holds its machine Alerts.
@@ -83,7 +85,10 @@ export function projectFleetAlerts(
   for (const machine of asReported.machines) {
     if (machine.reported === null) continue;
     const name = displayName(machine.name, machine.machineId);
-    if (unseen && machine.source === "sparkdash") hold.push(`fleet:${machine.machineId}:`);
+    if (unseen && machine.source === "sparkdash") {
+      hold.push(`fleet:${machine.machineId}:`);
+      holdExcept.push(`fleet:${machine.machineId}:stale`);
+    }
     // A Reachability Check's alert is its down state: the Collector reports it as events
     // and lists no firing alerts for that machine.
     const unreachable = machine.source === "reachability" && machine.reported === "down";
@@ -161,5 +166,9 @@ export function projectFleetAlerts(
     alerts.push({ key, template: "fleet.held_diagnostic", params: { ...held } });
   // One Alert per key: the first rule that raises it wins.
   const keys = new Set<string>();
-  return { alerts: alerts.filter((alert) => !keys.has(alert.key) && keys.add(alert.key)), hold };
+  return {
+    alerts: alerts.filter((alert) => !keys.has(alert.key) && keys.add(alert.key)),
+    hold,
+    holdExcept,
+  };
 }

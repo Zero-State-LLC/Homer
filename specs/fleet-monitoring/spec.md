@@ -478,10 +478,13 @@ under the `fleet:` prefix:
   While the whole fleet is stale, only `fleet:collector:stale` is added: each
   machine's Alerts stay as the last report left them, neither cleared nor made
   stale. Before the first report, nothing is raised.
-- While sparkDash is not read or its alert notifications are off, its
-  machines' firing lists say nothing, so the rules return `fleet:<machineId>:`
-  as a hold prefix for each of them, and the engine keeps their raised Alerts
-  as they were instead of announcing a recovery nobody saw.
+- While the Collector reads no alerts from sparkDash (it is `unreachable`,
+  its alert notifications are off, or its shape changed), its machines' firing
+  lists say nothing. The rules then return `fleet:<machineId>:` as a hold
+  prefix for each, and the engine keeps their raised rule Alerts as they were
+  instead of announcing a recovery nobody saw. Their stale Alert is excepted,
+  since freshness may still be read. With only the metrics off, alerts are
+  still read, so a rule's recovery is real and clears.
 - A machine is named by its alias when the alias fits the Fleet Report's name
   rule, and otherwise by its id, cut to the rule's 40 characters.
 - The templates are `HOMER_ALERT_TEMPLATES` in `@zs-home/buzz-collector`. Where
