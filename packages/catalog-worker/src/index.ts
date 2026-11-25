@@ -5,6 +5,7 @@ import {
 } from "./controller-http.js";
 import { calendarPaths, calendarResponse, type CalendarBindings } from "./calendar.js";
 import { fleetPaths, handleFleetRequest } from "./fleet-http.js";
+import { fleetStatusPaths, fleetStatusResponse, type FleetStatusBindings } from "./fleet-status.js";
 import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
 import { catalogRoute } from "./routes.js";
 export {
@@ -34,7 +35,8 @@ export interface Env
     CalendarBindings,
     DirectoryBindings,
     RunnerBindings,
-    EnrollmentBindings {
+    EnrollmentBindings,
+    FleetStatusBindings {
   /** Cloudflare's `version_metadata` binding (versioning spec, "Worker version"). */
   CF_VERSION_METADATA?: { id: string; tag: string; timestamp: string };
 }
@@ -51,6 +53,7 @@ export async function handleRequest(
   if (fleetPaths.has(url.pathname)) return handleFleetRequest(request, env, key);
   if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
   const calendarRoute = calendarPaths.has(url.pathname);
+  const fleetStatusRoute = fleetStatusPaths.has(url.pathname);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
   const editorRoute = editorPaths.has(url.pathname);
   const adminRoute = adminPaths.has(url.pathname);
@@ -71,7 +74,8 @@ export async function handleRequest(
     !adminRoute &&
     !credentialRoute &&
     !directoryUIRoute &&
-    !calendarRoute
+    !calendarRoute &&
+    !fleetStatusRoute
   )
     return json({ error: "not_found" }, 404);
   if (
@@ -83,7 +87,8 @@ export async function handleRequest(
       adminRoute ||
       credentialRoute ||
       directoryUIRoute ||
-      calendarRoute) &&
+      calendarRoute ||
+      fleetStatusRoute) &&
       request.method !== "GET") ||
     (url.pathname === "/v1/admin/catalog" && request.method !== "PUT")
   )
@@ -113,6 +118,7 @@ export async function handleRequest(
   }
   if (versionRoute) return json(workerVersion(env.CF_VERSION_METADATA));
   if (calendarRoute) return calendarResponse(url, env);
+  if (fleetStatusRoute) return fleetStatusResponse(url, env);
   if (directoryUIRoute) return directoryPage(url.pathname);
   if (credentialRoute) return credentialResponse(url, env, principal, principalKind);
   if (editorRoute) return editorResponse(url.pathname);

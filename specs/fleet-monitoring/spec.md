@@ -1,6 +1,6 @@
 # Fleet monitoring through sparkDash
 
-Version: 0.1.3
+Version: 0.1.4
 Status: accepted by Danny on 2026-11-24 (#71), with three rulings: fleet
 monitoring waits for the runner stream's machine list (#35) and controller
 protocol (#38); SSH monitoring is read-only on every machine, except for agentic
@@ -16,6 +16,9 @@ fleet configuration's id rule, as the Machine table says.
 Amended in ZER-113 at Danny's request (2026-11-25): the runner fleet
 configuration lists machines that run no runner, and the Collector's binding
 names only machines in it. See [Machine list](#machine-list).
+Amended in ZER-81: where the status view lives, how it links to sparkDash, and
+how it treats a configured machine the report leaves out and a report time
+ahead of Homer's clock. See [Status view](#status-view).
 
 Homer shows every machine the team can reach over SSH as up, down or stale,
 with its firing alerts, and sends alert changes to the Buzz `homer` channel.
@@ -402,6 +405,28 @@ A fleet status Projection over the latest snapshot and the machine events:
 - A machine that turns stale raises `fleet:<machineId>:stale`, and it clears
   when a fresh read arrives.
 - The view lives in the operator UI behind the existing Access policy.
+
+As built in ZER-81:
+
+- `homer-catalog` serves it to the read audience, `GET` only: the page at
+  `/v1/workspace/fleet` and the same Projection as JSON at `/v1/fleet`. It reads
+  the latest snapshot and the runner fleet configuration from `RUNNER_FLEET`.
+- Every configured machine is listed, in configuration order. One the latest
+  report does not name shows as unknown, and says so. A reported machine the
+  configuration does not hold is listed after them.
+- A machine's name is its alias in the configuration. A stale machine keeps
+  what the last report said beside its stale state, and its firing alerts are
+  labelled as the last report's.
+- A report collected more than a minute ahead of Homer's clock is not trusted:
+  every machine shows as stale.
+- The sparkDash link is the front door's origin, set on `homer-catalog` as
+  `SPARKDASH_ORIGIN`, the same value as the Collector's `frontDoorOrigin`.
+  Without it the view says the link is not configured. sparkDash pages have no
+  per-machine address Homer relies on, so every sparkDash machine links to the
+  same page.
+- A Reachability Check machine says its telemetry is unknown, and that a pass
+  proves an SSH server is listening, not that a login works.
+- The `fleet:*:stale` Alerts are Buzz's, in packet 6.
 
 ### Alerts to Buzz
 

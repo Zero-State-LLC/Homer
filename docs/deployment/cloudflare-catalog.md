@@ -2,8 +2,8 @@
 
 `homer-catalog` is the Worker for people and agents
 ([ADR 013](../../specs/adr/013-catalog-worker-boundary.md)): the catalog, admin
-pages and editor, the credential directory views, the Activity Calendar, runner
-fleet pages and enrollment, and `GET /v1/version`. Every route goes through
+pages and editor, the credential directory views, the Activity Calendar, the
+fleet status view, runner fleet pages and enrollment, and `GET /v1/version`. Every route goes through
 Access with the read or admin audience, and any other path answers `404`. The
 GitHub webhook, the runner controller protocol and fleet reports are in
 `homer-intake`; its Fleet Collector binding, `/v1/admin/fleet/collector`, is an
@@ -31,6 +31,7 @@ source or chat logs:
 | `RUNNER_FLEET` | Durable Object namespace bound to RunnerFleetObject; `homer-intake` binds it too |
 | `EVENT_LEDGER` | Cross-Worker binding to the existing EventLedgerObject namespace, required for the Activity Calendar |
 | `CF_VERSION_METADATA` | Cloudflare's version metadata binding, committed in `wrangler.jsonc`; `GET /v1/version` reads it |
+| `SPARKDASH_ORIGIN` | Optional. The front door's bare `https://` origin for the sparkDash page, the same as the Fleet Collector's `frontDoorOrigin`. The fleet status view links to it; without it, or if it is not a bare origin with a host name, the view shows no link |
 
 `homer-catalog` holds no webhook secret and no workload audience. Its
 `MAPPING_CATALOG` and `RUNNER_FLEET` namespaces are bound by `homer-intake`
@@ -38,7 +39,8 @@ through `script_name`, so deploy the catalog first, and keep `CATALOG_NAME` the
 same in both Workers.
 
 Create a read Access application for the selected host's `/v1/catalog` and
-`/v1/version` paths, and an admin application for `/v1/admin/catalog`. Use least-privilege policies and
+`/v1/version` paths, and for the fleet status view, `/v1/fleet` and
+`/v1/workspace/fleet` (Danny and Boof, per the fleet monitoring intent), and an admin application for `/v1/admin/catalog`. Use least-privilege policies and
 separate permitted service tokens. A read application must not issue the admin
 audience. Restrict admin access to approved operators and agents. Do not use
 Bypass policies. The Worker requires application tokens, not global session

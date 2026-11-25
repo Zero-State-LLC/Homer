@@ -2,6 +2,7 @@ import { adminPaths } from "./admin.js";
 import { calendarPaths } from "./calendar.js";
 import { enrollmentPaths } from "./controller-http.js";
 import { fleetPaths } from "./fleet-http.js";
+import { fleetStatusPaths } from "./fleet-status.js";
 import { directoryPaths } from "./directory-ui.js";
 import { editorPaths } from "./editor.js";
 import { runnerPaths } from "./runner-http.js";
@@ -18,13 +19,14 @@ export interface CatalogRoute {
 }
 const read: CatalogRoute = { caller: "person", audience: "read" };
 const admin: CatalogRoute = { caller: "person", audience: "admin" };
+const readPages = [...calendarPaths, ...directoryPaths, ...fleetStatusPaths];
 
 export const catalogRoutes: ReadonlyMap<string, CatalogRoute> = new Map<string, CatalogRoute>([
   ["/v1/catalog", read],
   ["/v1/version", read],
   ["/v1/credentials", read],
   ["/v1/my-setup", read],
-  ...[...calendarPaths, ...directoryPaths].map((p): [string, CatalogRoute] => [p, read]),
+  ...readPages.map((p): [string, CatalogRoute] => [p, read]),
   ["/v1/admin/catalog", admin],
   ["/v1/admin/catalog/archive", admin],
   ["/v1/admin/catalog/snapshot", admin],
