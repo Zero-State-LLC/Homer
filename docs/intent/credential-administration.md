@@ -2,7 +2,7 @@
 
 Author: ChatGPT for Daniel
 Date: 2026-11-21
-Status: draft
+Status: accepted for repository implementation
 Product: Homer (`Zero-State-LLC/Homer`)
 
 ## Problem / why now
@@ -14,6 +14,10 @@ also needs scoped credential management.
 [verified: current catalog-worker editor and Daniel's request in this conversation]
 
 ## Proposed outcome
+
+Daniel accepted the end-to-end Task breakdown and testing boundaries in this
+conversation on November 21, 2026 PT. Live credential enrollment, policy changes
+and production activation still require the specific inputs in the delivery contract.
 
 - Authorized operators manage shared credentials and their consumer bindings.
 - Developers manage their own approved integration credentials.
@@ -55,4 +59,5 @@ centrally held developer integrations, overlap policy and recovery owner.
 Review this intent and the accompanying [draft specification](../../specs/credential-admin/spec.md).
 The [experience design](../../specs/credential-admin/operator-experience.md) adds
 research, implementation priorities and an offline interactive prototype.
-Accept the intent before implementation. The draft adds no running credential surface.
+Implement the approved Task graph in the delivery contract. Acceptance does not
+claim that a running credential surface or live provider qualification exists.

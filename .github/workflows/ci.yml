@@ -56,6 +56,46 @@ jobs:
       - name: Plain Workers runtime smoke
         if: steps.changes.outputs.workspace != 'false'
         run: npm run smoke:workers
+  admin-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The merge commit and both parents, so ci-changes.sh can list the change.
+          fetch-depth: 2
+          persist-credentials: false
+      # The same docs-only rule as `check` (ADR 009, CI feedback spec).
+      - name: Classify the change
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: bash scripts/ci-changes.sh
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.changes.outputs.workspace != 'false'
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.changes.outputs.workspace != 'false'
+        run: npm ci --no-audit --no-fund
+      - if: steps.changes.outputs.workspace != 'false'
+        run: npm run build
+      - name: Install pinned Playwright Chromium
+        if: steps.changes.outputs.workspace != 'false'
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Verify admin journeys against local Worker
+        if: steps.changes.outputs.workspace != 'false'
+        env:
+          ADMIN_SCREENSHOT_DIR: ${{ runner.temp }}/homer-admin-screenshots
+        run: npm run smoke:admin
+      - name: Retain synthetic admin screenshots
+        if: steps.changes.outputs.workspace != 'false'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: admin-fixture-screenshots
+          path: ${{ runner.temp }}/homer-admin-screenshots
+          if-no-files-found: error
+          retention-days: 7
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10

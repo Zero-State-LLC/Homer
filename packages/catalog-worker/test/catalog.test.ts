@@ -305,3 +305,111 @@ it("protects the editor, assets and runtime snapshot with the admin audience", a
   }
   expect(await store.read()).toEqual(next);
 });
+
+it("shows authenticated observed catalog admission in Overview without claiming collection health", async () => {
+  const e = testEnv(),
+    admin = await token();
+  await handleRequest(
+    request(
+      admin,
+      "PUT",
+      JSON.stringify({
+        ...next,
+        repositories: [{ ...next.repositories[0], projectId: "project:homer" }],
+      }),
+      { "If-Match": '"0"' },
+    ),
+    e,
+    key,
+  );
+  const get = (jwt: string | null) =>
+    handleRequest(
+      new Request("https://homer.example/v1/admin/overview", {
+        headers: jwt ? { "Cf-Access-Jwt-Assertion": jwt } : {},
+      }),
+      e,
+      key,
+    );
+  expect((await get(null)).status).toBe(401);
+  expect((await get(await token(config.ACCESS_READ_AUD))).status).toBe(401);
+  const result = await get(admin);
+  expect(result.status).toBe(200);
+  expect(result.headers.get("Cache-Control")).toBe("no-store");
+  const page = await result.text();
+  expect(page).toContain("Observed catalog revision 1");
+  expect(page).toContain("Zero-State-LLC/example");
+  expect(page).toContain("project:homer");
+  expect(page).toContain("Enabled");
+  expect(page).toContain("Collection health: Unknown");
+  expect(page).toContain("/v1/admin/repositories");
+});
+
+it("offers a protected field-based Repository mapping review without granting other administration", async () => {
+  const e = testEnv(),
+    admin = await token(),
+    reader = await token(config.ACCESS_READ_AUD);
+  for (const path of ["repositories", "repositories.js", "admin.css"]) {
+    const get = (jwt: string) =>
+      handleRequest(
+        new Request(`https://homer.example/v1/admin/${path}`, {
+          headers: { "Cf-Access-Jwt-Assertion": jwt },
+        }),
+        e,
+        key,
+      );
+    expect((await get(reader)).status).toBe(401);
+    const response = await get(admin);
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Security-Policy")).toContain("script-src 'self'");
+    if (path === "repositories") {
+      const page = await response.text();
+      expect(page).toContain(
+        'id="validation-summary" tabindex="-1" aria-labelledby="validation-title" hidden',
+      );
+      expect(page).toContain('<h2 id="validation-title">Correct Repository mapping fields</h2>');
+      expect(page).toContain('<ul id="validation-errors"></ul>');
+      expect(page).toContain("Add Repository mapping");
+      expect(page).toContain("Review changes");
+      expect(page).toContain("Read current mappings for reconciliation");
+    }
+  }
+});
+
+it("reconciles concurrent Repository admission through authenticated readback after restart", async () => {
+  const e = testEnv(),
+    admin = await token();
+  const proposed = {
+    ...next,
+    repositories: [{ ...next.repositories[0], projectId: "project:proposed" }],
+  };
+  const competing = {
+    ...next,
+    repositories: [{ ...next.repositories[0], enabled: false, projectId: "project:other" }],
+  };
+  const results = await Promise.all(
+    [proposed, competing].map((snapshot) =>
+      handleRequest(request(admin, "PUT", JSON.stringify(snapshot), { "If-Match": '"0"' }), e, key),
+    ),
+  );
+  expect(results.map((result) => result.status).sort()).toEqual([200, 409]);
+  const winning = await results.find((result) => result.status === 200)!.json();
+  await abortAllDurableObjects();
+  const read = await handleRequest(
+    new Request("https://homer.example/v1/admin/catalog/snapshot", {
+      headers: { "Cf-Access-Jwt-Assertion": admin },
+    }),
+    e,
+    key,
+  );
+  expect(read.headers.get("ETag")).toBe('"1"');
+  expect(await read.json()).toEqual(winning);
+  expect(
+    (
+      await handleRequest(
+        request(admin, "PUT", JSON.stringify(proposed), { "If-Match": '"0"' }),
+        e,
+        key,
+      )
+    ).status,
+  ).toBe(409);
+});
