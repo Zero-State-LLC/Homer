@@ -291,5 +291,7 @@ export {
   EVENTS_BACKLOG_ALERT_MS,
   FLEET_ALERT_SCOPE,
   projectFleetAlerts,
+  type FleetAlertOptions,
   type FleetAlertRequest,
+  type FleetHeldOccurrence,
 } from "./fleet-alerts.js";

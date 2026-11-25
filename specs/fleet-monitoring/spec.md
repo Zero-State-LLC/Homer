@@ -465,7 +465,14 @@ under the `fleet:` prefix:
 - Machine Alerts follow the latest report's firing list, which the same
   `machine.alert_fired` and `machine.alert_cleared` events produce. An alert
   that fires and clears between two reports is in the Event Ledger but is not
-  posted.
+  posted. A Reachability Check machine lists no firing alerts, so its
+  `fleet:<machineId>:reachability` Alert is its `down` state, which two failed
+  checks set; it gets no stale Alert while down.
+- A held diagnostic is in a report only until the Collector's next
+  acknowledged post, so the intake keeps each occurrence apart from the
+  snapshot, for a week, and offers those received in the last day to the
+  rules. Each is one one-shot Alert, whether or not the latest report still
+  carries it.
 - A machine's stale Alert is judged against the report's own `collectedAt`.
   While the whole fleet is stale, only `fleet:collector:stale` is added: each
   machine's Alerts stay as the last report left them, neither cleared nor made

@@ -63,16 +63,27 @@ it("raises fleet:<machineId>:<rule> for each firing alert but concurrency", () =
   ]);
 });
 
-it("names a machine by its id when its alias is not a plain display name", () => {
+it("raises fleet:<machineId>:reachability for a Reachability Check machine that is down, named by its id when its alias is not a plain display name", () => {
+  // Two failed checks make it down. Its last success is old, but the down Alert says that.
   const box = machine({
     machineId: "bosgame",
     name: "Bosgame",
     kind: "ssh",
     source: "reachability",
     state: "down",
-    firing: [{ rule: "reachability", severity: "critical", since: iso(T0 - 60_000) }],
+    lastSeenAt: iso(T0 - 10 * 60_000),
   });
-  expect(alerts(snapshot({ machines: [box] }))[0]?.params["name"]).toBe("bosgame");
+  expect(alerts(snapshot({ machines: [box] }))).toEqual([
+    {
+      key: "fleet:bosgame:reachability",
+      template: "fleet.machine_alert",
+      params: { machineId: "bosgame", name: "bosgame", rule: "reachability" },
+    },
+  ]);
+  // Up again: nothing raised, so the engine clears it.
+  expect(alerts(snapshot({ machines: [{ ...box, state: "up", lastSeenAt: iso(T0) }] }))).toEqual(
+    [],
+  );
 });
 
 it("raises fleet:<machineId>:stale when a machine's last read is more than 2 minutes old", () => {
@@ -158,6 +169,23 @@ it("raises present diagnostics while reported, events_backlog only after 10 minu
       params: { code: "events_backlog" },
     },
   ]);
+});
+
+it("raises held occurrences the intake kept after the report that carried them was replaced", () => {
+  const since = iso(T0 - 5 * 60_000);
+  const gap = { code: "collector_gap" as const, since };
+  const expected = [
+    {
+      key: `fleet:collector:collector_gap:${since}`,
+      template: "fleet.held_diagnostic",
+      params: { code: "collector_gap", since },
+    },
+  ];
+  expect(projectFleetAlerts(snapshot(), configured, { now: T0, held: [gap] })).toEqual(expected);
+  // Carried by the report and kept by the intake: still one Alert.
+  expect(
+    projectFleetAlerts(snapshot({ diagnostics: [gap] }), configured, { now: T0, held: [gap] }),
+  ).toEqual(expected);
 });
 
 it("raises one Alert per held diagnostic occurrence, keyed by its since", () => {

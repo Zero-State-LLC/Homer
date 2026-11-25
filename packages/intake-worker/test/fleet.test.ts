@@ -328,6 +328,22 @@ it("reserves a report id before any event is appended, so overlapping reports ca
   ).toBe("rate_limited");
 });
 
+it("keeps each held diagnostic occurrence after a later report no longer carries it", async () => {
+  const e = testEnv();
+  await bind(e);
+  const since = "2026-11-24T17:59:00.000Z";
+  const gap = report({ diagnostics: [{ code: "collector_gap", since }], events: [] });
+  expect((await post(e, gap)).status).toBe(200);
+  const next = report({
+    reportId: crypto.randomUUID(),
+    collectedAt: "2026-11-24T18:00:30.000Z",
+    events: [],
+  });
+  expect((await post(e, next)).status).toBe(200);
+  expect((await store(e).fleetSnapshot())?.diagnostics).toEqual([]);
+  expect(await store(e).fleetHeldDiagnostics()).toEqual([{ code: "collector_gap", since }]);
+});
+
 it("keeps the newer snapshot when an older report arrives after it", async () => {
   const e = testEnv();
   await bind(e);

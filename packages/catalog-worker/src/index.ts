@@ -12,6 +12,7 @@ export {
   FLEET_REPORTS_PER_MINUTE,
   RunnerFleetObject,
   type FleetAdmission,
+  type FleetHeldDiagnostic,
   type FleetReceipt,
   type FleetSnapshot,
 } from "./runner-store.js";

@@ -193,6 +193,15 @@ export type FleetAdmission =
   | { receipt: FleetReceipt };
 /** At most this many new Fleet Reports a minute. */
 export const FLEET_REPORTS_PER_MINUTE = 6;
+/** A Fleet Report diagnostic that records something past: one Alert per occurrence. */
+export interface FleetHeldDiagnostic {
+  code: "collector_gap" | "sparkdash_restarted";
+  since: string;
+}
+const HELD_DIAGNOSTICS = new Set(["collector_gap", "sparkdash_restarted"]);
+/** Occurrences are offered for Alerts for a day, and kept a week. */
+const HELD_DIAGNOSTIC_WINDOW_MS = 24 * 60 * 60 * 1000;
+const HELD_DIAGNOSTIC_RETENTION_MS = 7 * HELD_DIAGNOSTIC_WINDOW_MS;
 /** A reservation that never committed lapses after this long. */
 const FLEET_RESERVATION_MS = 60 * 60 * 1000;
 /** A principal's reports received, or reserved and not yet committed, since a time. */
@@ -308,7 +317,8 @@ export class RunnerFleetObject extends DurableObject<unknown> {
  CREATE TRIGGER IF NOT EXISTS fleet_report_no_delete BEFORE DELETE ON fleet_reports BEGIN SELECT RAISE(ABORT,'Fleet report receipts are immutable'); END;
  CREATE TABLE IF NOT EXISTS fleet_snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), snapshot TEXT NOT NULL, collected_ms INTEGER NOT NULL) STRICT;
  CREATE TABLE IF NOT EXISTS fleet_reservations (report_id TEXT PRIMARY KEY, digest TEXT NOT NULL, principal_digest TEXT NOT NULL, reserved_ms INTEGER NOT NULL) STRICT;
- CREATE INDEX IF NOT EXISTS fleet_reservations_principal_reserved ON fleet_reservations(principal_digest, reserved_ms);`);
+ CREATE INDEX IF NOT EXISTS fleet_reservations_principal_reserved ON fleet_reservations(principal_digest, reserved_ms);
+ CREATE TABLE IF NOT EXISTS fleet_held_diagnostics (code TEXT NOT NULL, since TEXT NOT NULL, received_ms INTEGER NOT NULL, PRIMARY KEY(code, since)) STRICT;`);
   }
   lifecycle(machineId: string, budgetMs: number | null) {
     const config = this.read().config;
@@ -770,6 +780,20 @@ export class RunnerFleetObject extends DurableObject<unknown> {
         this.fleetCollectorBinding().revision,
         now,
       );
+      // A held diagnostic is in only the reports before one is acknowledged, so each
+      // occurrence is kept apart from the snapshot, for its one Alert (ZER-82).
+      for (const d of snapshot.diagnostics)
+        if (HELD_DIAGNOSTICS.has(d.code))
+          this.ctx.storage.sql.exec(
+            "INSERT OR IGNORE INTO fleet_held_diagnostics VALUES (?,?,?)",
+            d.code,
+            d.since,
+            now,
+          );
+      this.ctx.storage.sql.exec(
+        "DELETE FROM fleet_held_diagnostics WHERE received_ms<?",
+        now - HELD_DIAGNOSTIC_RETENTION_MS,
+      );
       const collected = Date.parse(snapshot.collectedAt);
       const stored = this.ctx.storage.sql
         .exec<{ collected_ms: number }>("SELECT collected_ms FROM fleet_snapshot WHERE id=1")
@@ -784,6 +808,16 @@ export class RunnerFleetObject extends DurableObject<unknown> {
       }
       return receipt;
     });
+  }
+  /** Held diagnostic occurrences received in the last day, oldest first. */
+  fleetHeldDiagnostics(): FleetHeldDiagnostic[] {
+    return this.ctx.storage.sql
+      .exec<{ code: string; since: string }>(
+        "SELECT code,since FROM fleet_held_diagnostics WHERE received_ms>? ORDER BY received_ms,code,since",
+        Date.now() - HELD_DIAGNOSTIC_WINDOW_MS,
+      )
+      .toArray()
+      .map((row) => ({ code: row.code as FleetHeldDiagnostic["code"], since: row.since }));
   }
   /** The latest snapshot, or null before the first report. */
   fleetSnapshot(): FleetSnapshot | null {

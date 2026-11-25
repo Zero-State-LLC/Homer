@@ -31,10 +31,25 @@ function displayName(name: string, machineId: string): string {
   return DISPLAY_NAME.test(name) ? name : machineId;
 }
 
+/** A held diagnostic occurrence, kept by the intake apart from the snapshot. */
+export interface FleetHeldOccurrence {
+  code: "collector_gap" | "sparkdash_restarted";
+  since: string;
+}
+
+export interface FleetAlertOptions {
+  now: number;
+  /**
+   * Held diagnostic occurrences the intake recorded. A report carries one only until the
+   * Collector's next acknowledged post, so the latest snapshot alone can miss it.
+   */
+  held?: readonly FleetHeldOccurrence[];
+}
+
 export function projectFleetAlerts(
   snapshot: FleetStatusSnapshot | null,
   configured: readonly FleetStatusConfiguredMachine[],
-  options: { now: number },
+  options: FleetAlertOptions,
 ): FleetAlertRequest[] {
   // Before the first report there is nothing to be stale against.
   if (!snapshot) return [];
@@ -45,6 +60,15 @@ export function projectFleetAlerts(
   for (const machine of asReported.machines) {
     if (machine.reported === null) continue;
     const name = displayName(machine.name, machine.machineId);
+    // A Reachability Check's alert is its down state: the Collector reports it as events
+    // and lists no firing alerts for that machine.
+    const unreachable = machine.source === "reachability" && machine.reported === "down";
+    if (unreachable)
+      alerts.push({
+        key: `fleet:${machine.machineId}:reachability`,
+        template: "fleet.machine_alert",
+        params: { machineId: machine.machineId, name, rule: "reachability" },
+      });
     for (const alert of machine.firing) {
       if (NOT_SENT.has(alert.rule)) continue;
       alerts.push({
@@ -53,7 +77,8 @@ export function projectFleetAlerts(
         params: { machineId: machine.machineId, name, rule: alert.rule },
       });
     }
-    if (machine.status === "stale" && machine.lastSeenAt)
+    // An unreachable machine's reading is stale by definition; its down Alert says so.
+    if (machine.status === "stale" && machine.lastSeenAt && !unreachable)
       alerts.push({
         key: `fleet:${machine.machineId}:stale`,
         template: "fleet.machine_stale",
@@ -72,7 +97,8 @@ export function projectFleetAlerts(
       template: "fleet.sparkdash_state",
       params: { state: snapshot.sparkdash.state },
     });
-  for (const diagnostic of snapshot.diagnostics) {
+  const occurrences = new Map<string, FleetHeldOccurrence>();
+  for (const diagnostic of [...snapshot.diagnostics, ...(options.held ?? [])]) {
     const code = diagnostic.code;
     if (code === "version_changed")
       alerts.push({
@@ -95,11 +121,14 @@ export function projectFleetAlerts(
         params: { code },
       });
     } else
-      alerts.push({
-        key: `fleet:collector:${code}:${diagnostic.since}`,
-        template: "fleet.held_diagnostic",
-        params: { code, since: diagnostic.since },
+      occurrences.set(`fleet:collector:${code}:${diagnostic.since}`, {
+        code,
+        since: diagnostic.since,
       });
   }
-  return alerts;
+  for (const [key, held] of occurrences)
+    alerts.push({ key, template: "fleet.held_diagnostic", params: { ...held } });
+  // One Alert per key: the first rule that raises it wins.
+  const keys = new Set<string>();
+  return alerts.filter((alert) => !keys.has(alert.key) && keys.add(alert.key));
 }
