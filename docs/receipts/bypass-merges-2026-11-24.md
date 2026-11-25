@@ -187,7 +187,7 @@ reproduce check.
 | [#84](https://github.com/Zero-State-LLC/Homer/pull/84) | The runbook from a Task to a Verdict (ZER-74), with the packet and Verdict comment commands | `92535ab` | `7c3010b` |
 | [#86](https://github.com/Zero-State-LLC/Homer/pull/86) | `homer-intake` split out of the catalog Worker (ZER-96, ADR 013) | `dbfa1eb` | `5f1119d` |
 
-#86 moves one check from code to the deployment. The catalog refused a
+One check moved from code to the deployment in #86. The catalog refused a
 `RUNNER_CONTROLLER_AUD` equal to its read or admin audience; `homer-intake`
 holds neither, so `docs/deployment/intake.md` gives the controller paths their
 own Access application on intake's own hostname.
