@@ -5,6 +5,10 @@ Amended by the fleet monitoring spec (ZER-113, Danny, 2026-11-25): the same
 configuration also lists monitored machines, which run no runner, and the
 `spark` and `jetson` kinds. Runner machines are unchanged. See the spec's
 [Machine list](../fleet-monitoring/spec.md#machine-list).
+Amended by Danny on 2026-11-25 (ZER-84): the PC and Mac runners serve private
+repositories only. Homer is public, so its own CI stays on GitHub-hosted runners,
+and the runner group keeps GitHub's default of serving no public repository.
+Homer still manages the runners in its fleet pages.
 
 ## Decision
 

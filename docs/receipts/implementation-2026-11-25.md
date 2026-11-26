@@ -25,12 +25,12 @@ the Authority for each Task's state; this page only points.
 
 ## Waiting on Danny
 
-- Verdicts for 38 code and configuration pull requests (ZER-63).
-- The ruleset decisions (ZER-67, ZER-85) and the public-repository settings
-  (ZER-84).
-- The pull requests from before the restart, #30, #42 and #56 (ZER-87).
-- Two Dependabot pull requests, #102 and #103. Neither was merged under the
-  bypass: a dependency change needs a human's yes.
+- Verdicts for the code and configuration pull requests in ZER-63.
+- The ruleset edits and repository settings he decided on 2026-11-25
+  (`decisions-2026-11-25.md`): ZER-67, ZER-84 and ZER-85. Only a human edits
+  a ruleset.
+- Deleting the two `foundation/*` branches, and asking Dependabot to rebase #102
+  and #103, which this session cannot do.
 - Two steps of `docs/agents/buzz.md` wait on ZER-116, which needs Homer's key.
 
 Danny answered the rest on 2026-11-25; see `grill-2026-11-25.md`.
