@@ -47,10 +47,11 @@ configuration and its API are unchanged.
 on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
 Alerts and Buzz collection.
 
-Later the same day, after Danny's "Continue" at 13:01 Pacific time and his
-answers to the grilling at 14:32, six more pull requests followed: four
-docs-only, and #107 and #113, which change configuration or CI and so owe a
-Verdict like the code pull requests.
+Later the same day, after Danny's "Continue" at 13:01 Pacific time, his
+answers to the grilling at 14:32 and his decisions at 16:43, eight more pull
+requests followed: five docs-only; #107 and #113, which change configuration or
+CI and so owe a Verdict like the code pull requests; and #56, a code pull
+request rebased at his decision.
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
@@ -60,6 +61,8 @@ Verdict like the code pull requests.
 | [#110](https://github.com/Zero-State-LLC/Homer/pull/110) | Docs-only: agent instructions for Buzz, `docs/agents/buzz.md`, linked from `AGENTS.md` in one line as the Buzz spec says (ZER-49) | `b96ee3c` | `cefc4f2` |
 | [#112](https://github.com/Zero-State-LLC/Homer/pull/112) | Docs-only: Danny's six answers from the grilling (`grill-2026-11-25.md`), with the accepted `CONTEXT.md` terms | `b97b7a1` | `0124c26` |
 | [#113](https://github.com/Zero-State-LLC/Homer/pull/113) | CI: the `links` check runs lychee a second time when the first run fails (ZER-89), at Danny's choice | `4c6c47e` | `a3d4ac7` |
+| [#115](https://github.com/Zero-State-LLC/Homer/pull/115) | Docs-only: Danny's decisions on the open questions, with the research (`decisions-2026-11-25.md`) | `4f5d355` | `641d6f0` |
+| [#56](https://github.com/Zero-State-LLC/Homer/pull/56) | Code: the Buzz channel allowlist (ZER-47), rebased onto `main` at Danny's decision (ZER-87) | `6066ee6` | `0510a4b` |
 
 Codex reviewed #106 at `09e7706`. The merge tool then brought the branch up to
 date with `main`, which added only #105's two files, so `main` after #106 equals
@@ -72,6 +75,20 @@ lychee run, proved on the branch with a throwaway dead link: both runs failed,
 and so did the job. Codex reviewed #113 at `05a5753`; the merge tool then
 brought it up to date with #112, and `main` equals that head plus #112 exactly.
 
+After Danny's decisions at 16:43, #42 was closed as superseded, and #56 and #30
+were rebased the way the runner stack was. Each original head was pushed first
+to `backup/pre-rebase-2026-11-25/<branch>`: `6aaf4d9` for #56, and `e213860`
+for #30. Each pull request's whole diff was then replayed as one commit onto `main`,
+with a three-way merge against its original base, and pushed with a lease
+pinned to the original head. Every file carries the lines it added and removed
+before, except where `main` had moved: the build chains, the test projects and
+the lockfile take `main`'s entries plus the new package; #56's three Buzz paths
+join the `catalogRoutes` caller table, and its webhook line stays out because
+that route moved to `homer-intake`; #30's package declares `engines`; and each
+CHANGELOG entry sits under Added. Both are noted on the pull requests. CI passed
+and Codex was clean on both rebased heads, and `main` after #56 equals its
+reviewed head. #30 stays a draft.
+
 Pull requests #99 and #100 build the Alert engine and the fleet's Alert rules
 as pure code. Nothing posts yet: that is ZER-115, blocked by the signing
 library (ZER-61) and Homer's key (ZER-48). Pull request #100 also adds a
@@ -81,5 +98,5 @@ sparkDash rule id `stale`.
 
 ## Still owed
 
-None of the five code pull requests, nor #107 or #113, has a Verdict. ZER-63
-lists them with their full head SHAs.
+None of the six code pull requests, #56 included, nor #107 or #113, has a
+Verdict. ZER-63 lists them with their full head SHAs.
