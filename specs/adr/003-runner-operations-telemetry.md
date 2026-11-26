@@ -1,6 +1,6 @@
 # ADR 003: Runner operations and work attribution
 
-Status: accepted design direction requested by Daniel on November 22, 2026 PT.
+Status: accepted by Danny on 2026-11-22, as the design direction he requested.
 Protocol implementation is separate from the job Collector and detail UI below.
 Intent: [calendar and runners](../../docs/intent/calendar-runners.md).
 Extends [ADR 002](002-pc-mac-runners.md) and the scoped controller protocol.

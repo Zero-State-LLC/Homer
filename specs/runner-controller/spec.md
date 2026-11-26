@@ -1,7 +1,7 @@
 # Scoped runner controller protocol
 
-Status: repository implementation authorized by Daniel's continuation on November
-22, 2026 PT, extending ADR 002. ZER-34 remains open until actual host enrollment
+Status: accepted by Danny on 2026-11-22, by his continuation, for repository
+implementation, extending ADR 002. ZER-34 remains open until actual host enrollment
 and live drain/resume evidence are verified. No credentials or policy changes.
 Amended by ADR 013 (accepted by Danny on 2026-11-24): `homer-intake` serves poll
 and report, and `homer-catalog` serves enrollment and the lifecycle controls.

@@ -1,6 +1,8 @@
 # Homer credentials administration
 
-Status: draft specification. Requested by Daniel on November 21, 2026 PT.
+Status: accepted by Danny on 2026-11-25 for slices 1 and 2 as #32 built them
+(ZER-25, ZER-26; ZER-86). Slices 3 to 7 stay proposed until the six open decisions
+at the end are made. Requested by Danny on 2026-11-21.
 No live credentials, permissions or provider settings are changed by this proposal.
 
 ## Intent

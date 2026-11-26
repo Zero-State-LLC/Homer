@@ -1,6 +1,6 @@
 # ADR 004: Clef classification on Cloudflare
 
-Status: proposed integration design, based on Daniel's November 22, 2026 PT request.
+Status: proposed on 2026-11-22 at Danny's request, and not accepted.
 No model binding, paid inference, production deployment or automatic actuation enabled.
 
 ## Decision

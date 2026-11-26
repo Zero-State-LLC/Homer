@@ -16,6 +16,10 @@ _Avoid_: owner (for systems), source of truth
 An adapter that reads one Source System and appends Activity Events to the Event Ledger. Collectors map, they never invent.
 _Avoid_: sync job, scraper, ingester
 
+**Observation**:
+A fact Homer saw for itself: what a Collector read from a Source System and when, or what a Fleet Report says a Machine's state was at its read. Homer is the Authority for its Observations, never for the fact a Source System owns. An Observation says what was seen and when, and nothing about why.
+_Avoid_: reading, sample (for the record)
+
 **Source Freshness**:
 The time of the last successful collection from one Source System. A Source is Stale when that time is older than its freshness budget. Stale data is shown as stale, never silently.
 _Avoid_: last updated (unqualified)
@@ -210,7 +214,15 @@ The Projection that shows each Project's Milestones, Planned versus Actual Dates
 ## Fleet
 
 **Machine**:
-A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down or unknown) and firing alerts, never its address, SSH user, port or key. A runner machine also runs a CI runner and has a desired mode; a monitored machine runs none and is only watched.
+A computer the team can reach over SSH, named by its id in the runner fleet configuration. Homer knows its name, kind, state (up, down, stale or unknown) and firing alerts, never its address, SSH user, port or key. A runner Machine runs one Runner; a monitored Machine runs none and is only watched.
+
+**Runner**:
+The one GitHub Actions self-hosted runner on a runner Machine, scoped to one Repository, with the runner id GitHub gives it at registration. Homer records its desired mode (enabled or maintenance) and what its host reports. GitHub is the Authority for its registration and its jobs.
+_Avoid_: agent, worker (for the runner)
+
+**Job Attempt**:
+One attempt of one GitHub Actions workflow job, as GitHub reports it in a `workflow_job` delivery, named by its job id and run attempt. The run attempt is Unknown until a read of the run confirms it. Runner timing Projections are built from Job Attempts.
+_Avoid_: build, run (for one attempt)
 
 **Fleet Collector**:
 The Collector on sparkDash's host that reads sparkDash and the Reachability Checks, and posts a Fleet Report to `homer-intake` every poll. It can change no machine.
@@ -221,7 +233,7 @@ The Fleet Collector's report for one poll (`home.fleet-report/v1`): every config
 ## Alerts
 
 **Alert**:
-A change-only message from Homer to the Buzz `homer` channel, built from a fixed template and ids, never from source text. At most 30 are posted in any hour; past that, one summary says how many are held.
+A change-only message from Homer to the Buzz `homer` channel, built from a fixed template and ids, never from source text. At most 30 messages go out in any rolling hour, the summary included: when Alerts are held, the last free slot says how many.
 _Avoid_: notification, page
 
 **Alert Key**:

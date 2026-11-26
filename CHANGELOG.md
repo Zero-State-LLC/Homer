@@ -6,6 +6,10 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- The Buzz channel allowlist (ZER-47, Buzz packet 3): a reviewed catalog of the Buzz channels Homer may read, in its own Durable Object in `homer-catalog`, replaced only by compare-and-swap, admitting nothing while empty and never a direct message, with a read-only admin listing.
+
+- Agent instructions for Buzz, `docs/agents/buzz.md` (ZER-49, Buzz packet 7), linked from `AGENTS.md`: how an agent asks a teammate in a Task's thread, flags missing or wrong knowledge, and runs through `buzz-acp` with its own key. It says which steps are not yet confirmed against the hosted relay.
+
 - The fleet's Alerts (ZER-82, fleet monitoring packet 6): `projectFleetAlerts` in `@zs-home/projections` turns the latest Fleet Report, the runner fleet configuration and the time into the Alerts to post: each firing sparkDash alert but `concurrency`, a machine whose last read is over 2 minutes old, a Collector silent for 2 minutes, sparkDash not read, the present diagnostics (`events_backlog` after 10 minutes), and one Alert per held diagnostic occurrence. While the fleet is stale, machine Alerts are held as the last report left them. The machine id `collector` is now reserved in the runner fleet configuration.
 
 - The Alert engine for Buzz (ZER-55, Buzz packet 6), in `@zs-home/buzz-collector`. A monitor passes the Alerts it raises now under its own key prefix; Homer queues a message only when an Alert's message changes, clears one the monitor no longer raises, and posts a one-shot Alert once. Messages come from fixed templates whose parameters are checked ids, names, times, rule ids, versions, counts or fixed codes; anything else is refused. At most 30 messages an hour, the last free slot carrying one summary of how many are held; failed posts back off from 30 s to 600 s and are never dropped. `HOMER_ALERT_TEMPLATES` holds the fleet templates and the summary. Signing and posting are not built yet.
@@ -106,6 +110,10 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 - CI: docs lint, link check, gitleaks secret scan, Dependabot for GitHub Actions.
 
 ### Changed
+
+- The `links` check runs lychee a second time, 60 s later, when the first run fails, and takes the second result (ZER-89, Danny's choice on 2026-11-25). A `502` from github.com had failed the check twice that day for links that were fine. A dead link still fails both runs; nothing is excluded or accepted.
+
+- Every package declares the Node range the root does, `^22.13.0 || ^24.0.0 || >=26.0.0`, and `.nvmrc` names Node 22, as CI uses (ZER-89). The `links` check passes `--retry-wait-time 10` to lychee. This is not shown to absorb a GitHub `5xx`: the next `502`, on #109, still failed the check within 15 s.
 
 - The catalog Worker is split by who calls it (ZER-96, ADR 013). `homer-catalog` keeps every route people and agents reach through Access with the read or admin audience, and no longer holds the webhook secret or `RUNNER_CONTROLLER_AUD`. The new `homer-intake` Worker (`packages/intake-worker`) takes `POST /v1/hooks/github` with job evidence, and the runner controller's poll and report, and holds no read or admin audience, no page and no `GET /v1/version`. `JOB_EVIDENCE` and its `job-evidence-v1` migration move to `homer-intake`. Intake binds the catalog's `MAPPING_CATALOG` and `RUNNER_FLEET` by `script_name`, and the catalog binds nothing of intake's, so the deploy order is the ledger, then `homer-catalog`, then `homer-intake`. Each Worker's router has a caller table and answers `404` for any path it does not list. Routes, contracts and stored formats are unchanged. Deployment: `docs/deployment/intake.md`.
 

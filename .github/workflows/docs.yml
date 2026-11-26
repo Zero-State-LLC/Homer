@@ -26,11 +26,34 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+      # A 5xx from github.com has failed this check for links that were fine.
+      # If the first run fails, wait and run once more; the job takes the
+      # second run's result, so a dead link still fails (Danny, 2026-11-25).
+      - name: Check links
+        id: first
+        continue-on-error: true
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
           args: >-
             --no-progress
             --max-retries 3
+            --retry-wait-time 10
+            --accept 200,206
+            "./**/*.md"
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Wait before the second run
+        if: steps.first.outcome == 'failure'
+        run: sleep 60
+      - name: Check links again
+        if: steps.first.outcome == 'failure'
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --no-progress
+            --max-retries 3
+            --retry-wait-time 10
             --accept 200,206
             "./**/*.md"
           fail: true
