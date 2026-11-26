@@ -1,6 +1,9 @@
 # Homer admin surface: operator and developer experience
 
-Status: proposed design, November 21, 2026 PT.
+Status: accepted by Danny on 2026-11-25 for what #32 built: the Repository
+admission editor and the read-only credential and developer setup views (ZER-86).
+The credential journeys, offboarding and trace screens stay proposed. Proposed on
+2026-11-21.
 Companion to the credential specification and trace archive PR #30.
 No live UI, access policy, credential or deployment changes are included.
 

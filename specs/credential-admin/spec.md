@@ -1,7 +1,8 @@
 # Homer credentials administration
 
-Status: draft, requested by Danny on 2026-11-21. Its first slice merged with #32 on
-2026-11-24 under his admin bypass; the spec itself has no recorded acceptance.
+Status: accepted by Danny on 2026-11-25 for slices 1 and 2 as #32 built them
+(ZER-25, ZER-26; ZER-86). Slices 3 to 7 stay proposed until the six open decisions
+at the end are made. Requested by Danny on 2026-11-21.
 No live credentials, permissions or provider settings are changed by this proposal.
 
 ## Intent

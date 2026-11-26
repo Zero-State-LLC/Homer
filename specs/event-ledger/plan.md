@@ -1,6 +1,7 @@
 # Event Ledger implementation plan
 
-Status: revised by FORGE (PROMETHEUS) on 2026-11-18 PT. Grok Build re-authored it for PR #9. Danny approved the SQLite-backed Durable Object backend on 2026-11-18 at 7:19 PM PT. Implementation starts only after Danny's yes on the remaining open questions.
+Status: revised by FORGE (PROMETHEUS) on 2026-11-18 PT. Grok Build re-authored it for PR #9. Danny approved the SQLite-backed Durable Object backend on 2026-11-18 at 7:19 PM PT. The ledger it plans is on `main` and has run in staging since 2026-11-20; what
+became of each open question is recorded under it (2026-11-25).
 
 - Specification: [Event Ledger spec](spec.md) (accepted 2026-11-19 UTC, 2026-11-18 PT)
 - Planning handoff: [handoff.md](handoff.md)
@@ -413,6 +414,13 @@ Gaps left open on purpose:
 4. May ZER-18 add a Workers-safe Activity Event validator, generated at build time, to `@zs-home/shared-contracts`? The current validator cannot run in the deployed Workers runtime.
 5. Access: the spec defines no authentication surface, so this delivery publishes no route and only binding holders can call the object. Who calls it first, and through which authenticated surface? This remains a gap until a later ZER-9 Task answers it.
 6. Deploy: which Cloudflare account and which plan (Free or Paid), and who runs the first `wrangler deploy`? Nothing deploys until that is decided.
+
+Where they stand on 2026-11-25:
+
+- 2 and 3 no longer gate anything: the ledger they budget is on `main` and runs in staging.
+- 4 is built: `@zs-home/shared-contracts` generates a Workers-safe validator at build time (`scripts/generate-worker-validator.mjs`).
+- 5 is answered by [ADR 013](../adr/013-catalog-worker-boundary.md): `homer-intake` appends, from the GitHub webhook under its HMAC signature and from fleet intake behind Access with a workload audience; people read the ledger through `homer-catalog`'s Activity Calendar behind Access.
+- 6 is half answered. The account is Zero State's: `homer-event-ledger-staging` and `homer-catalog-staging`, with their two recovery Workers, have run there since 2026-11-20. No production Homer Worker exists. The Free or Paid plan is not recorded, and each production deploy needs Danny's yes for that environment ([releases runbook](../../docs/deployment/releases.md)).
 
 ## Implementation notes (2026-11-18 PT)
 
