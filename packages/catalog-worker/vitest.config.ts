@@ -9,7 +9,10 @@ export default defineConfig({
   test: {
     name: "catalog-workers",
     fileParallelism: false,
-    include: ["packages/catalog-worker/test/**/*.test.ts"],
+    include: [
+      "packages/catalog-worker/test/**/*.test.ts",
+      "packages/company-sdk/test/integration.test.ts",
+    ],
     testTimeout: 30000,
   },
 });

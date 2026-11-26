@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     projects: [
@@ -18,7 +18,9 @@ export default defineConfig({
             "packages/github-sync/test/**/*.test.ts",
             "packages/event-ledger/test/client.test.ts",
             "packages/event-ledger/test/validation.test.ts",
+            "packages/company-sdk/test/**/*.test.ts",
           ],
+          exclude: [...configDefaults.exclude, "packages/company-sdk/test/integration.test.ts"],
         },
       },
       "packages/event-ledger/vitest.config.ts",

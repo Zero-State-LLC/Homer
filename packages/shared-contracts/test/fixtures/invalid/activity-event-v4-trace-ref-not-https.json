@@ -1,0 +1,25 @@
+{
+  "contract": "home.activity-event/v4",
+  "eventKey": "buzz:knowledge.flagged:00000000-0000-4000-8000-000000000001/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "kind": "knowledge.flagged",
+  "occurredAt": "2026-11-23T15:04:05Z",
+  "actor": {
+    "sourceAccount": "buzz:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "subject": "Buzz knowledge flag",
+  "provenance": {
+    "sourceSystem": "buzz",
+    "sourceObjectId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sourceUrl": "buzz://message?channel=00000000-0000-4000-8000-000000000001&id=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "collector": "buzz-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-23T15:05:00Z"
+  },
+  "data": {
+    "traceRef": {
+      "provider": "langfuse",
+      "traceId": "run-2026-11-23.01",
+      "url": "http://langfuse.example.test/trace/run-2026-11-23.01"
+    }
+  }
+}

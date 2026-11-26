@@ -1,4 +1,5 @@
 import { activityEventSemanticErrors } from "./activity-semantics.js";
+import { identityBindingSemanticErrors, routingPolicySemanticErrors } from "./company.js";
 import { fleetReportSemanticErrors } from "./fleet-report.js";
 import { join } from "node:path";
 import type { AnySchema, ErrorObject, ValidateFunction } from "ajv";
@@ -10,8 +11,10 @@ import type {
   ActivityEvent,
   FactoryEvent,
   FleetReport,
+  IdentityBindingSnapshot,
   Provenance,
   Result,
+  RoutingPolicy,
   WorkRequest,
 } from "./types.js";
 
@@ -26,6 +29,7 @@ addFormats.default(ajv);
 const validateActivityEventV1Schema = compile("activity-event.v1.schema.json");
 const validateActivityEventV2Schema = compile("activity-event.v2.schema.json");
 const validateActivityEventV3Schema = compile("activity-event.v3.schema.json");
+const validateActivityEventV4Schema = compile("activity-event.v4.schema.json");
 // After version 3, which a Fleet Report's events reference by $id.
 const validateFleetReportSchema = compile("fleet-report.v1.schema.json");
 // The newest Activity Event's Provenance, link rule included, for a Correction's Provenance.
@@ -34,6 +38,8 @@ const validateProvenanceSchema = subschema(
 );
 const validateWorkRequestSchema = compile("work-request.v1.schema.json");
 const validateFactoryEventSchema = compile("factory-event.v1.schema.json");
+const validateIdentityBindingsSchema = compile("identity-bindings.v1.schema.json");
+const validateRoutingPolicySchema = compile("routing-policy.v1.schema.json");
 
 function compile(fileName: string): ValidateFunction {
   return ajv.compile(loadSchema(fileName));
@@ -79,11 +85,13 @@ function formatAjvError(error: ErrorObject): string {
 export function validateActivityEvent(input: unknown): Result<ActivityEvent> {
   const contract = isRecord(input) ? input["contract"] : undefined;
   const schema =
-    contract === "home.activity-event/v3"
-      ? validateActivityEventV3Schema
-      : contract === "home.activity-event/v2"
-        ? validateActivityEventV2Schema
-        : validateActivityEventV1Schema;
+    contract === "home.activity-event/v4"
+      ? validateActivityEventV4Schema
+      : contract === "home.activity-event/v3"
+        ? validateActivityEventV3Schema
+        : contract === "home.activity-event/v2"
+          ? validateActivityEventV2Schema
+          : validateActivityEventV1Schema;
   const errors = [...schemaErrors(schema, input), ...activityEventSemanticErrors(input)];
   if (errors.length > 0) {
     return { ok: false, errors };
@@ -129,4 +137,28 @@ export function validateFactoryEvent(input: unknown): Result<FactoryEvent> {
     return { ok: false, errors };
   }
   return { ok: true, value: input as FactoryEvent };
+}
+
+/** A reviewed Identity Binding snapshot, for `homer-catalog`. */
+export function validateIdentityBindingSnapshot(input: unknown): Result<IdentityBindingSnapshot> {
+  const errors = [
+    ...schemaErrors(validateIdentityBindingsSchema, input),
+    ...identityBindingSemanticErrors(input),
+  ];
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, value: input as IdentityBindingSnapshot };
+}
+
+/** The versioned model and budget routing policy, for `homer-catalog`. */
+export function validateRoutingPolicy(input: unknown): Result<RoutingPolicy> {
+  const errors = [
+    ...schemaErrors(validateRoutingPolicySchema, input),
+    ...routingPolicySemanticErrors(input),
+  ];
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, value: input as RoutingPolicy };
 }

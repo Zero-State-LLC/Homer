@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/identity-bindings/v1",
+  "title": "Identity Bindings",
+  "description": "A reviewed snapshot of Identity Bindings: one Actor for a GitHub login, a Linear user id or a Buzz pubkey, each with the review's evidence link. Lookup is exact-match only, so an account with no binding is Unattributed. homer-catalog serves it and validates it fail-closed on every read.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "revision", "updatedAt", "bindings"],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.identity-bindings/v1"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
+      "description": "When this snapshot was reviewed, UTC, ending in Z."
+    },
+    "bindings": {
+      "type": "array",
+      "maxItems": 200,
+      "items": {
+        "$comment": "An agent names the human accountable for it; a human names nobody. One (source, sourceAccount) pair is bound once, the sourceAccount prefix equals source, and one actorId keeps one actorKind; those rules are in code.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "sourceAccount", "actorId", "actorKind", "evidenceRef"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": ["github", "linear", "buzz"]
+          },
+          "sourceAccount": {
+            "type": "string",
+            "pattern": "^(github|linear|buzz):[A-Za-z0-9._@-]{1,128}$",
+            "description": "The raw source account, for example github:octocat. Its prefix must equal source."
+          },
+          "actorId": {
+            "type": "string",
+            "pattern": "^actor:[a-z0-9-]+$"
+          },
+          "actorKind": {
+            "type": "string",
+            "enum": ["human", "agent", "system"]
+          },
+          "accountableHumanId": {
+            "type": "string",
+            "pattern": "^actor:[a-z0-9-]+$",
+            "description": "Required for an agent, forbidden for a human, and it must name a human actor in this snapshot."
+          },
+          "evidenceRef": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://",
+            "not": {
+              "pattern": "[0-9a-f]{32}"
+            },
+            "description": "The review's evidence: a decision, commit or pull request link. Never a secret, and never a 32-hex account id."
+          }
+        }
+      }
+    }
+  }
+}

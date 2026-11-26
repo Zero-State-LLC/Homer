@@ -1,0 +1,44 @@
+{
+  "contract": "home.identity-bindings/v1",
+  "revision": 4,
+  "updatedAt": "2026-11-24T18:00:00Z",
+  "bindings": [
+    {
+      "source": "github",
+      "sourceAccount": "github:example-dev",
+      "actorId": "actor:danny",
+      "actorKind": "human",
+      "evidenceRef": "https://github.com/Zero-State-LLC/Homer/pull/12"
+    },
+    {
+      "source": "linear",
+      "sourceAccount": "linear:usr_example",
+      "actorId": "actor:danny",
+      "actorKind": "human",
+      "evidenceRef": "https://github.com/Zero-State-LLC/Homer/pull/13"
+    },
+    {
+      "source": "buzz",
+      "sourceAccount": "buzz:npub1exampleexampleexampleexampleexample",
+      "actorId": "actor:prometheus",
+      "actorKind": "agent",
+      "accountableHumanId": "actor:danny",
+      "evidenceRef": "https://github.com/Zero-State-LLC/Homer/pull/14"
+    },
+    {
+      "source": "github",
+      "sourceAccount": "github:homer-curator",
+      "actorId": "actor:homer-curator",
+      "actorKind": "agent",
+      "accountableHumanId": "actor:danny",
+      "evidenceRef": "https://github.com/Zero-State-LLC/Homer/pull/15"
+    },
+    {
+      "source": "github",
+      "sourceAccount": "github:ci-runner",
+      "actorId": "actor:ci-runner",
+      "actorKind": "system",
+      "evidenceRef": "https://github.com/Zero-State-LLC/Homer/pull/16"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { adminPaths } from "./admin.js";
 import { BUZZ_CHANNELS_PATH, BUZZ_CHANNELS_VIEW_PATH } from "./buzz-channels.js";
 import { calendarPaths } from "./calendar.js";
+import { companyReadPath, companyReadPaths } from "./company-read.js";
 import { enrollmentPaths } from "./controller-http.js";
 import { fleetPaths } from "./fleet-http.js";
 import { fleetStatusPaths } from "./fleet-status.js";
@@ -20,7 +21,7 @@ export interface CatalogRoute {
 }
 const read: CatalogRoute = { caller: "person", audience: "read" };
 const admin: CatalogRoute = { caller: "person", audience: "admin" };
-const readPages = [...calendarPaths, ...directoryPaths, ...fleetStatusPaths];
+const readPages = [...calendarPaths, ...companyReadPaths, ...directoryPaths, ...fleetStatusPaths];
 
 export const catalogRoutes: ReadonlyMap<string, CatalogRoute> = new Map<string, CatalogRoute>([
   ["/v1/catalog", read],
@@ -38,8 +39,12 @@ export const catalogRoutes: ReadonlyMap<string, CatalogRoute> = new Map<string, 
   ),
 ]);
 
-/** The route for a path, including one Credential's detail, `/v1/credentials/<id>`. */
+/**
+ * The route for a path: one Credential's detail, `/v1/credentials/<id>`, and
+ * one Project's timeline, `/v1/projects/<projectId>/timeline`.
+ */
 export function catalogRoute(pathname: string): CatalogRoute | undefined {
+  if (companyReadPath(pathname)) return read;
   return (
     catalogRoutes.get(pathname) ??
     (pathname.startsWith("/v1/credentials/") && pathname.length > "/v1/credentials/".length

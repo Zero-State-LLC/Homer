@@ -1,0 +1,76 @@
+{
+  "contract": "home.routing-policy/v1",
+  "revision": 3,
+  "effectiveAt": "2026-11-25T00:00:00Z",
+  "timeZone": "America/Los_Angeles",
+  "providers": [
+    {
+      "provider": "openrouter",
+      "endpointHost": "openrouter.ai",
+      "maxUsdPerCall": 0.5,
+      "maxUsdPerPtDay": 5,
+      "minCreditFloorUsd": 5,
+      "credentialEnvName": "OPENROUTER_API_KEY"
+    },
+    {
+      "provider": "cloudflare-workers-ai",
+      "endpointHost": null,
+      "maxUsdPerCall": 0,
+      "maxUsdPerPtDay": null,
+      "minCreditFloorUsd": null,
+      "credentialEnvName": null
+    },
+    {
+      "provider": "qwen-studio",
+      "endpointHost": "qwen-studio.example",
+      "maxUsdPerCall": 0,
+      "maxUsdPerPtDay": null,
+      "minCreditFloorUsd": null,
+      "credentialEnvName": "QWEN_STUDIO_API_KEY"
+    }
+  ],
+  "routes": [
+    {
+      "routeId": "coding-openrouter-deepseek",
+      "taskClass": "coding",
+      "priority": 1,
+      "provider": "openrouter",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "reasoningEffort": "high",
+      "maxContextTokens": 131072,
+      "maxUsdPerCall": 0.5,
+      "requiresHumanApprovalOverUsd": 0.5
+    },
+    {
+      "routeId": "spec-design-openrouter-opus",
+      "taskClass": "spec_design",
+      "priority": 1,
+      "provider": "openrouter",
+      "model": "anthropic/claude-opus-5.5",
+      "reasoningEffort": "high",
+      "maxContextTokens": 200000,
+      "maxUsdPerCall": 0.5,
+      "requiresHumanApprovalOverUsd": null
+    },
+    {
+      "routeId": "risk-classification-workers-ai-jev",
+      "taskClass": "risk_classification",
+      "priority": 1,
+      "provider": "cloudflare-workers-ai",
+      "model": "typesafe/jev",
+      "maxContextTokens": 131072,
+      "maxUsdPerCall": 0,
+      "requiresHumanApprovalOverUsd": null
+    },
+    {
+      "routeId": "general-local-qwen-studio",
+      "taskClass": "general_local",
+      "priority": 1,
+      "provider": "qwen-studio",
+      "model": "qwen-flat",
+      "maxContextTokens": 262144,
+      "maxUsdPerCall": 0,
+      "requiresHumanApprovalOverUsd": null
+    }
+  ]
+}

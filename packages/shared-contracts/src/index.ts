@@ -1,15 +1,28 @@
 export type {
   ActivityEvent,
+  ActivityEventActor,
   ActivityEventContract,
   Provenance,
   ActorKind,
+  ContextPinSnapshot,
   EventKind,
   FactoryEvent,
   FleetDiagnosticCode,
   FleetMachine,
   FleetReport,
+  IdentityBindingSnapshot,
+  IdentityResolution,
+  IdentitySource,
+  KnowledgeFlagData,
+  ModelRouteRule,
+  ProviderBudgetLimits,
   Result,
+  RoutingPolicy,
+  RoutingProviderId,
+  RoutingTaskClass,
+  SourceIdentityBinding,
   SourceSystem,
+  TraceRef,
   WorkRequest,
 } from "./types.js";
 
@@ -17,9 +30,13 @@ export {
   validateActivityEvent,
   validateFactoryEvent,
   validateFleetReport,
+  validateIdentityBindingSnapshot,
   validateProvenance,
+  validateRoutingPolicy,
   validateWorkRequest,
 } from "./validators.js";
+
+export { resolveIdentityBinding } from "./company.js";
 
 export type { MachineAlertKind } from "./fleet.js";
 
@@ -75,6 +92,9 @@ export {
 export type { AskJevOptions, JevFetch } from "./jev.js";
 
 export { askJevForRiskTier, jevRiskRequest, readJevRiskAnswer } from "./jev.js";
+
+/** The Context Pin, generated at build time from the repository's agent-context.pin.json. */
+export { CONTEXT_PIN } from "./generated/context-pin.js";
 
 /** The product version, commit and Build Version this code was built from (versioning spec). */
 export { BUILD_COMMIT, BUILD_VERSION, PRODUCT_VERSION } from "./generated/build-info.js";

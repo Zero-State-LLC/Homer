@@ -1,0 +1,29 @@
+{
+  "contract": "home.activity-event/v4",
+  "eventKey": "software-factory:knowledge.flagged:WP-2026-11-18-home:a1b2c3d",
+  "kind": "knowledge.flagged",
+  "occurredAt": "2026-11-18T18:04:00Z",
+  "actor": {
+    "sourceAccount": "software-factory:gap"
+  },
+  "repository": "Zero-State-LLC/home",
+  "subject": "Knowledge flag: the Verdict failed for WP-2026-11-18-home",
+  "provenance": {
+    "sourceSystem": "software-factory",
+    "sourceObjectId": "WP-2026-11-18-home:a1b2c3d",
+    "sourceUrl": "https://github.com/Zero-State-LLC/home/pull/1",
+    "collector": "software-factory-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-18T18:05:00Z"
+  },
+  "data": {
+    "gapKind": "missing",
+    "targetRef": "docs/map.md",
+    "observationHash": "3333333333333333333333333333333333333333333333333333333333333333",
+    "traceRef": {
+      "provider": "langfuse",
+      "traceId": "judge-2026-11-18.7"
+    },
+    "verdictEventKey": "software-factory:factory.verdict_recorded:WP-2026-11-18-home"
+  }
+}

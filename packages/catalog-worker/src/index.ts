@@ -4,6 +4,7 @@ import {
   type EnrollmentBindings,
 } from "./controller-http.js";
 import { calendarPaths, calendarResponse, type CalendarBindings } from "./calendar.js";
+import { companyReadPath, companyReadResponse, type CompanyReadBindings } from "./company-read.js";
 import { fleetPaths, handleFleetRequest } from "./fleet-http.js";
 import { fleetStatusPaths, fleetStatusResponse, type FleetStatusBindings } from "./fleet-status.js";
 import { runnerPaths, handleRunnerRequest, type RunnerBindings } from "./runner-http.js";
@@ -36,6 +37,7 @@ export interface Env
     CatalogBindings,
     AccessConfig,
     CalendarBindings,
+    CompanyReadBindings,
     DirectoryBindings,
     RunnerBindings,
     EnrollmentBindings,
@@ -57,6 +59,7 @@ export async function handleRequest(
   if (fleetPaths.has(url.pathname)) return handleFleetRequest(request, env, key);
   if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
   const calendarRoute = calendarPaths.has(url.pathname);
+  const companyReadRoute = companyReadPath(url.pathname);
   const fleetStatusRoute = fleetStatusPaths.has(url.pathname);
   const archiveRoute = url.pathname === "/v1/admin/catalog/archive";
   const editorRoute = editorPaths.has(url.pathname);
@@ -79,6 +82,7 @@ export async function handleRequest(
     !credentialRoute &&
     !directoryUIRoute &&
     !calendarRoute &&
+    !companyReadRoute &&
     !fleetStatusRoute
   )
     return json({ error: "not_found" }, 404);
@@ -92,6 +96,7 @@ export async function handleRequest(
       credentialRoute ||
       directoryUIRoute ||
       calendarRoute ||
+      companyReadRoute ||
       fleetStatusRoute) &&
       request.method !== "GET") ||
     (url.pathname === "/v1/admin/catalog" && request.method !== "PUT")
@@ -122,6 +127,7 @@ export async function handleRequest(
   }
   if (versionRoute) return json(workerVersion(env.CF_VERSION_METADATA));
   if (calendarRoute) return calendarResponse(url, env);
+  if (companyReadRoute) return companyReadResponse(url, env);
   if (fleetStatusRoute) return fleetStatusResponse(url, env);
   if (directoryUIRoute) return directoryPage(url.pathname);
   if (credentialRoute) return credentialResponse(url, env, principal, principalKind);

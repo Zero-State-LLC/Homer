@@ -41,7 +41,10 @@ export type EventKind =
   | "machine.alert_cleared";
 
 export type ActivityEventContract =
-  "home.activity-event/v1" | "home.activity-event/v2" | "home.activity-event/v3";
+  | "home.activity-event/v1"
+  | "home.activity-event/v2"
+  | "home.activity-event/v3"
+  | "home.activity-event/v4";
 
 export interface ActivityEventActor {
   sourceAccount: string;
@@ -147,6 +150,110 @@ export interface FleetMachine {
 
 export type FleetDiagnosticCode =
   "collector_gap" | "sparkdash_restarted" | "version_changed" | "events_backlog" | "queue_full";
+
+/** A Source System an Identity Binding may cover. */
+export type IdentitySource = "github" | "linear" | "buzz";
+
+/** One reviewed mapping from a source account to one Actor, with the review's evidence. */
+export interface SourceIdentityBinding {
+  source: IdentitySource;
+  sourceAccount: string;
+  actorId: string;
+  actorKind: "human" | "agent" | "system";
+  /** Required for an agent, forbidden for a human. */
+  accountableHumanId?: string;
+  evidenceRef: string;
+}
+
+/** The reviewed snapshot homer-catalog serves, contract `home.identity-bindings/v1`. */
+export interface IdentityBindingSnapshot {
+  contract: "home.identity-bindings/v1";
+  revision: number;
+  updatedAt: string;
+  bindings: SourceIdentityBinding[];
+}
+
+/** The Actor one source account resolves to, or Unattributed. */
+export type IdentityResolution =
+  | {
+      status: "attributed";
+      source: IdentitySource;
+      sourceAccount: string;
+      actorId: string;
+      actorKind: "human" | "agent" | "system";
+      accountableHumanId?: string;
+      evidenceRef: string;
+      revision: number;
+    }
+  | {
+      status: "unattributed";
+      source: IdentitySource;
+      sourceAccount: string;
+      revision: number;
+    };
+
+/** The pinned agent-context commit Homer consumes, and each file's sha256. */
+export interface ContextPinSnapshot {
+  repository: string;
+  commit: string;
+  pinnedAt: string;
+  files: Readonly<Record<string, string>>;
+}
+
+/** A Langfuse run trace, by id and optional link only; the trace's payload stays in Langfuse. */
+export interface TraceRef {
+  provider: "langfuse";
+  traceId: string;
+  url?: string;
+}
+
+/** A Knowledge Flag's optional metadata: ids, hashes and links only, never the flag's text. */
+export interface KnowledgeFlagData {
+  gapKind?: "missing" | "wrong" | "stale";
+  targetRef?: string;
+  observationHash?: string;
+  traceRef?: TraceRef;
+  verdictEventKey?: string;
+}
+
+export type RoutingProviderId =
+  "openrouter" | "qwen-studio" | "cloudflare-workers-ai" | "anthropic" | "openai" | "xai" | "local";
+
+export type RoutingTaskClass =
+  "coding" | "repo_audit" | "spec_design" | "risk_classification" | "curator_run" | "general_local";
+
+/** One provider's budgets and where its credential's name is read from. Never a secret. */
+export interface ProviderBudgetLimits {
+  provider: RoutingProviderId;
+  endpointHost: string | null;
+  maxUsdPerCall: number;
+  maxUsdPerPtDay: number | null;
+  minCreditFloorUsd: number | null;
+  credentialEnvName: string | null;
+}
+
+/** One route: the model a task class runs on, and what it may spend. */
+export interface ModelRouteRule {
+  routeId: string;
+  taskClass: RoutingTaskClass;
+  priority: number;
+  provider: RoutingProviderId;
+  model: string;
+  reasoningEffort?: "low" | "medium" | "high";
+  maxContextTokens: number;
+  maxUsdPerCall: number;
+  requiresHumanApprovalOverUsd: number | null;
+}
+
+/** The versioned, read-only routing policy, contract `home.routing-policy/v1`. */
+export interface RoutingPolicy {
+  contract: "home.routing-policy/v1";
+  revision: number;
+  effectiveAt: string;
+  timeZone: "America/Los_Angeles";
+  providers: ProviderBudgetLimits[];
+  routes: ModelRouteRule[];
+}
 
 /** The Fleet Collector's report for one poll, contract `home.fleet-report/v1`. */
 export interface FleetReport {

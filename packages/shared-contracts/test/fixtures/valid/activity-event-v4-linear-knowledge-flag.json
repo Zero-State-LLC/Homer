@@ -1,0 +1,25 @@
+{
+  "contract": "home.activity-event/v4",
+  "eventKey": "linear:knowledge.flagged:ZER-60",
+  "kind": "knowledge.flagged",
+  "occurredAt": "2026-11-23T15:20:00Z",
+  "actor": {
+    "sourceAccount": "linear:usr_example"
+  },
+  "taskId": "ZER-60",
+  "projectId": "project:home",
+  "subject": "Knowledge flag: the skill document is stale",
+  "provenance": {
+    "sourceSystem": "linear",
+    "sourceObjectId": "ZER-60",
+    "sourceUrl": "https://linear.app/zer0state/issue/ZER-60",
+    "collector": "linear-collector",
+    "collectorVersion": "0.1.0",
+    "collectedAt": "2026-11-23T15:21:00Z"
+  },
+  "data": {
+    "gapKind": "stale",
+    "targetRef": "skills/zero-state-context/SKILL.md",
+    "observationHash": "2222222222222222222222222222222222222222222222222222222222222222"
+  }
+}
