@@ -16,7 +16,7 @@ chat, with a recommendation for each.
 | 1 | Should the PC and Mac self-hosted runners serve Homer (ZER-84)? | No. Homer's CI stays on GitHub-hosted runners. The self-hosted runners are managed in Homer's fleet pages but serve private repositories only. | ADR 002 is amended. The runner group keeps GitHub's default of serving no public repository. |
 | 2 | What bypass should the `partner-agents` team have on `main` (ZER-85)? | Pull requests only. | Danny edits the ruleset; then `SECURITY.md` is updated to match. |
 | 3 | Strict required checks or a merge queue (ZER-67)? | Strict checks, in a ruleset with no bypass list, so they bind every merge. Review stays bypassable by admins. | Danny creates the ruleset; steps below. |
-| 4 | Dependabot #102 and #103? | Rebase, then merge both when CI and Codex are clean. Each is added to ZER-63. | Rebase requested on both. |
+| 4 | Dependabot #102 and #103? | Rebase, then merge both when CI and Codex are clean. Each is added to ZER-63. | A safety filter stops this session's bot commands, so Danny posts `@dependabot rebase` on each; an agent then merges. |
 | 5 | Pull requests #30, #42 and #56, and the leftover branches (ZER-87)? | Close #42. Rebase #56 and #30; #30 stays a draft. Delete both `foundation/*` branches. Keep the 8 `backup/pre-rebase-2026-11-24/*` branches until the runner stack's Verdicts pass. | #42 is closed. This session cannot delete branches, so Danny deletes the two `foundation/*` branches. |
 | 6 | Credential administration spec (ZER-86)? | Accept slices 1 and 2 as #32 built them. Slices 3 to 7 stay proposed until the spec's six open decisions are made. | Status lines of `spec.md` and `operator-experience.md` updated. |
 
@@ -107,6 +107,7 @@ These change rulesets and settings, which only a human does.
      repositories off, and list only the private repositories they serve.
 4. **Delete the branches** `foundation/event-ledger-plan` and
    `foundation/governance` (ZER-87).
+5. **Comment `@dependabot rebase`** on #102 and #103.
 
 An unbypassable check that breaks blocks every merge, admins' included, until it
 is fixed or the ruleset is edited. The `links` check's second run (#113) is there
