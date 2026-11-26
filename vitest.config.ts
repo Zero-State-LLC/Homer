@@ -13,6 +13,8 @@ export default defineConfig({
             "packages/fleet-collector/test/**/*.test.ts",
             "packages/work-request-emitter/test/**/*.test.ts",
             "packages/runner-controller/test/**/*.test.ts",
+            "packages/trace-archive/test/archive.test.ts",
+            "packages/trace-archive/test/langfuse.test.ts",
             "packages/event-ledger/test/canonical.test.ts",
             "packages/projections/test/**/*.test.ts",
             "packages/github-sync/test/**/*.test.ts",
@@ -24,6 +26,7 @@ export default defineConfig({
       "packages/event-ledger/vitest.config.ts",
       "packages/catalog-worker/vitest.config.ts",
       "packages/intake-worker/vitest.config.ts",
+      "packages/trace-archive/vitest.config.ts",
     ],
   },
 });
