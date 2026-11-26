@@ -6,6 +6,8 @@ All notable changes to Homer are recorded here. Format: [Keep a Changelog](https
 
 ### Added
 
+- Surface failed trace batches as sanitized scheduled failures while preserving durable attempts and original archive receipts (#43).
+
 - Agent instructions for Buzz, `docs/agents/buzz.md` (ZER-49, Buzz packet 7), linked from `AGENTS.md`: how an agent asks a teammate in a Task's thread, flags missing or wrong knowledge, and runs through `buzz-acp` with its own key. It says which steps are not yet confirmed against the hosted relay.
 
 - The fleet's Alerts (ZER-82, fleet monitoring packet 6): `projectFleetAlerts` in `@zs-home/projections` turns the latest Fleet Report, the runner fleet configuration and the time into the Alerts to post: each firing sparkDash alert but `concurrency`, a machine whose last read is over 2 minutes old, a Collector silent for 2 minutes, sparkDash not read, the present diagnostics (`events_backlog` after 10 minutes), and one Alert per held diagnostic occurrence. While the fleet is stale, machine Alerts are held as the last report left them. The machine id `collector` is now reserved in the runner fleet configuration.
