@@ -107,7 +107,18 @@ These change rulesets and settings, which only a human does.
      repositories off, and list only the private repositories they serve.
 4. **Delete the branches** `foundation/event-ledger-plan` and
    `foundation/governance` (ZER-87).
-5. **Comment `@dependabot rebase`** on #102 and #103.
+5. ~~Comment `@dependabot rebase` on #102 and #103.~~ Done another way; both
+   merged.
+
+At 19:04 Danny told this session to take these steps itself. The session's
+GitHub proxy refused each write: creating a ruleset, editing one, turning on
+private vulnerability reporting, and deleting a branch. It also refused reading
+the Actions settings and runner groups. Nothing changed: `main protection` is
+still the only ruleset, and private reporting is still off. The session did not
+try another route around the proxy, so steps 1 to 4 are still Danny's. Step 5
+is done: #102 and #103 are merged. All three workflows already set
+`contents: read` themselves, so the default token setting changes nothing they
+do today.
 
 An unbypassable check that breaks blocks every merge, admins' included, until it
 is fixed or the ruleset is edited. The `links` check's second run (#113) is there

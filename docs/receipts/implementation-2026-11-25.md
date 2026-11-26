@@ -29,8 +29,7 @@ the Authority for each Task's state; this page only points.
 - The ruleset edits and repository settings he decided on 2026-11-25
   (`decisions-2026-11-25.md`): ZER-67, ZER-84 and ZER-85. Only a human edits
   a ruleset.
-- Deleting the two `foundation/*` branches, and asking Dependabot to rebase #102
-  and #103, which this session cannot do.
+- Deleting the two `foundation/*` branches, which this session's proxy refuses.
 - Two steps of `docs/agents/buzz.md` wait on ZER-116, which needs Homer's key.
 
 Danny answered the rest on 2026-11-25; see `grill-2026-11-25.md`.

@@ -48,10 +48,10 @@ on 2026-11-25: a new `homer-buzz` Worker holds Homer's Buzz key and runs the
 Alerts and Buzz collection.
 
 Later the same day, after Danny's "Continue" at 13:01 Pacific time, his
-answers to the grilling at 14:32 and his decisions at 16:43, eight more pull
-requests followed: five docs-only; #107 and #113, which change configuration or
-CI and so owe a Verdict like the code pull requests; and #56, a code pull
-request rebased at his decision.
+answers to the grilling at 14:32 and his decisions at 16:43, ten more pull
+requests followed: five docs-only; #107, #113, #102 and #103, which change
+configuration, CI or dependencies and so owe a Verdict like the code pull
+requests; and #56, a code pull request rebased at his decision.
 
 | PR | Change | Merged head | Squash commit on `main` |
 | --- | --- | --- | --- |
@@ -63,6 +63,8 @@ request rebased at his decision.
 | [#113](https://github.com/Zero-State-LLC/Homer/pull/113) | CI: the `links` check runs lychee a second time when the first run fails (ZER-89), at Danny's choice | `4c6c47e` | `a3d4ac7` |
 | [#115](https://github.com/Zero-State-LLC/Homer/pull/115) | Docs-only: Danny's decisions on the open questions, with the research (`decisions-2026-11-25.md`) | `4f5d355` | `641d6f0` |
 | [#56](https://github.com/Zero-State-LLC/Homer/pull/56) | Code: the Buzz channel allowlist (ZER-47), rebased onto `main` at Danny's decision (ZER-87) | `6066ee6` | `0510a4b` |
+| [#102](https://github.com/Zero-State-LLC/Homer/pull/102) | CI: Dependabot's `upload-artifact` 7.0.2 and `markdownlint-cli2-action` 25.1.0, at Danny's decision | `7f55f83` | `7abbd7d` |
+| [#103](https://github.com/Zero-State-LLC/Homer/pull/103) | Dependencies: Dependabot's `wrangler` 4.166.0, `workers-types`, the Workers vitest plugin 1.9.0 and Playwright 1.65.1, at Danny's decision | `ee3951b` | `37569a4` |
 
 Codex reviewed #106 at `09e7706`. The merge tool then brought the branch up to
 date with `main`, which added only #105's two files, so `main` after #106 equals
@@ -89,6 +91,13 @@ CHANGELOG entry sits under Added. Both are noted on the pull requests. CI passed
 and Codex was clean on both rebased heads, and `main` after #56 equals its
 reviewed head. #30 stays a draft.
 
+At 19:04 Danny said this session could do the rest itself. A safety filter had
+stopped its `@dependabot rebase` comments, so it brought #102 and #103 up to
+date with `main` through the pull request update call it uses for every merge.
+Each then differed from `main` only by Dependabot's own lines, CI passed, and
+Codex reviewed `7f55f83` and `93ed0f0` clean. The merge tool brought #103 up to
+date again after #102, and `main` equals `93ed0f0` plus #102 exactly.
+
 Pull requests #99 and #100 build the Alert engine and the fleet's Alert rules
 as pure code. Nothing posts yet: that is ZER-115, blocked by the signing
 library (ZER-61) and Homer's key (ZER-48). Pull request #100 also adds a
@@ -98,5 +107,5 @@ sparkDash rule id `stale`.
 
 ## Still owed
 
-None of the six code pull requests, #56 included, nor #107 or #113, has a
-Verdict. ZER-63 lists them with their full head SHAs.
+None of the six code pull requests, #56 included, has a Verdict, nor have
+pull requests #102, #103, #107 and #113. ZER-63 lists them with their full head SHAs.
