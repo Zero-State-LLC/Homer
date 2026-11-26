@@ -1,13 +1,14 @@
 # ADR 007: the Work Assignment Router decides, it never dispatches
 
-Status: proposed. Not accepted until Danny accepts the intent.
+Status: accepted by Danny on 2026-11-23 with its intent (#60); he confirmed on
+2026-11-25 that accepting the intent accepts this ADR.
 Intent: [Work Assignment Router](../../docs/intent/work-assignment-router.md)
-(draft).
+(accepted).
 Dependencies: the curated terms in [`CONTEXT.md`](../../CONTEXT.md), the Curator
 Profile and Host Adapter sections of `specs/knowledge-loop/spec.md`, and the
 `describe()` capability report in that spec.
-Not yet on `main`, and not relied on here: the scoped runner controller and runner
-lifecycle in PR #38 and #39, and ADR 002, 003 and 005 in PR #44.
+Since on `main`, and still not relied on here: the scoped runner controller and
+runner lifecycle (#38, #39), and ADRs 002, 003 and 005 (#44).
 
 ## Context
 

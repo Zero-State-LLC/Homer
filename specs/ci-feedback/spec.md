@@ -3,7 +3,9 @@
 Status: accepted by Danny on 2026-11-24 (#62), with the defaults below.
 Intent: [CI feedback time](../../docs/intent/ci-feedback.md), accepted by Danny on
 2026-11-24.
-Evidence: [CI baseline receipt](../../docs/receipts/ci-baseline-2026-11-24.md).
+Evidence: [CI baseline receipt](../../docs/receipts/ci-baseline-2026-11-24.md),
+[packet 1 measured](../../docs/receipts/ci-feedback-2026-11-24.md), and
+[the first docs-only check runs](../../docs/receipts/ci-docs-only-2026-11-25.md).
 Decisions: [ADR 008](../adr/008-ci-builds-once.md),
 [ADR 009](../adr/009-docs-only-skips-workspace.md),
 [ADR 010](../adr/010-measured-ci-changes-only.md).

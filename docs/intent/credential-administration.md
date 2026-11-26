@@ -2,7 +2,8 @@
 
 Author: ChatGPT for Daniel
 Date: 2026-11-21
-Status: accepted for repository implementation
+Status: accepted for repository implementation, by Danny; the date is not recorded.
+It merged with #31 on 2026-11-24 under his admin bypass.
 Product: Homer (`Zero-State-LLC/Homer`)
 
 ## Problem / why now

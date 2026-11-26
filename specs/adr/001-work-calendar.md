@@ -1,6 +1,6 @@
 # ADR 001: Evidence-linked daily work calendar
 
-Status: accepted for implementation, November 21, 2026 PT.
+Status: accepted by Danny on 2026-11-21, for implementation.
 
 ## Decision
 

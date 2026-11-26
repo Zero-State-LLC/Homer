@@ -1,6 +1,6 @@
 # Activity Calendar and Project Timeline
 
-Status: implementation specification under the accepted Homer foundation intent.
+Status: accepted with the Homer foundation intent (Danny, 2026-11-19).
 
 ## Requirements and contracts
 

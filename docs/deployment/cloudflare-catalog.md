@@ -30,6 +30,7 @@ source or chat logs:
 | `CATALOG_NAME` | Stable Durable Object name for this environment |
 | `MAPPING_CATALOG` | Durable Object namespace bound to MappingCatalogObject |
 | `RUNNER_FLEET` | Durable Object namespace bound to RunnerFleetObject; `homer-intake` binds it too |
+| `BUZZ_CHANNELS` | Durable Object namespace bound to BuzzChannelCatalogObject (migration `v2`), the Buzz channel allowlist |
 | `EVENT_LEDGER` | Cross-Worker binding to the existing EventLedgerObject namespace, required for the Activity Calendar |
 | `CF_VERSION_METADATA` | Cloudflare's version metadata binding, committed in `wrangler.jsonc`; `GET /v1/version` reads it |
 | `SPARKDASH_ORIGIN` | Optional. The front door's bare `https://` origin for the sparkDash page, the same as the Fleet Collector's `frontDoorOrigin`. The Machine fleet page links to it; without it, or if it is not a bare origin with a host name, the view shows no link |

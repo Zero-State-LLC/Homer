@@ -1,4 +1,5 @@
 import { adminPaths } from "./admin.js";
+import { BUZZ_CHANNELS_PATH, BUZZ_CHANNELS_VIEW_PATH } from "./buzz-channels.js";
 import { calendarPaths } from "./calendar.js";
 import { enrollmentPaths } from "./controller-http.js";
 import { fleetPaths } from "./fleet-http.js";
@@ -30,6 +31,8 @@ export const catalogRoutes: ReadonlyMap<string, CatalogRoute> = new Map<string, 
   ["/v1/admin/catalog", admin],
   ["/v1/admin/catalog/archive", admin],
   ["/v1/admin/catalog/snapshot", admin],
+  [BUZZ_CHANNELS_PATH, admin],
+  [BUZZ_CHANNELS_VIEW_PATH, admin],
   ...[...editorPaths, ...adminPaths, ...runnerPaths, ...enrollmentPaths, ...fleetPaths].map(
     (p): [string, CatalogRoute] => [p, admin],
   ),

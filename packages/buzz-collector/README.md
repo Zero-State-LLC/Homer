@@ -32,6 +32,16 @@ thread reply, with the root's `buzz://message` link as evidence.
 Only metadata and a link leave the mapper. Message text, display names, mentions,
 attachments and the raw event never do, and subjects are fixed text.
 
+## Channel allowlist
+
+`BuzzChannelCatalog` loads a fresh, validated snapshot on every use: a revision and,
+per channel, its UUID, a label for people, whether it is enabled, and whether it
+is a flag channel. `replace` is compare-and-swap, and a stale writer is refused.
+`channelAdmission` reads a channel only when it is listed and enabled, and never a
+direct message: relay metadata (kind 39000) with the `hidden` tag is refused, and
+missing or mismatched metadata fails closed. An empty catalog admits nothing. The
+catalog Worker stores it and serves the admin API and a read-only listing.
+
 ## Signatures
 
 `createBuzzMapper` takes the BIP-340 Schnorr verifier as an argument, so the mapper

@@ -1,6 +1,6 @@
 # Intent: evidence-based CI runner performance and scheduling
 
-Status: accepted for specification and offline, read-only measurement implementation by Daniel's "Continue" instruction on November 22, 2026 PT. Automated routing, host enrollment, paid services, merges, and deployment remain unapproved.
+Status: accepted by Danny on 2026-11-22, by his "Continue" instruction, for specification and offline, read-only measurement implementation. Automated routing, host enrollment, paid services, merges, and deployment remain unapproved.
 Product: Homer
 Date: 2026-11-22 PT
 

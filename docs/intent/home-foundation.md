@@ -2,7 +2,7 @@
 
 Author: Grok Bot for Danny (scrimshawlife-ctrl)
 Date: 2026-11-18
-Status: accepted
+Status: accepted by Danny on 2026-11-19.
 Product: HOME (`Zero-State-LLC/home`)
 
 This file is a proto-spec. It comes **before** specify.
