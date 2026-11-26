@@ -38,3 +38,15 @@ export {
   type UnsignedChannelMessage,
 } from "./alerts.js";
 export { HOMER_ALERT_TEMPLATES } from "./alert-templates.js";
+export {
+  BuzzChannelCatalog,
+  CHANNEL_METADATA_KIND,
+  MAX_CHANNELS,
+  MAX_LABEL_CHARS,
+  channelAdmission,
+  parseBuzzChannelSnapshot,
+  type BuzzChannelEntry,
+  type BuzzChannelSnapshot,
+  type BuzzChannelStore,
+  type ChannelAdmission,
+} from "./catalog.js";
