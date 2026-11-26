@@ -10,10 +10,12 @@
       { "name": "RUNNER_FLEET", "class_name": "RunnerFleetObject" },
       { "name": "MAPPING_CATALOG", "class_name": "MappingCatalogObject" },
       { "name": "EVENT_LEDGER", "class_name": "EventLedgerObject" },
+      { "name": "BUZZ_CHANNELS", "class_name": "BuzzChannelCatalogObject" },
     ],
   },
   "migrations": [
     { "tag": "runner-v1", "new_sqlite_classes": ["RunnerFleetObject"] },
     { "tag": "test-v1", "new_sqlite_classes": ["MappingCatalogObject", "EventLedgerObject"] },
+    { "tag": "test-v2", "new_sqlite_classes": ["BuzzChannelCatalogObject"] },
   ],
 }

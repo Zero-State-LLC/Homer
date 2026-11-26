@@ -22,12 +22,14 @@ import type { JWTVerifyGetKey } from "jose";
 import { parseMappingSnapshot } from "@zs-home/github-sync";
 import { verifyAccessIdentity, validateAccessConfig, type AccessConfig } from "./access.js";
 import { MappingCatalogObject, MAX_CATALOG_BYTES } from "./store.js";
+import { BuzzChannelCatalogObject } from "./buzz-store.js";
+import { handleBuzzChannels, isBuzzChannelsPath } from "./buzz-channels.js";
 import { json, readBytes } from "./http.js";
 import { workerVersion } from "@zs-home/shared-contracts/workers";
 import { editorPaths, editorResponse } from "./editor.js";
 import { adminPaths, adminAsset, overviewResponse } from "./admin.js";
 import { directoryPaths, directoryPage } from "./directory-ui.js";
-export { MappingCatalogObject };
+export { BuzzChannelCatalogObject, MappingCatalogObject };
 import { credentialResponse, type DirectoryBindings } from "./credential-directory.js";
 export interface Env
   extends
@@ -50,6 +52,7 @@ export async function handleRequest(
   const url = new URL(request.url);
   // Only people and agents call this Worker; machine routes are in homer-intake (ADR 013).
   if (!catalogRoute(url.pathname)) return json({ error: "not_found" }, 404);
+  if (isBuzzChannelsPath(url.pathname)) return handleBuzzChannels(request, env, key);
   if (enrollmentPaths.has(url.pathname)) return handleEnrollmentRequest(request, env, key);
   if (fleetPaths.has(url.pathname)) return handleFleetRequest(request, env, key);
   if (runnerPaths.has(url.pathname)) return handleRunnerRequest(request, env, key);
