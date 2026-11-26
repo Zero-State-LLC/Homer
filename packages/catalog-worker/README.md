@@ -13,6 +13,20 @@ claims. It does not trust identity headers alone.
 | Read Buzz channels | `GET /v1/admin/buzz/channels` | Admin audience only |
 | Replace Buzz channels | `PUT /v1/admin/buzz/channels` | Admin audience only |
 | List Buzz channels, read-only page | `GET /v1/admin/buzz/channels/view` | Admin audience only |
+| Read the Context Pin | `GET /v1/context-pin` | Read or admin audience |
+| Resolve a source account | `GET /v1/identities/resolve` | Read or admin audience |
+| Read a Project Timeline | `GET /v1/projects/<projectId>/timeline` | Read or admin audience |
+| List Knowledge Flags | `GET /v1/knowledge-flags` | Read or admin audience |
+| Read the routing policy | `GET /v1/routing-policy` | Read or admin audience |
+
+The company read routes (`src/company-read.ts`) serve `GET` only, with the same
+no-store headers as the calendar. `/v1/identities/resolve` and
+`/v1/routing-policy` parse and validate the reviewed `IDENTITY_BINDINGS_JSON`
+and `ROUTING_POLICY_JSON` snapshots on every read, answer `503` when either is
+missing or invalid, and never echo a binding's contents. The Project Timeline
+and Knowledge Flag reads replay at most 2,000 ledger entries and answer `413`
+beyond that, never truncating silently. Unknown and repeated query parameters
+answer `400`, like the calendar.
 
 The router's caller table (`catalogRoutes` in `src/routes.ts`) names every
 path and its audience; any other path answers `404`. The GitHub webhook, job

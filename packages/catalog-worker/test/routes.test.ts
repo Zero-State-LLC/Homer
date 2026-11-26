@@ -56,6 +56,18 @@ it("lists people only, and gives the admin audience exactly the admin paths", ()
     audience: "read",
   });
   expect(catalogRoute("/v1/credentials/")).toBeUndefined();
+  expect(catalogRoute("/v1/projects/project:fixture/timeline")).toEqual({
+    caller: "person",
+    audience: "read",
+  });
+  for (const path of [
+    "/v1/projects",
+    "/v1/projects/",
+    "/v1/projects/project:fixture",
+    "/v1/projects/project:fixture/timeline/extra",
+    "/v1/projects//timeline",
+  ])
+    expect(catalogRoute(path), path).toBeUndefined();
 });
 
 it("refuses machine routes and unlisted paths before any handler runs", async () => {

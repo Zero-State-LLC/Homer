@@ -1,0 +1,30 @@
+{
+  "name": "@zs-home/company-sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./mcp-server": {
+      "types": "./dist/mcp-server.d.ts",
+      "default": "./dist/mcp-server.js"
+    }
+  },
+  "bin": {
+    "homer-company-mcp": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "@zs-home/projections": "0.0.0",
+    "@zs-home/shared-contracts": "0.0.0"
+  }
+}

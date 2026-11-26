@@ -452,6 +452,44 @@ export function readFlagReport(
   });
 }
 
+/**
+ * One open Knowledge Flag as the input stage needs it: the Projection's fields, without the
+ * flag's text, which the curator reads from the flag's source at run time. Structurally a
+ * `ProjectedKnowledgeFlag` from `@zs-home/projections`, which this package does not depend on.
+ */
+export interface OpenKnowledgeFlagInput {
+  readonly eventKey: string;
+  readonly sourceSystem: "buzz" | "github" | "linear" | "software-factory";
+  readonly sourceUrl: string;
+  readonly gapKind: "missing" | "wrong" | "stale" | "unspecified";
+  readonly targetRef: string | null;
+  readonly observationHash: string | null;
+  /** The Langfuse run trace, by id and optional link only; the payload stays in Langfuse. */
+  readonly traceRef: {
+    readonly provider: "langfuse";
+    readonly traceId: string;
+    readonly url?: string;
+  } | null;
+  /** The software-factory Verdict this flag links to, when it names one. */
+  readonly linkedVerdict: {
+    readonly eventKey: string;
+    readonly packetId: string;
+    readonly repository: string;
+    readonly headSha: string;
+    readonly pr: number;
+    readonly result: "pass" | "fail";
+  } | null;
+  readonly status: "open" | "stuck" | "needs_human" | "resolved";
+  readonly curatorAttempts: number;
+}
+
+/** The flags a curator run works on: open and stuck, in ledger order. */
+export function openFlagsForCurator(
+  flags: readonly OpenKnowledgeFlagInput[],
+): OpenKnowledgeFlagInput[] {
+  return flags.filter((flag) => flag.status === "open" || flag.status === "stuck");
+}
+
 /** Container paths are the adapter's choice; the permission policy checks against them. */
 export interface WorkspaceHandle {
   readonly id: string;

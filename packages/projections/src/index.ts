@@ -297,3 +297,12 @@ export {
   type FleetAlertRequest,
   type FleetHeldOccurrence,
 } from "./fleet-alerts.js";
+export {
+  DEFAULT_STUCK_THRESHOLD,
+  projectOpenKnowledgeFlags,
+  type KnowledgeFlagProjection,
+  type KnowledgeFlagQueueView,
+  type KnowledgeFlagStatus,
+  type LinkedVerdictSummary,
+  type ProjectedKnowledgeFlag,
+} from "./knowledge-flags.js";

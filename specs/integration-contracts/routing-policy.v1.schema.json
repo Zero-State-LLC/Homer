@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://zero-state.llc/home/contracts/routing-policy/v1",
+  "title": "Routing Policy",
+  "description": "The versioned, read-only model and budget policy the Work Assignment Router reads. It names each provider's non-secret endpoint host, budgets and the credential's environment variable name, and each task class's ordered routes. It holds no secret, token, IP address or account id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract", "revision", "effectiveAt", "timeZone", "providers", "routes"],
+  "properties": {
+    "contract": {
+      "type": "string",
+      "const": "home.routing-policy/v1"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "effectiveAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
+      "description": "When this revision takes effect, UTC, ending in Z."
+    },
+    "timeZone": {
+      "type": "string",
+      "const": "America/Los_Angeles",
+      "description": "The zone the daily budgets are counted in."
+    },
+    "providers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$comment": "A provider is declared once; a route that names an undeclared provider is refused in code.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "provider",
+          "endpointHost",
+          "maxUsdPerCall",
+          "maxUsdPerPtDay",
+          "minCreditFloorUsd",
+          "credentialEnvName"
+        ],
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openrouter",
+              "qwen-studio",
+              "cloudflare-workers-ai",
+              "anthropic",
+              "openai",
+              "xai",
+              "local"
+            ]
+          },
+          "endpointHost": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 253,
+                "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A DNS hostname, or null when the caller knows the endpoint. Labels are letters, digits and hyphens, and the last label is letters, so an IPv4 literal is refused."
+          },
+          "maxUsdPerCall": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Maximum USD auto-approved for one call. 0 means local, free or no auto-spend."
+          },
+          "maxUsdPerPtDay": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Maximum USD per Pacific Time day, or null when uncapped."
+          },
+          "minCreditFloorUsd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Minimum remaining credit before abstaining, or null when not credit-billed."
+          },
+          "credentialEnvName": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The environment variable's name only. Never its value, and never a path to it."
+          }
+        }
+      }
+    },
+    "routes": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$comment": "Routes are ordered by (priority, routeId). One routeId is one rule, and one (taskClass, priority) pair is used once.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "routeId",
+          "taskClass",
+          "priority",
+          "provider",
+          "model",
+          "maxContextTokens",
+          "maxUsdPerCall",
+          "requiresHumanApprovalOverUsd"
+        ],
+        "properties": {
+          "routeId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$"
+          },
+          "taskClass": {
+            "type": "string",
+            "enum": [
+              "coding",
+              "repo_audit",
+              "spec_design",
+              "risk_classification",
+              "curator_run",
+              "general_local"
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Lower wins, then routeId, so the order is deterministic."
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "openrouter",
+              "qwen-studio",
+              "cloudflare-workers-ai",
+              "anthropic",
+              "openai",
+              "xai",
+              "local"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:/-]{1,128}$"
+          },
+          "reasoningEffort": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          },
+          "maxContextTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "maxUsdPerCall": {
+            "type": "number",
+            "minimum": 0
+          },
+          "requiresHumanApprovalOverUsd": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
